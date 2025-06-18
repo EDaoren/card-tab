@@ -1,0 +1,25 @@
+{
+  "name": "quick-nav-tab",
+  "version": "1.0.0",
+  "description": "A modern, customizable new tab page for Chrome browser",
+  "main": "index.html",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "author": "Your Name or Organization",
+  "license": "MIT",
+  "devDependencies": {
+    "archiver": "^5.3.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/quick-nav-tab"
+  },
+  "keywords": [
+    "chrome-extension",
+    "new-tab",
+    "productivity",
+    "bookmarks",
+    "shortcuts"
+  ]
+} 

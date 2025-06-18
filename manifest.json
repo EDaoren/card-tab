@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Nav Tab",
+  "version": "1.0.0",
+  "description": "A modern, customizable new tab page with categorized shortcuts, themes and background options",
+  "permissions": ["storage"],
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "author": "Your Name or Organization",
+  "homepage_url": "https://github.com/yourusername/quick-nav-tab",
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Quick Nav Tab"
+  }
+} 

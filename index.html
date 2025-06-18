@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Nav Tab</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+</head>
+<body class="theme-default">
+  <div class="background-container">
+    <div class="background-overlay"></div>
+  </div>
+  
+  <div class="container">
+    <header>
+      <div class="search-container">
+        <div class="search-box">
+          <span class="material-symbols-rounded">search</span>
+          <input type="text" id="search-input" placeholder="搜索或输入网址">
+        </div>
+      </div>
+    </header>
+    
+    <main id="categories-container" class="grid-view">
+      <!-- Categories will be dynamically inserted here -->
+    </main>
+
+    <div class="floating-buttons">
+      <button id="theme-btn" class="view-btn" title="切换主题">
+        <span class="material-symbols-rounded">palette</span>
+      </button>
+      <button id="grid-view-btn" class="view-btn active" title="网格视图">
+        <span class="material-symbols-rounded">grid_view</span>
+      </button>
+      <button id="list-view-btn" class="view-btn" title="列表视图">
+        <span class="material-symbols-rounded">view_list</span>
+      </button>
+      <button id="add-category-btn" class="add-btn" title="添加分类">
+        <span class="material-symbols-rounded">add</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Templates -->
+  <div id="category-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="category-modal-title">添加分类</h2>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="category-form">
+          <input type="hidden" id="category-id">
+          <div class="form-group">
+            <label for="category-name">分类名称</label>
+            <input type="text" id="category-name" required>
+          </div>
+          <div class="form-group">
+            <label for="category-color">分类颜色</label>
+            <input type="color" id="category-color" value="#4285f4">
+          </div>
+          <div class="form-actions">
+            <button type="button" id="delete-category-btn" class="delete-btn">删除</button>
+            <button type="submit" class="save-btn">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="shortcut-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="shortcut-modal-title">添加快捷方式</h2>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="shortcut-form">
+          <input type="hidden" id="shortcut-id">
+          <input type="hidden" id="shortcut-category-id">
+          <div class="form-group">
+            <label for="shortcut-url">网址</label>
+            <div class="url-input-container">
+              <input type="url" id="shortcut-url" required placeholder="https://">
+              <button type="button" id="fetch-url-info" title="获取网站信息">
+                <span class="material-symbols-rounded">download</span>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="shortcut-name">名称</label>
+            <input type="text" id="shortcut-name" required>
+          </div>
+          <div class="form-group">
+            <label>图标设置</label>
+            <div class="icon-options">
+              <div class="icon-option">
+                <input type="radio" id="icon-type-letter" name="icon-type" value="letter" checked>
+                <label for="icon-type-letter">使用首字母</label>
+              </div>
+              <div class="icon-option">
+                <input type="radio" id="icon-type-favicon" name="icon-type" value="favicon">
+                <label for="icon-type-favicon">使用网站图标</label>
+              </div>
+              <div class="icon-option">
+                <input type="radio" id="icon-type-custom" name="icon-type" value="custom">
+                <label for="icon-type-custom">自定义图标</label>
+              </div>
+            </div>
+          </div>
+          <div id="favicon-preview" class="form-group hidden">
+            <label>网站图标预览</label>
+            <div class="favicon-container">
+              <img id="favicon-image" src="" alt="网站图标">
+              <p class="note">自动从网站获取的图标</p>
+            </div>
+          </div>
+          <div id="custom-icon-form" class="form-group hidden">
+            <label for="shortcut-icon-url">图标URL</label>
+            <input type="url" id="shortcut-icon-url" placeholder="https://example.com/icon.png">
+          </div>
+          <div id="letter-icon-form" class="form-group">
+            <label for="shortcut-color">图标背景色</label>
+            <input type="color" id="shortcut-color" value="#4285f4">
+          </div>
+          <div class="form-actions">
+            <button type="button" id="delete-shortcut-btn" class="delete-btn">删除</button>
+            <button type="submit" class="save-btn">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Selection Modal -->
+  <div id="theme-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>背景设置</h2>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="themes-section">
+          <h3>选择主题颜色</h3>
+          <div class="theme-options">
+            <div class="theme-option" data-theme="default">
+              <div class="theme-preview theme-default"></div>
+              <span>默认白</span>
+            </div>
+            <div class="theme-option" data-theme="blue">
+              <div class="theme-preview theme-blue"></div>
+              <span>淡蓝</span>
+            </div>
+            <div class="theme-option" data-theme="green">
+              <div class="theme-preview theme-green"></div>
+              <span>薄荷</span>
+            </div>
+            <div class="theme-option" data-theme="purple">
+              <div class="theme-preview theme-purple"></div>
+              <span>紫晶</span>
+            </div>
+            <div class="theme-option" data-theme="pink">
+              <div class="theme-preview theme-pink"></div>
+              <span>粉彩</span>
+            </div>
+            <div class="theme-option" data-theme="dark">
+              <div class="theme-preview theme-dark"></div>
+              <span>暗夜</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-image-section">
+          <h3>自定义背景图片</h3>
+          <div class="form-group">
+            <div id="background-preview" class="background-preview">
+              <img id="background-preview-img" src="" alt="背景预览">
+              <div class="no-bg-placeholder">无背景图片</div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>上传背景图片</label>
+            <input type="file" id="bg-image-upload" accept="image/*" class="file-input">
+            <label for="bg-image-upload" class="file-input-label">
+              <span class="material-symbols-rounded">upload_file</span>
+              选择图片
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label for="bg-opacity">背景透明度</label>
+            <div class="range-with-value">
+              <input type="range" id="bg-opacity" min="0" max="100" value="30">
+              <span id="bg-opacity-value">30%</span>
+            </div>
+          </div>
+          
+          <div class="form-actions centered">
+            <button type="button" id="remove-bg-btn" class="delete-btn">移除背景图</button>
+            <button type="button" id="apply-bg-btn" class="save-btn">应用背景</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/category.js"></script>
+  <script src="js/shortcut.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/view.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html> 
