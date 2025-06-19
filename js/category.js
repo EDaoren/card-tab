@@ -363,5 +363,5 @@ class CategoryManager {
   }
 }
 
-// Create instance
-const categoryManager = new CategoryManager(); 
+// Create instance - will be initialized in main.js
+let categoryManager;

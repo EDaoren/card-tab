@@ -134,8 +134,8 @@ class ViewManager {
   }
 }
 
-// Create instance
-const viewManager = new ViewManager(); 
+// Create instance - will be initialized in main.js
+let viewManager;
 
 // 导出模态框函数
 window.openModal = openModal;

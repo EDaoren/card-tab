@@ -289,5 +289,5 @@ class ShortcutManager {
   }
 }
 
-// Create instance
-const shortcutManager = new ShortcutManager(); 
+// Create instance - will be initialized in main.js
+let shortcutManager;

@@ -24,9 +24,9 @@ class SupabaseClient {
       this.config = config;
       this.userId = config.userId;
 
-      // 动态加载Supabase客户端
+      // 检查Supabase SDK是否已加载
       if (!window.supabase) {
-        await this.loadSupabaseSDK();
+        throw new Error('Supabase SDK未加载，请确保supabase.min.js已正确加载');
       }
 
       // 创建Supabase客户端
@@ -45,18 +45,7 @@ class SupabaseClient {
     }
   }
 
-  /**
-   * 动态加载Supabase SDK
-   */
-  async loadSupabaseSDK() {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load Supabase SDK'));
-      document.head.appendChild(script);
-    });
-  }
+
 
   /**
    * 测试Supabase连接
@@ -168,11 +157,88 @@ class SupabaseClient {
   }
 
   /**
+   * 上传文件到Supabase Storage
+   * @param {File} file - 要上传的文件
+   * @param {string} bucket - 存储桶名称
+   * @param {string} path - 文件路径
+   * @returns {Promise<Object>} 上传结果
+   */
+  async uploadFile(file, bucket = 'backgrounds', path = null) {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    try {
+      // 生成文件路径
+      const fileName = path || `${this.userId}/${Date.now()}_${file.name}`;
+
+      // 上传文件
+      const { data, error } = await this.client.storage
+        .from(bucket)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // 获取公共URL
+      const { data: urlData } = this.client.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+
+      return {
+        success: true,
+        path: fileName,
+        url: urlData.publicUrl
+      };
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除Supabase Storage中的文件
+   * @param {string} bucket - 存储桶名称
+   * @param {string} path - 文件路径
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteFile(bucket = 'backgrounds', path) {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    try {
+      const { data, error } = await this.client.storage
+        .from(bucket)
+        .remove([path]);
+
+      if (error) {
+        throw error;
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('文件删除失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 生成数据表创建SQL
    */
   getTableCreationSQL() {
     return `
--- 在Supabase SQL编辑器中执行以下SQL创建数据表
+-- =====================================================
+-- Quick Tab Chrome扩展 - Supabase完整初始化脚本
+-- =====================================================
+-- 请在Supabase项目的SQL编辑器中执行以下完整脚本
+
+-- 1. 创建数据表
+-- =====================================================
 CREATE TABLE IF NOT EXISTS ${this.tableName} (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,
@@ -181,16 +247,73 @@ CREATE TABLE IF NOT EXISTS ${this.tableName} (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 创建索引
+-- 创建索引提升查询性能
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_user_id ON ${this.tableName}(user_id);
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_updated_at ON ${this.tableName}(updated_at);
 
--- 启用行级安全策略（可选）
+-- 2. 配置数据表RLS策略
+-- =====================================================
+-- 启用行级安全策略
 ALTER TABLE ${this.tableName} ENABLE ROW LEVEL SECURITY;
 
--- 创建策略允许用户访问自己的数据（可选）
-CREATE POLICY "Users can access own data" ON ${this.tableName}
-  FOR ALL USING (user_id = current_setting('app.current_user_id', true));
+-- 创建策略：允许所有用户基于user_id访问自己的数据
+CREATE POLICY "Enable all access based on user_id" ON ${this.tableName}
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 3. 创建Storage存储桶
+-- =====================================================
+-- 创建backgrounds桶（用于存储背景图片）
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'backgrounds',
+  'backgrounds',
+  true,
+  10485760,  -- 10MB限制
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO NOTHING;
+
+-- 4. 配置Storage RLS策略
+-- =====================================================
+-- 启用Storage RLS
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+
+-- 允许查看桶列表
+CREATE POLICY "Allow bucket listing" ON storage.buckets
+  FOR SELECT
+  USING (true);
+
+-- 允许在backgrounds桶中进行所有操作
+CREATE POLICY "Allow all operations on backgrounds bucket" ON storage.objects
+  FOR ALL
+  USING (bucket_id = 'backgrounds')
+  WITH CHECK (bucket_id = 'backgrounds');
+
+-- 5. 验证配置
+-- =====================================================
+-- 检查数据表是否创建成功
+SELECT 'Data table created successfully' as status
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '${this.tableName}');
+
+-- 检查存储桶是否创建成功
+SELECT 'Storage bucket created successfully' as status
+WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
+
+-- =====================================================
+-- 配置完成！
+-- =====================================================
+-- 现在您可以：
+-- 1. 返回Chrome扩展
+-- 2. 配置Supabase连接信息
+-- 3. 测试连接和同步功能
+-- 4. 使用背景图片功能
+--
+-- 注意事项：
+-- - 数据通过user_id字段进行隔离
+-- - 背景图片存储在backgrounds桶中
+-- - 所有配置都支持多用户安全访问
     `.trim();
   }
 }

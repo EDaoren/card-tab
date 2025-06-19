@@ -17,8 +17,40 @@
     <header>
       <div class="search-container">
         <div class="search-box">
-          <span class="material-symbols-rounded">search</span>
-          <input type="text" id="search-input" placeholder="搜索或输入网址">
+          <div class="search-input-row">
+            <div class="search-engine-selector">
+              <img src="https://www.google.com/favicon.ico" alt="Google" class="search-engine-icon">
+              <span class="search-engine-dropdown">
+                <span class="material-symbols-rounded">expand_more</span>
+              </span>
+              <!-- 下拉菜单 -->
+              <div class="search-engine-dropdown-menu">
+                <div class="search-engine-option" data-engine="0">
+                  <img src="https://www.google.com/favicon.ico" alt="Google">
+                  <span>Google</span>
+                </div>
+                <div class="search-engine-option" data-engine="1">
+                  <img src="https://www.bing.com/favicon.ico" alt="Bing">
+                  <span>Bing</span>
+                </div>
+                <div class="search-engine-option" data-engine="2">
+                  <img src="https://www.baidu.com/favicon.ico" alt="Baidu">
+                  <span>百度</span>
+                </div>
+                <div class="search-engine-option" data-engine="3">
+                  <img src="https://duckduckgo.com/favicon.ico" alt="DuckDuckGo">
+                  <span>DuckDuckGo</span>
+                </div>
+              </div>
+            </div>
+            <div class="search-input-container">
+              <input type="text" id="search-input" placeholder="搜索快捷方式和分类..." autocomplete="off" spellcheck="false">
+            </div>
+            <button class="search-button" type="button">
+              <span class="material-symbols-rounded">search</span>
+            </button>
+          </div>
+          <!-- 搜索结果将在这里显示 -->
         </div>
       </div>
     </header>
@@ -187,6 +219,7 @@
               <h4>需要云端存储支持</h4>
               <p>背景图片功能支持高清4K图片，需要云端存储空间。</p>
               <p>配置Supabase后即可上传和同步您的个性化背景。</p>
+              <p><small>💡 提示：执行完整的初始化脚本后，存储功能将自动配置完成</small></p>
               <button id="setup-supabase-btn" class="save-btn">
                 <span class="material-symbols-rounded">settings</span>
                 立即配置云端同步
@@ -205,12 +238,17 @@
 
             <div class="form-group">
               <label>上传背景图片</label>
-              <input type="file" id="bg-image-upload" accept="image/*" class="file-input">
-              <label for="bg-image-upload" class="file-input-label">
-                <span class="material-symbols-rounded">upload_file</span>
-                选择图片
-              </label>
-              <small>支持JPG、PNG格式，推荐使用高分辨率图片获得最佳效果</small>
+              <div class="upload-area">
+                <input type="file" id="bg-image-upload" accept="image/*" class="file-input">
+                <label for="bg-image-upload" class="file-input-label">
+                  <span class="material-symbols-rounded">cloud_upload</span>
+                  选择图片文件
+                </label>
+                <div class="upload-hint">
+                  <small>支持 JPG、PNG、WebP 格式，最大 10MB</small>
+                  <small>推荐使用高分辨率图片获得最佳效果</small>
+                </div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -296,12 +334,13 @@
           <div class="setup-guide">
             <ol>
               <li>在 <a href="https://supabase.com" target="_blank">Supabase</a> 创建免费账户和项目</li>
-              <li>在项目的SQL编辑器中执行数据表创建脚本</li>
+              <li><strong>执行完整初始化脚本</strong>：在项目的SQL编辑器中执行下方的完整脚本（包含数据表和Storage配置）</li>
               <li>复制项目URL和匿名密钥到上方配置</li>
               <li>设置唯一的用户标识（建议使用邮箱）</li>
               <li>点击"测试连接"验证配置</li>
               <li>启用云端同步开始多端数据同步</li>
             </ol>
+            <p><strong>💡 提示：</strong>新的初始化脚本已包含Storage桶创建和所有安全策略配置，一次执行即可完成所有设置！</p>
             <button id="show-sql" class="link-btn">查看数据表创建脚本</button>
           </div>
         </div>
@@ -326,6 +365,7 @@
     </div>
   </div>
 
+  <script src="js/supabase.min.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/sync-manager.js"></script>

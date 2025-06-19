@@ -304,7 +304,12 @@ class SyncUIManager {
       this.showMessage('连接测试成功！', 'success');
     } catch (error) {
       console.error('连接测试失败:', error);
-      this.showMessage(`连接测试失败: ${error.message}`, 'error');
+
+      if (error.message.includes('数据表不存在')) {
+        this.showMessage('连接成功，但数据表不存在。请点击"显示SQL脚本"创建数据表。', 'error');
+      } else {
+        this.showMessage(`连接测试失败: ${error.message}`, 'error');
+      }
     } finally {
       testBtn.textContent = originalText;
       testBtn.disabled = false;
@@ -329,7 +334,27 @@ class SyncUIManager {
       this.showMessage('云端同步已启用！', 'success');
     } catch (error) {
       console.error('启用同步失败:', error);
-      this.showMessage(`启用同步失败: ${error.message}`, 'error');
+
+      // 检查是否是RLS相关错误
+      if (error.code === '42501' || error.message.includes('row-level security')) {
+        this.showMessage('启用同步失败：数据表的行级安全策略阻止了数据访问。请查看设置指南中的解决方案。', 'error');
+
+        // 显示详细的修复指导
+        setTimeout(() => {
+          alert(`数据表权限问题修复方案：
+
+1. 打开 Supabase Dashboard
+2. 进入 SQL Editor
+3. 执行以下命令：
+
+ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+
+这将禁用行级安全策略，允许数据访问。
+详细说明请查看项目中的 SUPABASE_FIX_RLS.md 文件。`);
+        }, 100);
+      } else {
+        this.showMessage(`启用同步失败: ${error.message}`, 'error');
+      }
     } finally {
       enableBtn.textContent = originalText;
       enableBtn.disabled = false;

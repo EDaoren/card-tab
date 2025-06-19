@@ -130,27 +130,51 @@ class StorageManager {
    */
   async init() {
     try {
+      console.log('StorageManager: Starting initialization...');
+
       // Initialize sync manager first
+      console.log('StorageManager: Initializing sync manager...');
       await syncManager.init();
+      console.log('StorageManager: Sync manager initialized');
 
       // Load data using sync manager (handles Chrome Storage + Supabase)
+      console.log('StorageManager: Loading data...');
       const result = await syncManager.loadData();
+      console.log('StorageManager: Data loaded:', result ? 'success' : 'no data');
 
       // If no data exists, use default data
       if (!result || Object.keys(result).length === 0 || !result.categories) {
+        console.log('StorageManager: Using default data');
         this.data = DEFAULT_DATA;
-        await syncManager.saveData(this.data);
+        try {
+          await syncManager.saveData(this.data);
+          console.log('StorageManager: Default data saved');
+        } catch (saveError) {
+          console.warn('StorageManager: Failed to save default data:', saveError);
+        }
       } else {
         // Remove metadata if present
         const { _metadata, ...cleanData } = result;
         this.data = cleanData;
+        console.log('StorageManager: Loaded existing data with', this.data.categories?.length || 0, 'categories');
       }
 
       return this.data;
     } catch (error) {
-      console.error('Error initializing storage:', error);
+      console.error('StorageManager: Error during initialization:', error);
+
       // Fallback to default data if there's an error
+      console.log('StorageManager: Using fallback default data');
       this.data = DEFAULT_DATA;
+
+      // Try to save to local storage as backup
+      try {
+        localStorage.setItem('quickNavData', JSON.stringify(this.data));
+        console.log('StorageManager: Fallback data saved to localStorage');
+      } catch (localError) {
+        console.warn('StorageManager: Failed to save to localStorage:', localError);
+      }
+
       return this.data;
     }
   }

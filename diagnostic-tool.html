@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>搜索功能诊断工具</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .diagnostic-section {
+      background: white;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .diagnostic-section h3 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #4285f4;
+      padding-bottom: 10px;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 8px 0;
+      font-family: monospace;
+    }
+    .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    .warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+    .info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .test-button {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .test-button:hover {
+      background: #3367d6;
+    }
+    .test-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 搜索功能诊断工具</h1>
+  <p>这个工具将帮助我们诊断搜索功能的问题</p>
+
+  <div class="diagnostic-section">
+    <h3>1. JavaScript文件加载检查</h3>
+    <div id="js-loading-check"></div>
+    <button class="test-button" onclick="checkJSLoading()">检查JS文件加载</button>
+  </div>
+
+  <div class="diagnostic-section">
+    <h3>2. DOM元素检查</h3>
+    <div id="dom-check"></div>
+    <button class="test-button" onclick="checkDOMElements()">检查DOM元素</button>
+  </div>
+
+  <div class="diagnostic-section">
+    <h3>3. 管理器实例检查</h3>
+    <div id="manager-check"></div>
+    <button class="test-button" onclick="checkManagers()">检查管理器实例</button>
+  </div>
+
+  <div class="diagnostic-section">
+    <h3>4. 事件监听器检查</h3>
+    <div id="event-check"></div>
+    <button class="test-button" onclick="checkEventListeners()">检查事件监听器</button>
+  </div>
+
+  <div class="diagnostic-section">
+    <h3>5. 控制台错误日志</h3>
+    <div id="console-errors"></div>
+    <button class="test-button" onclick="checkConsoleErrors()">检查控制台错误</button>
+  </div>
+
+  <div class="diagnostic-section">
+    <h3>6. 手动功能测试</h3>
+    <div id="manual-test"></div>
+    <button class="test-button" onclick="testSearchEngine()">测试搜索引擎下拉框</button>
+    <button class="test-button" onclick="testSearch()">测试搜索功能</button>
+  </div>
+
+  <!-- 加载原始项目的所有JavaScript文件 -->
+  <script src="js/supabase.min.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/sync-manager.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/sync-ui.js"></script>
+  <script src="js/category.js"></script>
+  <script src="js/shortcut.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/view.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/main.js"></script>
+
+  <script>
+    // 错误收集
+    const errors = [];
+    const logs = [];
+
+    // 捕获所有错误
+    window.addEventListener('error', (e) => {
+      errors.push({
+        type: 'JavaScript Error',
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        stack: e.error ? e.error.stack : 'No stack trace'
+      });
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      errors.push({
+        type: 'Promise Rejection',
+        message: e.reason.toString(),
+        stack: e.reason.stack || 'No stack trace'
+      });
+    });
+
+    // 重写console.log来捕获日志
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    console.log = function(...args) {
+      logs.push({ type: 'log', args: args });
+      originalLog.apply(console, args);
+    };
+
+    console.error = function(...args) {
+      logs.push({ type: 'error', args: args });
+      originalError.apply(console, args);
+    };
+
+    console.warn = function(...args) {
+      logs.push({ type: 'warn', args: args });
+      originalWarn.apply(console, args);
+    };
+
+    function addStatus(containerId, message, type = 'info') {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = `status ${type}`;
+      div.innerHTML = message;
+      container.appendChild(div);
+    }
+
+    function checkJSLoading() {
+      const container = document.getElementById('js-loading-check');
+      container.innerHTML = '';
+
+      const jsFiles = [
+        'supabase.min.js', 'icons.js', 'supabase-client.js', 'sync-manager.js',
+        'storage.js', 'sync-ui.js', 'category.js', 'shortcut.js', 
+        'search.js', 'view.js', 'theme.js', 'main.js'
+      ];
+
+      const globalObjects = [
+        { name: 'supabase', obj: window.supabase },
+        { name: 'StorageManager', obj: window.StorageManager },
+        { name: 'SearchManager', obj: window.SearchManager },
+        { name: 'CategoryManager', obj: window.CategoryManager },
+        { name: 'ShortcutManager', obj: window.ShortcutManager },
+        { name: 'ViewManager', obj: window.ViewManager }
+      ];
+
+      globalObjects.forEach(check => {
+        if (check.obj) {
+          addStatus('js-loading-check', `✅ ${check.name} 类已加载`, 'success');
+        } else {
+          addStatus('js-loading-check', `❌ ${check.name} 类未找到`, 'error');
+        }
+      });
+
+      // 检查实例
+      const instances = [
+        { name: 'storageManager', obj: window.storageManager },
+        { name: 'searchManager', obj: window.searchManager },
+        { name: 'categoryManager', obj: window.categoryManager },
+        { name: 'shortcutManager', obj: window.shortcutManager },
+        { name: 'viewManager', obj: window.viewManager }
+      ];
+
+      instances.forEach(check => {
+        if (check.obj) {
+          addStatus('js-loading-check', `✅ ${check.name} 实例已创建`, 'success');
+        } else {
+          addStatus('js-loading-check', `❌ ${check.name} 实例未找到`, 'error');
+        }
+      });
+    }
+
+    function checkDOMElements() {
+      const container = document.getElementById('dom-check');
+      container.innerHTML = '';
+
+      const elements = [
+        'search-input',
+        'search-engine-selector',
+        'search-engine-icon',
+        'search-engine-dropdown-menu',
+        'categories-container'
+      ];
+
+      elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          addStatus('dom-check', `✅ #${id} 元素存在`, 'success');
+        } else {
+          addStatus('dom-check', `❌ #${id} 元素不存在`, 'error');
+        }
+      });
+
+      // 检查CSS类
+      const classes = [
+        '.search-box',
+        '.search-dropdown',
+        '.search-engine-option'
+      ];
+
+      classes.forEach(className => {
+        const elements = document.querySelectorAll(className);
+        if (elements.length > 0) {
+          addStatus('dom-check', `✅ ${className} 找到 ${elements.length} 个元素`, 'success');
+        } else {
+          addStatus('dom-check', `❌ ${className} 未找到元素`, 'error');
+        }
+      });
+    }
+
+    function checkManagers() {
+      const container = document.getElementById('manager-check');
+      container.innerHTML = '';
+
+      try {
+        if (window.searchManager) {
+          addStatus('manager-check', '✅ searchManager 存在', 'success');
+          
+          // 检查searchManager的属性
+          const props = ['searchInput', 'searchBox', 'searchEngineSelector'];
+          props.forEach(prop => {
+            if (window.searchManager[prop]) {
+              addStatus('manager-check', `✅ searchManager.${prop} 存在`, 'success');
+            } else {
+              addStatus('manager-check', `❌ searchManager.${prop} 不存在`, 'error');
+            }
+          });
+        } else {
+          addStatus('manager-check', '❌ searchManager 不存在', 'error');
+        }
+
+        if (window.storageManager) {
+          addStatus('manager-check', '✅ storageManager 存在', 'success');
+          
+          if (window.storageManager.data) {
+            addStatus('manager-check', '✅ storageManager.data 存在', 'success');
+            
+            if (window.storageManager.data.categories) {
+              const count = window.storageManager.data.categories.length;
+              addStatus('manager-check', `✅ 找到 ${count} 个分类`, 'success');
+            } else {
+              addStatus('manager-check', '❌ storageManager.data.categories 不存在', 'error');
+            }
+          } else {
+            addStatus('manager-check', '❌ storageManager.data 不存在', 'error');
+          }
+        } else {
+          addStatus('manager-check', '❌ storageManager 不存在', 'error');
+        }
+      } catch (error) {
+        addStatus('manager-check', `❌ 检查管理器时出错: ${error.message}`, 'error');
+      }
+    }
+
+    function checkEventListeners() {
+      const container = document.getElementById('event-check');
+      container.innerHTML = '';
+
+      // 检查搜索引擎选择器的事件监听器
+      const selector = document.querySelector('.search-engine-selector');
+      if (selector) {
+        addStatus('event-check', '✅ 搜索引擎选择器元素存在', 'success');
+        
+        // 尝试触发点击事件
+        try {
+          const clickEvent = new Event('click', { bubbles: true });
+          selector.dispatchEvent(clickEvent);
+          addStatus('event-check', '✅ 点击事件已触发', 'success');
+        } catch (error) {
+          addStatus('event-check', `❌ 触发点击事件失败: ${error.message}`, 'error');
+        }
+      } else {
+        addStatus('event-check', '❌ 搜索引擎选择器元素不存在', 'error');
+      }
+
+      // 检查搜索输入框的事件监听器
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) {
+        addStatus('event-check', '✅ 搜索输入框元素存在', 'success');
+        
+        try {
+          const inputEvent = new Event('input', { bubbles: true });
+          searchInput.value = '测试';
+          searchInput.dispatchEvent(inputEvent);
+          addStatus('event-check', '✅ 输入事件已触发', 'success');
+        } catch (error) {
+          addStatus('event-check', `❌ 触发输入事件失败: ${error.message}`, 'error');
+        }
+      } else {
+        addStatus('event-check', '❌ 搜索输入框元素不存在', 'error');
+      }
+    }
+
+    function checkConsoleErrors() {
+      const container = document.getElementById('console-errors');
+      container.innerHTML = '';
+
+      if (errors.length === 0) {
+        addStatus('console-errors', '✅ 没有JavaScript错误', 'success');
+      } else {
+        addStatus('console-errors', `❌ 发现 ${errors.length} 个错误:`, 'error');
+        errors.forEach((error, index) => {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'status error';
+          errorDiv.innerHTML = `
+            <strong>错误 ${index + 1}: ${error.type}</strong><br>
+            ${error.message}<br>
+            ${error.filename ? `文件: ${error.filename}:${error.lineno}:${error.colno}` : ''}
+            <pre>${error.stack}</pre>
+          `;
+          container.appendChild(errorDiv);
+        });
+      }
+
+      // 显示控制台日志
+      if (logs.length > 0) {
+        addStatus('console-errors', `📝 控制台日志 (${logs.length} 条):`, 'info');
+        const logDiv = document.createElement('pre');
+        logDiv.textContent = logs.map(log => 
+          `[${log.type}] ${log.args.map(arg => 
+            typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+          ).join(' ')}`
+        ).join('\n');
+        container.appendChild(logDiv);
+      }
+    }
+
+    function testSearchEngine() {
+      const container = document.getElementById('manual-test');
+      
+      const selector = document.querySelector('.search-engine-selector');
+      if (selector) {
+        addStatus('manual-test', '🔄 尝试点击搜索引擎选择器...', 'info');
+        selector.click();
+        
+        setTimeout(() => {
+          const isOpen = selector.classList.contains('open');
+          if (isOpen) {
+            addStatus('manual-test', '✅ 搜索引擎下拉框已打开', 'success');
+          } else {
+            addStatus('manual-test', '❌ 搜索引擎下拉框未打开', 'error');
+          }
+        }, 100);
+      } else {
+        addStatus('manual-test', '❌ 搜索引擎选择器不存在', 'error');
+      }
+    }
+
+    function testSearch() {
+      const container = document.getElementById('manual-test');
+      
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) {
+        addStatus('manual-test', '🔄 尝试搜索功能...', 'info');
+        searchInput.value = '知乎';
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        setTimeout(() => {
+          const dropdown = document.querySelector('.search-dropdown');
+          if (dropdown && dropdown.style.display !== 'none') {
+            addStatus('manual-test', '✅ 搜索下拉框已显示', 'success');
+          } else {
+            addStatus('manual-test', '❌ 搜索下拉框未显示', 'error');
+          }
+        }, 100);
+      } else {
+        addStatus('manual-test', '❌ 搜索输入框不存在', 'error');
+      }
+    }
+
+    // 页面加载完成后自动运行一些检查
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        checkJSLoading();
+        checkConsoleErrors();
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>搜索功能调试</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="fonts/material-symbols-rounded.css">
+  <style>
+    body {
+      padding: 50px;
+      background: #f5f5f5;
+    }
+    .debug-info {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .debug-info h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .debug-info pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body class="theme-default">
+  <div class="debug-info">
+    <h3>搜索功能调试</h3>
+    <p>测试搜索框和搜索引擎下拉框功能</p>
+  </div>
+
+  <div class="search-container">
+    <div class="search-box">
+      <div class="search-input-row">
+        <div class="search-engine-selector">
+          <img src="https://www.google.com/favicon.ico" alt="Google" class="search-engine-icon">
+          <span class="search-engine-dropdown">
+            <span class="material-symbols-rounded">expand_more</span>
+          </span>
+          <!-- 下拉菜单 -->
+          <div class="search-engine-dropdown-menu">
+            <div class="search-engine-option" data-engine="0">
+              <img src="https://www.google.com/favicon.ico" alt="Google">
+              <span>Google</span>
+            </div>
+            <div class="search-engine-option" data-engine="1">
+              <img src="https://www.bing.com/favicon.ico" alt="Bing">
+              <span>Bing</span>
+            </div>
+            <div class="search-engine-option" data-engine="2">
+              <img src="https://www.baidu.com/favicon.ico" alt="Baidu">
+              <span>百度</span>
+            </div>
+            <div class="search-engine-option" data-engine="3">
+              <img src="https://duckduckgo.com/favicon.ico" alt="DuckDuckGo">
+              <span>DuckDuckGo</span>
+            </div>
+          </div>
+        </div>
+        <div class="search-input-container">
+          <input type="text" id="search-input" placeholder="搜索快捷方式和分类...">
+        </div>
+        <button class="search-button" type="button">
+          <span class="material-symbols-rounded">search</span>
+        </button>
+      </div>
+      <!-- 搜索结果将在这里显示 -->
+    </div>
+  </div>
+
+  <div class="debug-info">
+    <h3>调试信息</h3>
+    <div id="debug-output">
+      <p>等待用户操作...</p>
+    </div>
+  </div>
+
+  <script>
+    // 简化的调试版本
+    class DebugSearchManager {
+      constructor() {
+        this.searchInput = document.getElementById('search-input');
+        this.searchButton = document.querySelector('.search-button');
+        this.searchEngineSelector = document.querySelector('.search-engine-selector');
+        this.searchEngineIcon = document.querySelector('.search-engine-icon');
+        this.searchBox = document.querySelector('.search-box');
+        this.debugOutput = document.getElementById('debug-output');
+        
+        this.log('SearchManager 初始化开始');
+        
+        // 创建搜索结果下拉框
+        this.createSearchDropdown();
+        
+        // 搜索引擎配置
+        this.searchEngines = [
+          {
+            name: 'Google',
+            icon: 'https://www.google.com/favicon.ico',
+            url: 'https://www.google.com/search?q='
+          },
+          {
+            name: 'Bing',
+            icon: 'https://www.bing.com/favicon.ico',
+            url: 'https://www.bing.com/search?q='
+          },
+          {
+            name: 'Baidu',
+            icon: 'https://www.baidu.com/favicon.ico',
+            url: 'https://www.baidu.com/s?wd='
+          },
+          {
+            name: 'DuckDuckGo',
+            icon: 'https://duckduckgo.com/favicon.ico',
+            url: 'https://duckduckgo.com/?q='
+          }
+        ];
+
+        this.currentSearchEngine = 0;
+        this.bindEvents();
+        this.updateSearchEngineIcon();
+        
+        this.log('SearchManager 初始化完成');
+      }
+
+      log(message) {
+        console.log(message);
+        const time = new Date().toLocaleTimeString();
+        this.debugOutput.innerHTML += `<p>[${time}] ${message}</p>`;
+      }
+
+      createSearchDropdown() {
+        this.searchDropdown = document.createElement('div');
+        this.searchDropdown.className = 'search-dropdown';
+        this.searchDropdown.style.display = 'none';
+        this.searchBox.appendChild(this.searchDropdown);
+        this.log('搜索下拉框已创建');
+      }
+
+      bindEvents() {
+        this.log('开始绑定事件');
+        
+        // Search input events
+        if (this.searchInput) {
+          this.searchInput.addEventListener('input', (e) => {
+            this.log(`搜索输入: "${e.target.value}"`);
+            this.handleRealTimeSearch(e.target.value);
+          });
+          
+          this.searchInput.addEventListener('focus', () => {
+            this.log('搜索框获得焦点');
+          });
+          
+          this.searchInput.addEventListener('blur', () => {
+            this.log('搜索框失去焦点');
+          });
+        }
+
+        // Search engine selector click
+        if (this.searchEngineSelector) {
+          this.searchEngineSelector.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.log('搜索引擎选择器被点击');
+            this.toggleDropdown();
+          });
+        }
+
+        // Search engine options click
+        const engineOptions = document.querySelectorAll('.search-engine-option');
+        this.log(`找到 ${engineOptions.length} 个搜索引擎选项`);
+        
+        engineOptions.forEach((option, index) => {
+          option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const engineIndex = parseInt(option.dataset.engine);
+            this.log(`选择搜索引擎: ${this.searchEngines[engineIndex].name}`);
+            this.selectSearchEngine(engineIndex);
+          });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+          this.log('点击外部区域，关闭下拉框');
+          this.closeDropdown();
+        });
+        
+        this.log('事件绑定完成');
+      }
+
+      handleRealTimeSearch(query) {
+        const trimmedQuery = query.trim().toLowerCase();
+        
+        if (!trimmedQuery) {
+          this.hideSearchDropdown();
+          return;
+        }
+
+        // 模拟搜索结果
+        this.showSearchResults(trimmedQuery);
+      }
+
+      showSearchResults(query) {
+        this.log(`显示搜索结果: "${query}"`);
+        
+        // 模拟一些搜索结果
+        const mockResults = [
+          { type: 'shortcut', name: '知乎', url: 'https://zhihu.com' },
+          { type: 'shortcut', name: '知识星球', url: 'https://zsxq.com' }
+        ].filter(item => item.name.toLowerCase().includes(query));
+
+        this.renderSearchResults(mockResults);
+        this.showSearchDropdown();
+      }
+
+      renderSearchResults(results) {
+        if (results.length === 0) {
+          this.searchDropdown.innerHTML = `
+            <div class="search-result-item no-results">
+              <span>未找到匹配结果</span>
+            </div>
+          `;
+          return;
+        }
+
+        this.searchDropdown.innerHTML = results.map(result => `
+          <div class="search-result-item">
+            <div class="result-content">
+              <div class="result-title">${result.name}</div>
+              <div class="result-subtitle">${result.url}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      showSearchDropdown() {
+        this.log('显示搜索下拉框');
+        this.searchDropdown.style.display = 'block';
+        this.searchBox.classList.add('has-results');
+      }
+
+      hideSearchDropdown() {
+        this.log('隐藏搜索下拉框');
+        this.searchDropdown.style.display = 'none';
+        this.searchBox.classList.remove('has-results');
+      }
+
+      toggleDropdown() {
+        const isOpen = this.searchEngineSelector.classList.contains('open');
+        this.log(`切换搜索引擎下拉框: ${isOpen ? '关闭' : '打开'}`);
+        
+        if (isOpen) {
+          this.closeDropdown();
+        } else {
+          this.searchEngineSelector.classList.add('open');
+          this.updateActiveOption();
+        }
+      }
+
+      closeDropdown() {
+        this.log('关闭搜索引擎下拉框');
+        this.searchEngineSelector.classList.remove('open');
+      }
+
+      selectSearchEngine(engineIndex) {
+        this.currentSearchEngine = engineIndex;
+        this.updateSearchEngineIcon();
+        this.updateActiveOption();
+        this.closeDropdown();
+      }
+
+      updateActiveOption() {
+        const options = document.querySelectorAll('.search-engine-option');
+        options.forEach((option, index) => {
+          option.classList.toggle('active', index === this.currentSearchEngine);
+        });
+      }
+
+      updateSearchEngineIcon() {
+        if (this.searchEngineIcon) {
+          const currentEngine = this.searchEngines[this.currentSearchEngine];
+          this.searchEngineIcon.src = currentEngine.icon;
+          this.searchEngineIcon.alt = currentEngine.name;
+          this.log(`更新搜索引擎图标: ${currentEngine.name}`);
+        }
+        this.updateActiveOption();
+      }
+    }
+
+    // 等待页面加载完成
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('页面加载完成，初始化搜索管理器');
+      const debugSearchManager = new DebugSearchManager();
+    });
+  </script>
+</body>
+</html>
