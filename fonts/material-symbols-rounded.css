@@ -1,0 +1,93 @@
+/* 本地图标系统 - 备选方案 */
+/*
+ * 仅在Material Symbols字体加载失败时使用
+ * 不影响正常的在线字体显示
+ */
+
+/* 基础图标样式 */
+.icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+}
+
+/* SVG图标样式 */
+.icon-svg {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Unicode图标样式 */
+.icon-unicode {
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+/* 备选图标样式 */
+.icon-fallback {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* 仅在字体加载失败时应用的备选样式 */
+.material-symbols-fallback {
+  font-family: Arial, sans-serif !important;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+/* 常用图标的CSS实现 - 无需字体文件 */
+.icon-search:before { content: "🔍"; }
+.icon-palette:before { content: "🎨"; }
+.icon-grid:before { content: "⊞"; }
+.icon-list:before { content: "☰"; }
+.icon-add:before { content: "+"; font-weight: bold; }
+.icon-download:before { content: "⬇"; }
+.icon-upload:before { content: "⬆"; }
+.icon-expand-more:before { content: "▼"; }
+.icon-expand-less:before { content: "▲"; }
+.icon-edit:before { content: "✏"; }
+.icon-info:before { content: "ℹ"; }
+.icon-sync:before { content: "⟲"; }
+
+/* 更好的图标实现 - 使用CSS绘制 */
+.icon-search-css {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+}
+
+.icon-search-css:before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.icon-search-css:after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 6px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(45deg);
+}

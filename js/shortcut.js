@@ -102,8 +102,8 @@ class ShortcutManager {
       // Extract domain for favicon
       const domain = new URL(fullUrl).hostname;
       
-      // Get favicon using Google's favicon service
-      const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+      // Get favicon using multiple fallback services
+      const faviconUrl = this.getFaviconUrl(domain);
       
       // Try to get title (Note: This is just an example. In a real extension,
       // you would need to use a background script with chrome.tabs API or a proxy service)
@@ -252,11 +252,11 @@ class ShortcutManager {
   async deleteShortcut() {
     const shortcutId = this.shortcutIdInput.value;
     const categoryId = this.shortcutCategoryIdInput.value;
-    
+
     if (!confirm('确定要删除此快捷方式吗？')) {
       return;
     }
-    
+
     try {
       await storageManager.deleteShortcut(categoryId, shortcutId);
       closeModal(this.shortcutModal);
@@ -265,6 +265,27 @@ class ShortcutManager {
       console.error('Error deleting shortcut:', error);
       alert(`删除快捷方式时出错: ${error.message}`);
     }
+  }
+
+  /**
+   * Get favicon URL with fallback options
+   * @param {string} domain - The domain name
+   * @returns {string} Favicon URL
+   */
+  getFaviconUrl(domain) {
+    // 优先使用网站自己的favicon
+    const directFavicon = `https://${domain}/favicon.ico`;
+
+    // 备选方案列表（按优先级排序）
+    const fallbackServices = [
+      `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+      `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+      `https://api.faviconkit.com/${domain}/64`,
+      directFavicon
+    ];
+
+    // 返回第一个可用的服务
+    return fallbackServices[0];
   }
 }
 

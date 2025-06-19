@@ -79,6 +79,40 @@ body.theme-dark {
   --shadow-color: rgba(0, 0, 0, 0.3);
 }
 
+/* 深色主题下的输入框优化 */
+body.theme-dark .form-group input[type="text"],
+body.theme-dark .form-group input[type="url"],
+body.theme-dark .form-group input[type="password"] {
+  background-color: #3c4043;
+  border-color: #5f6368;
+  color: #e8eaed;
+}
+
+body.theme-dark .form-group input[type="text"]:focus,
+body.theme-dark .form-group input[type="url"]:focus,
+body.theme-dark .form-group input[type="password"]:focus {
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.2);
+}
+
+body.theme-dark .form-group input[type="text"]:hover,
+body.theme-dark .form-group input[type="url"]:hover,
+body.theme-dark .form-group input[type="password"]:hover {
+  border-color: #80868b;
+}
+
+body.theme-dark .form-group input[type="text"]::placeholder,
+body.theme-dark .form-group input[type="url"]::placeholder,
+body.theme-dark .form-group input[type="password"]::placeholder {
+  color: #9aa0a6;
+}
+
+/* 深色主题下的背景设置提示 */
+body.theme-dark .bg-setup-prompt {
+  background: #3c4043;
+  border-color: #5f6368;
+}
+
 /* 背景容器 */
 .background-container {
   position: fixed;
@@ -171,6 +205,61 @@ body.theme-dark {
   margin-top: 30px;
   border-top: 1px solid var(--border-color);
   padding-top: 20px;
+}
+
+/* 背景图片设置提示界面 */
+.bg-setup-prompt {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--hover-color);
+  border-radius: 12px;
+  border: 2px dashed var(--border-color);
+}
+
+.setup-prompt-content {
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.setup-prompt-icon {
+  margin-bottom: 20px;
+}
+
+.setup-prompt-icon .material-symbols-rounded {
+  font-size: 48px;
+  color: var(--primary-color);
+  opacity: 0.8;
+}
+
+.bg-setup-prompt h4 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.bg-setup-prompt p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.bg-setup-prompt p:last-of-type {
+  margin-bottom: 24px;
+}
+
+.bg-setup-prompt button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bg-setup-prompt button .material-symbols-rounded {
+  font-size: 18px;
 }
 
 .background-preview {
@@ -555,26 +644,53 @@ header {
 
 /* Form Elements */
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   font-size: 14px;
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text-color);
+  letter-spacing: 0.02em;
 }
 
 .form-group input[type="text"],
-.form-group input[type="url"] {
+.form-group input[type="url"],
+.form-group input[type="password"] {
   width: 100%;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 5px;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
   font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   background-color: var(--card-bg-color);
   color: var(--text-color);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="url"]:focus,
+.form-group input[type="password"]:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+  transform: translateY(-1px);
+}
+
+.form-group input[type="text"]:hover,
+.form-group input[type="url"]:hover,
+.form-group input[type="password"]:hover {
+  border-color: #c0c0c0;
+}
+
+.form-group input[type="text"]::placeholder,
+.form-group input[type="url"]::placeholder,
+.form-group input[type="password"]::placeholder {
+  color: #999;
+  opacity: 1;
 }
 
 .form-group input[type="color"] {
@@ -592,33 +708,47 @@ header {
 }
 
 .save-btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color var(--transition-speed);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
 }
 
 .save-btn:hover {
   background-color: #3367d6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .delete-btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   background-color: transparent;
   color: var(--danger-color);
-  border: 1px solid var(--danger-color);
-  border-radius: 5px;
+  border: 2px solid var(--danger-color);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color var(--transition-speed);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .delete-btn:hover {
   background-color: rgba(234, 67, 53, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(234, 67, 53, 0.2);
 }
 
 /* Empty State */
@@ -870,6 +1000,9 @@ header {
   flex-shrink: 0;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background-color: #4285f4; /* 默认背景色 */
+  text-align: center;
+  line-height: 1;
 }
 
 .list-view .shortcut-icon {
@@ -879,17 +1012,22 @@ header {
   margin-right: 12px;
   font-size: 14px;
   border-radius: 8px;
+  background-color: #4285f4; /* 默认背景色 */
+  text-align: center;
+  line-height: 1;
 }
 
 .shortcut-img {
-  width: 32px;
-  height: 32px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  border-radius: inherit;
+  display: block;
 }
 
 .list-view .shortcut-img {
-  width: 20px;
-  height: 20px;
+  width: 100%;
+  height: 100%;
 }
 
 .shortcut-name {
@@ -906,4 +1044,177 @@ header {
   text-align: left;
 }
 
-/* 已移除不再需要的add-shortcut相关样式 */ 
+/* 已移除不再需要的add-shortcut相关样式 */
+
+/* 同步相关样式 */
+.sync-status {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.status-value {
+  font-weight: 600;
+}
+
+.status-value.connected {
+  color: #28a745;
+}
+
+.status-value.disconnected {
+  color: #dc3545;
+}
+
+.sync-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.sync-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.config-form .form-group {
+  margin-bottom: 16px;
+}
+
+.config-form small {
+  display: block;
+  margin-top: 6px;
+  color: #6c757d;
+  font-size: 12px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.setup-guide ol {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.setup-guide li {
+  margin-bottom: 8px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.link-btn:hover {
+  color: #0056b3;
+}
+
+.sql-script {
+  position: relative;
+  margin-top: 16px;
+}
+
+.sql-script pre {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.sync-message {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.sync-message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.sync-message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.sync-message.info {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.secondary-btn {
+  padding: 10px 20px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background-color: var(--hover-color);
+  color: var(--text-color);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 响应式设计 - 同步界面 */
+@media (max-width: 768px) {
+  .sync-status {
+    padding: 12px;
+  }
+
+  .status-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}

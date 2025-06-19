@@ -47,9 +47,11 @@ const filesToInclude = [
   'index.html',
   'manifest.json',
   'privacy-policy.html',
+  'SUPABASE_SETUP_GUIDE.md',
   'icons',
   'js',
-  'styles'
+  'styles',
+  'fonts'
 ];
 
 // Add each file/directory to the archive

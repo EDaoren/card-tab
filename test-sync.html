@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>同步功能测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .test-section {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .test-section h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>同步功能测试</h1>
+    
+    <div class="test-section">
+      <h3>1. 检查元素是否存在</h3>
+      <button onclick="checkElements()">检查DOM元素</button>
+      <div id="element-status" class="status info">点击按钮检查元素</div>
+    </div>
+
+    <div class="test-section">
+      <h3>2. 检查JavaScript对象</h3>
+      <button onclick="checkObjects()">检查全局对象</button>
+      <div id="object-status" class="status info">点击按钮检查对象</div>
+    </div>
+
+    <div class="test-section">
+      <h3>3. 测试同步按钮</h3>
+      <button onclick="testSyncButton()">测试同步按钮点击</button>
+      <div id="sync-status" class="status info">点击按钮测试</div>
+    </div>
+
+    <div class="test-section">
+      <h3>4. 控制台日志</h3>
+      <button onclick="clearLog()">清空日志</button>
+      <div id="console-log" class="log">控制台输出将显示在这里...</div>
+    </div>
+  </div>
+
+  <!-- 包含必要的脚本 -->
+  <script src="js/icons.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/sync-manager.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/sync-ui.js"></script>
+
+  <script>
+    // 重写console.log来显示在页面上
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    function addToLog(message, type = 'log') {
+      const logDiv = document.getElementById('console-log');
+      const timestamp = new Date().toLocaleTimeString();
+      logDiv.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addToLog(args.join(' '), 'log');
+    };
+    
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addToLog(args.join(' '), 'error');
+    };
+    
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      addToLog(args.join(' '), 'warn');
+    };
+
+    function checkElements() {
+      const elements = [
+        'sync-btn',
+        'sync-modal',
+        'sql-modal',
+        'test-connection',
+        'enable-sync',
+        'disable-sync',
+        'manual-sync',
+        'supabase-url',
+        'supabase-anon-key',
+        'user-id'
+      ];
+      
+      let results = [];
+      elements.forEach(id => {
+        const element = document.getElementById(id);
+        results.push(`${id}: ${element ? '✓ 存在' : '✗ 不存在'}`);
+      });
+      
+      const statusDiv = document.getElementById('element-status');
+      statusDiv.innerHTML = results.join('<br>');
+      statusDiv.className = 'status info';
+    }
+
+    function checkObjects() {
+      const objects = [
+        'syncManager',
+        'syncUIManager',
+        'supabaseClient',
+        'storageManager'
+      ];
+      
+      let results = [];
+      objects.forEach(name => {
+        const obj = window[name];
+        results.push(`${name}: ${obj ? '✓ 存在' : '✗ 不存在'}`);
+      });
+      
+      const statusDiv = document.getElementById('object-status');
+      statusDiv.innerHTML = results.join('<br>');
+      statusDiv.className = 'status info';
+    }
+
+    function testSyncButton() {
+      const syncBtn = document.getElementById('sync-btn');
+      const statusDiv = document.getElementById('sync-status');
+      
+      if (!syncBtn) {
+        statusDiv.textContent = '✗ 同步按钮不存在';
+        statusDiv.className = 'status error';
+        return;
+      }
+      
+      try {
+        console.log('测试: 点击同步按钮');
+        syncBtn.click();
+        statusDiv.textContent = '✓ 同步按钮点击成功，检查控制台日志';
+        statusDiv.className = 'status success';
+      } catch (error) {
+        statusDiv.textContent = `✗ 同步按钮点击失败: ${error.message}`;
+        statusDiv.className = 'status error';
+      }
+    }
+
+    function clearLog() {
+      document.getElementById('console-log').textContent = '';
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('测试页面加载完成');
+      
+      // 尝试初始化同步UI管理器
+      if (window.syncUIManager) {
+        console.log('尝试初始化 syncUIManager');
+        try {
+          syncUIManager.init();
+          console.log('syncUIManager 初始化成功');
+        } catch (error) {
+          console.error('syncUIManager 初始化失败:', error);
+        }
+      } else {
+        console.error('syncUIManager 不存在');
+      }
+    });
+  </script>
+</body>
+</html>

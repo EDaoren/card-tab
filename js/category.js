@@ -51,12 +51,12 @@ class CategoryManager {
   async renderCategories() {
     const categories = storageManager.getCategories();
     this.categoriesContainer.innerHTML = '';
-    
+
     if (categories.length === 0) {
       this.renderEmptyState();
       return;
     }
-    
+
     categories.forEach(category => {
       this.renderCategory(category);
     });
@@ -195,9 +195,15 @@ class CategoryManager {
    * @returns {HTMLElement} The shortcut element
    */
   createShortcutElement(shortcut, categoryId) {
+    // 确保shortcut对象有必要的属性
+    if (!shortcut || !shortcut.name) {
+      console.error('Invalid shortcut data:', shortcut);
+      return document.createElement('div');
+    }
+
     const shortcutElement = document.createElement('a');
     shortcutElement.className = 'shortcut';
-    shortcutElement.href = shortcut.url;
+    shortcutElement.href = shortcut.url || '#';
     shortcutElement.dataset.id = shortcut.id;
     shortcutElement.dataset.categoryId = categoryId;
     shortcutElement.setAttribute('target', '_blank');
@@ -205,13 +211,19 @@ class CategoryManager {
     // Create the shortcut icon based on the icon type
     const shortcutIcon = document.createElement('div');
     shortcutIcon.className = 'shortcut-icon';
-    
+
     if (shortcut.iconType === 'favicon' && shortcut.iconUrl) {
       // Use favicon
       const iconImg = document.createElement('img');
       iconImg.className = 'shortcut-img';
       iconImg.src = shortcut.iconUrl;
       iconImg.alt = shortcut.name;
+      iconImg.onerror = function() {
+        // Fallback to letter icon if favicon fails to load
+        shortcutIcon.innerHTML = '';
+        shortcutIcon.textContent = shortcut.name.charAt(0).toUpperCase();
+        shortcutIcon.style.backgroundColor = shortcut.iconColor || '#4285f4';
+      };
       shortcutIcon.appendChild(iconImg);
     } else if (shortcut.iconType === 'custom' && shortcut.iconUrl) {
       // Use custom icon
@@ -219,11 +231,21 @@ class CategoryManager {
       iconImg.className = 'shortcut-img';
       iconImg.src = shortcut.iconUrl;
       iconImg.alt = shortcut.name;
+      iconImg.onerror = function() {
+        // Fallback to letter icon if custom icon fails to load
+        shortcutIcon.innerHTML = '';
+        shortcutIcon.textContent = shortcut.name.charAt(0).toUpperCase();
+        shortcutIcon.style.backgroundColor = shortcut.iconColor || '#4285f4';
+      };
       shortcutIcon.appendChild(iconImg);
     } else {
       // Use first letter with background color
-      shortcutIcon.textContent = shortcut.name.charAt(0).toUpperCase();
-      shortcutIcon.style.backgroundColor = shortcut.iconColor || '#4285f4';
+      const letter = shortcut.name.charAt(0).toUpperCase();
+      const bgColor = shortcut.iconColor || '#4285f4';
+
+      shortcutIcon.textContent = letter;
+      shortcutIcon.style.backgroundColor = bgColor;
+      shortcutIcon.style.color = 'white';
     }
     
     const shortcutName = document.createElement('div');

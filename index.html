@@ -6,6 +6,7 @@
   <title>Quick Nav Tab</title>
   <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+  <link rel="stylesheet" href="fonts/material-symbols-rounded.css">
 </head>
 <body class="theme-default">
   <div class="background-container">
@@ -27,6 +28,9 @@
     </main>
 
     <div class="floating-buttons">
+      <button id="sync-btn" class="view-btn" title="云端同步">
+        <span class="material-symbols-rounded">sync</span>
+      </button>
       <button id="theme-btn" class="view-btn" title="切换主题">
         <span class="material-symbols-rounded">palette</span>
       </button>
@@ -173,40 +177,160 @@
         
         <div class="bg-image-section">
           <h3>自定义背景图片</h3>
-          <div class="form-group">
-            <div id="background-preview" class="background-preview">
-              <img id="background-preview-img" src="" alt="背景预览">
-              <div class="no-bg-placeholder">无背景图片</div>
+
+          <!-- 未配置Supabase时的提示界面 -->
+          <div id="bg-setup-prompt" class="bg-setup-prompt" style="display: none;">
+            <div class="setup-prompt-content">
+              <div class="setup-prompt-icon">
+                <span class="material-symbols-rounded">cloud_upload</span>
+              </div>
+              <h4>需要云端存储支持</h4>
+              <p>背景图片功能支持高清4K图片，需要云端存储空间。</p>
+              <p>配置Supabase后即可上传和同步您的个性化背景。</p>
+              <button id="setup-supabase-btn" class="save-btn">
+                <span class="material-symbols-rounded">settings</span>
+                立即配置云端同步
+              </button>
             </div>
           </div>
-          
-          <div class="form-group">
-            <label>上传背景图片</label>
-            <input type="file" id="bg-image-upload" accept="image/*" class="file-input">
-            <label for="bg-image-upload" class="file-input-label">
-              <span class="material-symbols-rounded">upload_file</span>
-              选择图片
-            </label>
-          </div>
-          
-          <div class="form-group">
-            <label for="bg-opacity">背景透明度</label>
-            <div class="range-with-value">
-              <input type="range" id="bg-opacity" min="0" max="100" value="30">
-              <span id="bg-opacity-value">30%</span>
+
+          <!-- 正常的背景图片设置界面 -->
+          <div id="bg-image-controls" class="bg-image-controls">
+            <div class="form-group">
+              <div id="background-preview" class="background-preview">
+                <img id="background-preview-img" src="" alt="背景预览">
+                <div class="no-bg-placeholder">无背景图片</div>
+              </div>
             </div>
-          </div>
-          
-          <div class="form-actions centered">
-            <button type="button" id="remove-bg-btn" class="delete-btn">移除背景图</button>
-            <button type="button" id="apply-bg-btn" class="save-btn">应用背景</button>
+
+            <div class="form-group">
+              <label>上传背景图片</label>
+              <input type="file" id="bg-image-upload" accept="image/*" class="file-input">
+              <label for="bg-image-upload" class="file-input-label">
+                <span class="material-symbols-rounded">upload_file</span>
+                选择图片
+              </label>
+              <small>支持JPG、PNG格式，推荐使用高分辨率图片获得最佳效果</small>
+            </div>
+
+            <div class="form-group">
+              <label for="bg-opacity">背景透明度</label>
+              <div class="range-with-value">
+                <input type="range" id="bg-opacity" min="0" max="100" value="30">
+                <span id="bg-opacity-value">30%</span>
+              </div>
+            </div>
+
+            <div class="form-actions centered">
+              <button type="button" id="remove-bg-btn" class="delete-btn">移除背景图</button>
+              <button type="button" id="apply-bg-btn" class="save-btn">应用背景</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Supabase Sync Settings Modal -->
+  <div id="sync-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>云端同步设置</h2>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="sync-status" id="sync-status">
+          <div class="status-item">
+            <span class="status-label">当前模式:</span>
+            <span class="status-value" id="current-mode">Chrome Storage</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Supabase状态:</span>
+            <span class="status-value" id="supabase-status">未连接</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">最后同步:</span>
+            <span class="status-value" id="last-sync">从未同步</span>
+          </div>
+        </div>
+
+        <div class="sync-section" id="supabase-config-section">
+          <h3>Supabase配置</h3>
+          <div class="config-form">
+            <div class="form-group">
+              <label for="supabase-url">Supabase项目URL</label>
+              <input type="url" id="supabase-url" placeholder="https://your-project.supabase.co">
+              <small>在Supabase项目设置中找到</small>
+            </div>
+            <div class="form-group">
+              <label for="supabase-anon-key">匿名密钥 (anon key)</label>
+              <input type="password" id="supabase-anon-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+              <small>在Supabase项目API设置中找到</small>
+            </div>
+            <div class="form-group">
+              <label for="user-id">用户标识</label>
+              <input type="text" id="user-id" placeholder="your-unique-user-id">
+              <small>用于区分不同用户的数据，建议使用邮箱或UUID</small>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button id="test-connection" class="secondary-btn">测试连接</button>
+            <button id="enable-sync" class="save-btn">启用云端同步</button>
+            <button id="disable-sync" class="delete-btn" style="display: none;">禁用云端同步</button>
+          </div>
+        </div>
+
+        <div class="sync-section">
+          <h3>数据管理</h3>
+          <div class="form-actions">
+            <button id="manual-sync" class="secondary-btn" disabled>手动同步</button>
+            <button id="export-data" class="secondary-btn">导出数据</button>
+            <button id="import-data" class="secondary-btn">导入数据</button>
+          </div>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+        </div>
+
+        <div class="sync-section">
+          <h3>设置说明</h3>
+          <div class="setup-guide">
+            <ol>
+              <li>在 <a href="https://supabase.com" target="_blank">Supabase</a> 创建免费账户和项目</li>
+              <li>在项目的SQL编辑器中执行数据表创建脚本</li>
+              <li>复制项目URL和匿名密钥到上方配置</li>
+              <li>设置唯一的用户标识（建议使用邮箱）</li>
+              <li>点击"测试连接"验证配置</li>
+              <li>启用云端同步开始多端数据同步</li>
+            </ol>
+            <button id="show-sql" class="link-btn">查看数据表创建脚本</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQL Script Modal -->
+  <div id="sql-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>数据表创建脚本</h2>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <p>请在Supabase项目的SQL编辑器中执行以下脚本：</p>
+        <div class="sql-script">
+          <pre id="sql-content"></pre>
+          <button id="copy-sql" class="secondary-btn">复制脚本</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/sync-manager.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/sync-ui.js"></script>
   <script src="js/category.js"></script>
   <script src="js/shortcut.js"></script>
   <script src="js/search.js"></script>

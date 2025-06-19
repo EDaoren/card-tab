@@ -130,17 +130,22 @@ class StorageManager {
    */
   async init() {
     try {
-      // Try to get data from Chrome storage
-      const result = await this.getFromStorage();
-      
+      // Initialize sync manager first
+      await syncManager.init();
+
+      // Load data using sync manager (handles Chrome Storage + Supabase)
+      const result = await syncManager.loadData();
+
       // If no data exists, use default data
-      if (!result || Object.keys(result).length === 0) {
+      if (!result || Object.keys(result).length === 0 || !result.categories) {
         this.data = DEFAULT_DATA;
-        await this.saveToStorage();
+        await syncManager.saveData(this.data);
       } else {
-        this.data = result;
+        // Remove metadata if present
+        const { _metadata, ...cleanData } = result;
+        this.data = cleanData;
       }
-      
+
       return this.data;
     } catch (error) {
       console.error('Error initializing storage:', error);
@@ -169,19 +174,24 @@ class StorageManager {
   }
 
   /**
-   * Save data to Chrome storage
+   * Save data to storage (Chrome Storage + Supabase)
    * @returns {Promise} Promise that resolves when data is saved
    */
   async saveToStorage() {
-    return new Promise((resolve) => {
-      if (chrome.storage && chrome.storage.sync) {
-        chrome.storage.sync.set({ quickNavData: this.data }, resolve);
-      } else {
-        // Fallback for development or when Chrome storage is not available
-        localStorage.setItem('quickNavData', JSON.stringify(this.data));
-        resolve();
-      }
-    });
+    try {
+      await syncManager.saveData(this.data);
+    } catch (error) {
+      console.error('Error saving to sync manager, falling back to Chrome storage:', error);
+      // Fallback to direct Chrome storage
+      return new Promise((resolve) => {
+        if (chrome.storage && chrome.storage.sync) {
+          chrome.storage.sync.set({ quickNavData: this.data }, resolve);
+        } else {
+          localStorage.setItem('quickNavData', JSON.stringify(this.data));
+          resolve();
+        }
+      });
+    }
   }
 
   /**
