@@ -198,13 +198,12 @@ class SyncManager {
   }
 
   /**
-   * 加载数据 - 第二阶段优化版本
+   * 加载数据
    * @param {boolean} preferCloud - 是否优先从云端加载
    * @param {boolean} forceRefresh - 是否强制刷新（跳过缓存）
    */
   async loadData(preferCloud = false, forceRefresh = false) {
     try {
-      // 旁路缓存模式：优化数据一致性
       if (!this.isSupabaseEnabled) {
         // 未启用Supabase：只使用Chrome Storage
         const chromeData = await this.loadFromChromeStorage();

@@ -48,10 +48,16 @@ const filesToInclude = [
   'manifest.json',
   'privacy-policy.html',
   'SUPABASE_SETUP_GUIDE.md',
+  'SUPABASE_SECURITY_GUIDE.md',
   'icons',
   'js',
   'styles',
   'fonts'
+];
+
+// Files to exclude from js directory
+const jsFilesToExclude = [
+  'js/config-manager.js' // 已废弃，功能合并到theme-config-manager.js
 ];
 
 // Add each file/directory to the archive

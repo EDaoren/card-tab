@@ -1,5 +1,5 @@
 /**
- * 第三阶段：数据保存协调器
+ * 数据保存协调器
  * 统一所有保存操作的入口，确保数据一致性
  */
 
@@ -9,6 +9,7 @@ class DataSaveCoordinator {
     this.pendingSaves = [];
     this.lastSaveTime = null;
     this.saveQueue = [];
+    this.maxQueueSize = 10; // 限制队列大小，防止内存泄漏
   }
 
   /**
@@ -17,6 +18,12 @@ class DataSaveCoordinator {
    * @param {Object} options - 保存选项
    */
   async saveData(data, options = {}) {
+    // 检查队列大小，防止内存泄漏
+    if (this.saveQueue.length >= this.maxQueueSize) {
+      console.warn('DataSaveCoordinator: 保存队列已满，丢弃最旧的请求');
+      this.saveQueue.shift();
+    }
+
     const saveRequest = {
       id: Date.now() + Math.random(),
       data: data,
@@ -29,11 +36,6 @@ class DataSaveCoordinator {
       },
       timestamp: new Date().toISOString()
     };
-
-    console.log(`💾 DataSaveCoordinator: 收到保存请求 (${saveRequest.options.source})`);
-    console.log(`  - 请求ID: ${saveRequest.id}`);
-    console.log(`  - 优先级: ${saveRequest.options.priority}`);
-    console.log(`  - 合并策略: ${saveRequest.options.mergeStrategy}`);
 
     // 如果有高优先级请求，立即处理
     if (saveRequest.options.priority === 'high') {

@@ -172,7 +172,6 @@ class ThemeConfigManager {
 
         // 清除配置缓存
         await this.clearConfigCache();
-        console.log('ThemeConfigManager: 配置已同步到Supabase并清除缓存');
       }
 
     } catch (error) {

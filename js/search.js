@@ -12,6 +12,10 @@ class SearchManager {
     this.searchBox = document.querySelector('.search-box');
     this.categoriesContainer = document.getElementById('categories-container');
 
+    // 防抖相关
+    this.searchDebounceTimer = null;
+    this.searchDebounceDelay = 200; // 200ms防抖延迟
+
     // 创建搜索结果下拉框
     this.createSearchDropdown();
 
@@ -69,9 +73,9 @@ class SearchManager {
       }
     });
 
-    // Real-time search filtering
+    // Real-time search filtering with debounce
     this.searchInput.addEventListener('input', (e) => {
-      this.handleRealTimeSearch(e.target.value);
+      this.debouncedSearch(e.target.value);
     });
 
     // Search input focus
@@ -128,6 +132,22 @@ class SearchManager {
         this.searchInput.focus();
       }
     });
+  }
+
+  /**
+   * Debounced search to improve performance
+   * @param {string} query - The search query
+   */
+  debouncedSearch(query) {
+    // 清除之前的定时器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+
+    // 设置新的定时器
+    this.searchDebounceTimer = setTimeout(() => {
+      this.handleRealTimeSearch(query);
+    }, this.searchDebounceDelay);
   }
 
   /**
@@ -261,18 +281,19 @@ class SearchManager {
   }
 
   /**
-   * Bind click events to search results
+   * Bind click events to search results (使用事件委托提高性能)
    */
   bindSearchResultEvents() {
-    const resultItems = this.searchDropdown.querySelectorAll('.search-result-item');
-
-    resultItems.forEach(item => {
-      // 移除之前的事件监听器（如果有）
-      item.removeEventListener('click', this.handleSearchResultClick);
-
-      // 添加新的事件监听器
-      item.addEventListener('click', (e) => this.handleSearchResultClick(e));
-    });
+    // 使用事件委托，只在dropdown上绑定一次事件
+    if (!this.searchDropdown.hasEventListener) {
+      this.searchDropdown.addEventListener('click', (e) => {
+        const item = e.target.closest('.search-result-item');
+        if (item) {
+          this.handleSearchResultClick({ currentTarget: item });
+        }
+      });
+      this.searchDropdown.hasEventListener = true;
+    }
   }
 
   /**

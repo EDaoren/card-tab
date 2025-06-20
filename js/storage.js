@@ -203,12 +203,12 @@ class StorageManager {
   }
 
   /**
-   * Save data to storage (Chrome Storage + Supabase) - 第三阶段优化版本
+   * Save data to storage (Chrome Storage + Supabase)
    * @returns {Promise} Promise that resolves when data is saved
    */
   async saveToStorage() {
     try {
-      // 第三阶段：使用统一的数据保存协调器
+      // 使用统一的数据保存协调器
       if (window.dataSaveCoordinator) {
         const saveData = {
           categories: this.data.categories,
@@ -223,7 +223,6 @@ class StorageManager {
         });
 
         if (result.success) {
-          // 更新本地缓存
           this.fullData = null; // 清空缓存，下次会重新加载
         } else {
           throw new Error(result.error || '协调器保存失败');
@@ -234,13 +233,12 @@ class StorageManager {
       }
     } catch (error) {
       console.error('StorageManager: 保存失败:', error);
-      // 最终备选方案
       await this.saveToStorageFallback();
     }
   }
 
   /**
-   * 第三阶段：原有保存逻辑（备选方案）
+   * 原有保存逻辑（备选方案）
    */
   async saveToStorageLegacy() {
     // 获取当前完整数据，确保不丢失其他字段
