@@ -50,6 +50,7 @@ const filesToInclude = [
   'README.md',
   'README_EN.md',
   'supabase-init.sql',
+  'store-listing.md',
   'icons',
   'js',
   'styles',

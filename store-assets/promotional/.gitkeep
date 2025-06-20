@@ -1,0 +1,8 @@
+# Promotional Images Directory
+
+请在此目录放置推广图片文件：
+
+1. tile-small.png (440x280) - 小型推广位
+2. tile-large.png (920x680) - 大型推广位
+
+这些图片是可选的，用于Chrome Web Store的推广展示。
