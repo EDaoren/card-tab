@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase CRUD 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .data-display {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Supabase CRUD 测试工具</h1>
+    
+    <div class="container">
+        <h2>📋 连接配置</h2>
+        <div class="form-group">
+            <label for="supabase-url">Supabase URL:</label>
+            <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
+        </div>
+        <div class="form-group">
+            <label for="supabase-key">Supabase Anon Key:</label>
+            <input type="text" id="supabase-key" placeholder="your-anon-key">
+        </div>
+        <div class="form-group">
+            <label for="user-id">用户ID:</label>
+            <input type="text" id="user-id" placeholder="test-user-123" value="test-user-123">
+        </div>
+        <button onclick="connectSupabase()">🔗 连接 Supabase</button>
+        <div id="connection-result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📝 数据操作测试</h2>
+        <div class="form-group">
+            <label for="test-data">测试数据 (JSON):</label>
+            <textarea id="test-data" rows="6" placeholder='{"categories": [], "settings": {"viewMode": "grid"}, "themeSettings": {"theme": "blue"}}'></textarea>
+        </div>
+        
+        <button onclick="saveTestData()">💾 保存数据</button>
+        <button onclick="loadTestData()">📥 加载数据</button>
+        <button onclick="deleteTestData()">🗑️ 删除数据</button>
+        <button onclick="getAllData()">📊 查看所有数据</button>
+        
+        <div id="crud-result"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔍 数据查看</h2>
+        <div id="data-display" class="data-display">
+            点击"查看所有数据"按钮来显示数据库中的所有记录
+        </div>
+    </div>
+
+    <!-- 引入必要的JS文件 -->
+    <script src="js/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+
+    <script>
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+
+        function getFormData() {
+            return {
+                url: document.getElementById('supabase-url').value.trim(),
+                anonKey: document.getElementById('supabase-key').value.trim(),
+                userId: document.getElementById('user-id').value.trim()
+            };
+        }
+
+        async function connectSupabase() {
+            const config = getFormData();
+            
+            if (!config.url || !config.anonKey || !config.userId) {
+                showResult('connection-result', '请填写完整的连接信息', 'error');
+                return;
+            }
+
+            try {
+                showResult('connection-result', '正在连接 Supabase...', 'info');
+                
+                await supabaseClient.initialize(config);
+                
+                showResult('connection-result', '✅ Supabase 连接成功！', 'success');
+                
+                // 设置默认测试数据
+                document.getElementById('test-data').value = JSON.stringify({
+                    categories: [
+                        {
+                            id: 'cat1',
+                            name: '测试分类',
+                            color: '#007cba',
+                            shortcuts: [
+                                { id: 'sc1', name: '测试链接', url: 'https://example.com' }
+                            ]
+                        }
+                    ],
+                    settings: { viewMode: 'grid' },
+                    themeSettings: { 
+                        theme: 'blue',
+                        backgroundOpacity: 30
+                    }
+                }, null, 2);
+                
+            } catch (error) {
+                showResult('connection-result', `❌ 连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveTestData() {
+            try {
+                const testDataStr = document.getElementById('test-data').value.trim();
+                if (!testDataStr) {
+                    showResult('crud-result', '请输入测试数据', 'error');
+                    return;
+                }
+
+                const testData = JSON.parse(testDataStr);
+                showResult('crud-result', '正在保存数据...', 'info');
+                
+                await supabaseClient.saveData(testData);
+                showResult('crud-result', '✅ 数据保存成功！', 'success');
+                
+            } catch (error) {
+                showResult('crud-result', `❌ 保存失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadTestData() {
+            try {
+                showResult('crud-result', '正在加载数据...', 'info');
+                
+                const result = await supabaseClient.loadData();
+                
+                if (result) {
+                    showResult('crud-result', `✅ 数据加载成功！\n\n${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    showResult('crud-result', '📭 没有找到数据', 'info');
+                }
+                
+            } catch (error) {
+                showResult('crud-result', `❌ 加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteTestData() {
+            if (!confirm('确定要删除当前用户的所有数据吗？')) {
+                return;
+            }
+
+            try {
+                showResult('crud-result', '正在删除数据...', 'info');
+                
+                await supabaseClient.deleteData();
+                showResult('crud-result', '✅ 数据删除成功！', 'success');
+                
+            } catch (error) {
+                showResult('crud-result', `❌ 删除失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function getAllData() {
+            try {
+                showResult('crud-result', '正在查询所有数据...', 'info');
+                
+                const allData = await supabaseClient.getAllData();
+                
+                document.getElementById('data-display').innerHTML = 
+                    `<h3>数据库中的所有记录 (${allData.length} 条):</h3>` +
+                    `<pre>${JSON.stringify(allData, null, 2)}</pre>`;
+                
+                showResult('crud-result', `✅ 查询完成，共 ${allData.length} 条记录`, 'success');
+                
+            } catch (error) {
+                showResult('crud-result', `❌ 查询失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载完成
+        window.addEventListener('load', () => {
+            console.log('Supabase CRUD 测试工具加载完成');
+        });
+    </script>
+</body>
+</html>

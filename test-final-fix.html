@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最终修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; }
+        .step {
+            background: #e9ecef;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>最终修复测试</h1>
+        <p>测试修复后的完整流程，模拟您的测试场景</p>
+
+        <div class="step">测试场景：启用云端同步 → 保存主题 → 检查数据是否正确保存</div>
+
+        <h3>测试步骤</h3>
+        <button onclick="step1()">1. 清空所有数据</button>
+        <button onclick="step2()">2. 启用云端同步</button>
+        <button onclick="step3()">3. 保存主题设置</button>
+        <button onclick="step4()">4. 模拟页面重新加载</button>
+        <button onclick="step5()">5. 检查最终结果</button>
+        <button onclick="clearLog()">清空日志</button>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <!-- 加载真实的脚本 -->
+    <script src="lib/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/sync-manager.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/theme-config-manager.js"></script>
+    <script src="js/theme.js"></script>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // 步骤1：清空所有数据
+        async function step1() {
+            log('=== 步骤1: 清空所有数据 ===', 'info');
+            
+            try {
+                // 清空Chrome Storage
+                if (chrome && chrome.storage && chrome.storage.sync) {
+                    await new Promise(resolve => chrome.storage.sync.clear(resolve));
+                    log('✅ Chrome Storage已清空', 'success');
+                } else {
+                    localStorage.clear();
+                    log('✅ localStorage已清空', 'success');
+                }
+                
+                // 清空模拟的云端数据
+                localStorage.removeItem('mockSupabaseData');
+                log('✅ 模拟云端数据已清空', 'success');
+                
+                log('所有数据清空完成', 'success');
+            } catch (error) {
+                log(`清空数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 步骤2：启用云端同步
+        async function step2() {
+            log('=== 步骤2: 启用云端同步 ===', 'info');
+            
+            try {
+                // 初始化syncManager
+                if (window.syncManager) {
+                    await syncManager.init();
+                    log('✅ syncManager初始化完成', 'success');
+                    
+                    // 启用云端同步
+                    syncManager.isSupabaseEnabled = true;
+                    syncManager.storageMode = 'hybrid';
+                    log('✅ 云端同步已启用', 'success');
+                } else {
+                    log('❌ syncManager不存在', 'error');
+                    return;
+                }
+                
+                log('云端同步启用完成', 'success');
+            } catch (error) {
+                log(`启用云端同步失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 步骤3：保存主题设置
+        async function step3() {
+            log('=== 步骤3: 保存主题设置 ===', 'info');
+            
+            try {
+                // 检查applyTheme函数
+                if (typeof applyTheme !== 'function') {
+                    log('❌ applyTheme函数不存在', 'error');
+                    return;
+                }
+                
+                // 保存主题
+                log('保存暗黑主题...', 'info');
+                await applyTheme('dark', true);
+                log('✅ 主题保存完成', 'success');
+                
+                // 立即检查保存结果
+                const cloudData = await syncManager.loadData(true);
+                log('保存后的云端数据:', 'info');
+                log(JSON.stringify(cloudData, null, 2), 'info');
+                
+                if (cloudData && cloudData.themeSettings) {
+                    log(`✅ 主题设置已保存: ${cloudData.themeSettings.theme}`, 'success');
+                } else {
+                    log('❌ 主题设置保存失败', 'error');
+                }
+                
+            } catch (error) {
+                log(`保存主题失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 步骤4：模拟页面重新加载
+        async function step4() {
+            log('=== 步骤4: 模拟页面重新加载 ===', 'info');
+            
+            try {
+                log('模拟storageManager重新初始化...', 'info');
+                
+                // 重新初始化storageManager（这会触发可能的数据覆盖问题）
+                await storageManager.init();
+                log('✅ storageManager重新初始化完成', 'success');
+                
+                // 检查初始化后的数据
+                const dataAfterInit = await syncManager.loadData(true);
+                log('初始化后的云端数据:', 'info');
+                log(JSON.stringify(dataAfterInit, null, 2), 'info');
+                
+                if (dataAfterInit && dataAfterInit.themeSettings) {
+                    log(`✅ 主题设置仍然存在: ${dataAfterInit.themeSettings.theme}`, 'success');
+                } else {
+                    log('❌ 主题设置在重新初始化后丢失！', 'error');
+                }
+                
+            } catch (error) {
+                log(`模拟重新加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 步骤5：检查最终结果
+        async function step5() {
+            log('=== 步骤5: 检查最终结果 ===', 'info');
+            
+            try {
+                // 最终数据检查
+                const finalData = await syncManager.loadData(true);
+                
+                log('=== 最终数据结构 ===', 'info');
+                log(JSON.stringify(finalData, null, 2), 'info');
+                
+                // 检查各个字段
+                const expectedFields = ['categories', 'settings', 'themeSettings'];
+                let allFieldsPresent = true;
+                
+                expectedFields.forEach(field => {
+                    if (finalData && finalData[field]) {
+                        log(`✅ ${field} 字段存在`, 'success');
+                        if (field === 'themeSettings') {
+                            log(`   主题: ${finalData[field].theme}`, 'info');
+                            log(`   透明度: ${finalData[field].backgroundOpacity}%`, 'info');
+                        } else if (field === 'categories') {
+                            log(`   分类数量: ${finalData[field].length}`, 'info');
+                        } else if (field === 'settings') {
+                            log(`   视图模式: ${finalData[field].viewMode}`, 'info');
+                        }
+                    } else {
+                        log(`❌ ${field} 字段缺失`, 'error');
+                        allFieldsPresent = false;
+                    }
+                });
+                
+                if (allFieldsPresent) {
+                    log('🎉 测试成功！所有数据字段都正确保存', 'success');
+                } else {
+                    log('❌ 测试失败！部分数据字段缺失', 'error');
+                }
+                
+            } catch (error) {
+                log(`最终检查失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载完成
+        window.addEventListener('load', () => {
+            log('最终修复测试页面加载完成', 'info');
+            log('这个测试模拟您的完整测试场景', 'info');
+            log('请按顺序执行所有步骤', 'info');
+        });
+    </script>
+</body>
+</html>

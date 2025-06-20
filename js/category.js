@@ -69,13 +69,32 @@ class CategoryManager {
     const emptyState = document.createElement('div');
     emptyState.className = 'empty-state';
     emptyState.innerHTML = `
-      <h3>还没有分类</h3>
-      <p>创建您的第一个分类以开始使用</p>
-      <button id="empty-add-category-btn">添加分类</button>
+      <div class="empty-state-content">
+        <div class="empty-state-icon">
+          <span class="material-symbols-rounded">folder_open</span>
+        </div>
+        <h3 class="empty-state-title">开始您的快捷导航之旅</h3>
+        <p class="empty-state-description">
+          创建分类来整理您的常用网站<br>
+          让浏览更高效，工作更便捷
+        </p>
+        <div class="empty-state-actions">
+          <button id="empty-add-category-btn" class="primary-btn">
+            <span class="material-symbols-rounded">add</span>
+            创建第一个分类
+          </button>
+        </div>
+        <div class="empty-state-tips">
+          <div class="tip-item">
+            <span class="material-symbols-rounded">lightbulb</span>
+            <span>小贴士：可以按工作、娱乐、学习等主题分类</span>
+          </div>
+        </div>
+      </div>
     `;
-    
+
     this.categoriesContainer.appendChild(emptyState);
-    
+
     // Add event listener to the button
     document.getElementById('empty-add-category-btn').addEventListener('click', () => {
       this.openAddCategoryModal();

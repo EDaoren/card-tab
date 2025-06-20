@@ -228,7 +228,7 @@ class SearchManager {
     this.searchDropdown.innerHTML = results.map(result => {
       if (result.type === 'category') {
         return `
-          <div class="search-result-item category-result" onclick="searchManager.selectCategory('${result.data.id}')">
+          <div class="search-result-item category-result" data-type="category" data-id="${result.data.id}">
             <div class="result-icon category-icon" style="background-color: ${result.data.color}">
               <span class="material-symbols-rounded">folder</span>
             </div>
@@ -240,7 +240,7 @@ class SearchManager {
         `;
       } else {
         return `
-          <div class="search-result-item shortcut-result" onclick="searchManager.selectShortcut('${result.data.url}')">
+          <div class="search-result-item shortcut-result" data-type="shortcut" data-url="${result.data.url}">
             <div class="result-icon shortcut-icon" style="background-color: ${result.data.iconColor || '#4285f4'}">
               ${result.data.iconType === 'favicon' && result.data.iconUrl ?
                 `<img src="${result.data.iconUrl}" alt="${result.data.name}" onerror="this.style.display='none'; this.parentNode.textContent='${result.data.name.charAt(0).toUpperCase()}'">` :
@@ -255,6 +255,40 @@ class SearchManager {
         `;
       }
     }).join('');
+
+    // 绑定点击事件
+    this.bindSearchResultEvents();
+  }
+
+  /**
+   * Bind click events to search results
+   */
+  bindSearchResultEvents() {
+    const resultItems = this.searchDropdown.querySelectorAll('.search-result-item');
+
+    resultItems.forEach(item => {
+      // 移除之前的事件监听器（如果有）
+      item.removeEventListener('click', this.handleSearchResultClick);
+
+      // 添加新的事件监听器
+      item.addEventListener('click', (e) => this.handleSearchResultClick(e));
+    });
+  }
+
+  /**
+   * Handle search result click
+   */
+  handleSearchResultClick(e) {
+    const item = e.currentTarget;
+    const type = item.dataset.type;
+
+    if (type === 'category') {
+      const categoryId = item.dataset.id;
+      this.selectCategory(categoryId);
+    } else if (type === 'shortcut') {
+      const url = item.dataset.url;
+      this.selectShortcut(url);
+    }
   }
 
   /**
@@ -283,8 +317,23 @@ class SearchManager {
    * Select shortcut from search results
    */
   selectShortcut(url) {
+    console.log('SearchManager: 点击快捷方式，URL:', url);
     this.hideSearchDropdown();
-    window.open(url, '_blank');
+    this.searchInput.value = '';
+
+    try {
+      // 确保URL格式正确
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+
+      console.log('SearchManager: 打开URL:', url);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('SearchManager: 打开URL失败:', error);
+      // 降级：直接设置window.location
+      window.location.href = url;
+    }
   }
 
   /**

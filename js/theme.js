@@ -38,46 +38,68 @@ let tempBgImageFile = null;
 /**
  * 初始化主题设置
  */
-function initThemeSettings() {
+async function initThemeSettings() {
   // 加载保存的主题设置
-  loadThemeSettings();
-  
-  // 打开主题设置模态框
-  themeBtn.addEventListener('click', async () => {
-    openModal(themeModal);
-    updateThemeOptionsUI();
-    updateBackgroundImageUI();
-    showCurrentBackgroundPreview();
+  await loadThemeSettings();
 
-    // 更新配置切换区域显示
-    if (window.themeConfigUIManager) {
-      await themeConfigUIManager.updateConfigSwitchDisplay();
-    }
-  });
-  
-  // 主题选项点击事件
-  themeOptions.forEach(option => {
-    option.addEventListener('click', () => {
-      const theme = option.dataset.theme;
-      applyTheme(theme);
-      updateThemeOptionsUI();
+  // 只有在DOM元素存在时才绑定事件
+  if (themeBtn && themeBtn.addEventListener) {
+    // 打开主题设置模态框
+    themeBtn.addEventListener('click', async () => {
+      openModal(themeModal);
+
+      // 使用统一的配置刷新入口来更新UI
+      if (typeof refreshCurrentConfiguration === 'function') {
+        await refreshCurrentConfiguration();
+      } else {
+        // 降级：手动更新各个UI组件
+        updateThemeOptionsUI();
+        updateBackgroundImageUI();
+        showCurrentBackgroundPreview();
+      }
+
+      // 更新配置切换区域显示
+      if (window.themeConfigUIManager) {
+        await themeConfigUIManager.updateConfigSwitchDisplay();
+      }
     });
-  });
-  
+  }
+
+  // 主题选项点击事件
+  if (themeOptions && themeOptions.forEach) {
+    themeOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        const theme = option.dataset.theme;
+        applyTheme(theme);
+        updateThemeOptionsUI();
+      });
+    });
+  }
+
   // 背景图片上传
-  bgImageUpload.addEventListener('change', handleBgImageUpload);
-  
+  if (bgImageUpload && bgImageUpload.addEventListener) {
+    bgImageUpload.addEventListener('change', handleBgImageUpload);
+  }
+
   // 背景透明度滑块
-  bgOpacitySlider.addEventListener('input', handleOpacityChange);
-  
+  if (bgOpacitySlider && bgOpacitySlider.addEventListener) {
+    bgOpacitySlider.addEventListener('input', handleOpacityChange);
+  }
+
   // 应用背景图片按钮
-  applyBgBtn.addEventListener('click', applyBackgroundImage);
-  
+  if (applyBgBtn && applyBgBtn.addEventListener) {
+    applyBgBtn.addEventListener('click', applyBackgroundImage);
+  }
+
   // 移除背景图片按钮
-  removeBgBtn.addEventListener('click', removeBackgroundImage);
+  if (removeBgBtn && removeBgBtn.addEventListener) {
+    removeBgBtn.addEventListener('click', removeBackgroundImage);
+  }
 
   // 配置Supabase按钮
-  setupSupabaseBtn.addEventListener('click', openSupabaseSetup);
+  if (setupSupabaseBtn && setupSupabaseBtn.addEventListener) {
+    setupSupabaseBtn.addEventListener('click', openSupabaseSetup);
+  }
 }
 
 /**
@@ -101,116 +123,137 @@ async function loadThemeSettings() {
     window.currentBgImagePath = currentBgImagePath;
     window.currentBgOpacity = currentBgOpacity;
 
-    // 首先尝试从Supabase加载
-    if (window.syncManager && syncManager.isSupabaseEnabled) {
-      console.log('从云端加载主题设置...');
-      const syncData = await syncManager.loadData(true); // 强制优先从云端加载
+    // 第二阶段优化：统一从syncManager加载数据，明确优先级
+    let loadedData = null;
+    if (window.syncManager) {
+      // 根据云端同步状态决定加载策略
+      const preferCloud = syncManager.isSupabaseEnabled;
+      loadedData = await syncManager.loadData(preferCloud, false);
+    }
 
-      if (syncData && syncData.themeSettings) {
-        const themeSettings = syncData.themeSettings;
-        console.log('找到云端主题设置:', themeSettings);
+    // 处理加载到的数据
+    if (loadedData && loadedData.themeSettings) {
+      const themeSettings = loadedData.themeSettings;
 
-        // 加载主题
-        if (themeSettings.theme) {
-          currentTheme = themeSettings.theme;
-          window.currentTheme = currentTheme; // 同步到window对象
-          applyTheme(currentTheme, false);
-        }
-
-        // 加载背景透明度
-        if (themeSettings.backgroundOpacity !== undefined) {
-          currentBgOpacity = parseInt(themeSettings.backgroundOpacity);
-          window.currentBgOpacity = currentBgOpacity; // 同步到window对象
-          if (bgOpacitySlider) {
-            bgOpacitySlider.value = currentBgOpacity;
-            bgOpacityValue.textContent = `${currentBgOpacity}%`;
-            backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
-          }
-        }
-
-        // 加载背景图片
-        if (themeSettings.backgroundImageUrl) {
-          currentBgImageUrl = themeSettings.backgroundImageUrl;
-          currentBgImagePath = themeSettings.backgroundImagePath;
-          currentBgImageData = null; // 清空base64数据
-          // 同步到window对象
-          window.currentBgImageUrl = currentBgImageUrl;
-          window.currentBgImagePath = currentBgImagePath;
-          window.currentBgImageData = currentBgImageData;
-          applyBackgroundImageToDOM(currentBgImageUrl);
-          console.log('应用云端背景图片:', currentBgImageUrl);
-        } else if (themeSettings.backgroundImage) {
-          // 兼容旧的base64格式
-          currentBgImageData = themeSettings.backgroundImage;
-          currentBgImageUrl = null; // 清空URL数据
-          currentBgImagePath = null;
-          // 同步到window对象
-          window.currentBgImageData = currentBgImageData;
-          window.currentBgImageUrl = currentBgImageUrl;
-          window.currentBgImagePath = currentBgImagePath;
-          applyBackgroundImageToDOM(currentBgImageData);
-          console.log('应用云端背景图片(base64)');
-        } else {
-          // 没有背景图片，清空所有背景相关数据
-          currentBgImageData = null;
-          currentBgImageUrl = null;
-          currentBgImagePath = null;
-          // 同步到window对象
-          window.currentBgImageData = currentBgImageData;
-          window.currentBgImageUrl = currentBgImageUrl;
-          window.currentBgImagePath = currentBgImagePath;
-          applyBackgroundImageToDOM(null);
-          console.log('当前配置无背景图片');
-        }
-
-        console.log('主题设置已从云端加载');
-        console.log('加载完成后的状态:', {
-          theme: window.currentTheme,
-          bgImageUrl: window.currentBgImageUrl,
-          bgOpacity: window.currentBgOpacity
-        });
-        return;
-      } else {
-        console.log('云端没有找到主题设置数据');
-        // 如果云端没有数据，应用默认设置
+      // 加载主题
+      if (themeSettings.theme) {
+        currentTheme = themeSettings.theme;
+        window.currentTheme = currentTheme;
         applyTheme(currentTheme, false);
-        applyBackgroundImageToDOM(null);
+      }
+
+      // 加载背景透明度
+      if (themeSettings.backgroundOpacity !== undefined) {
+        currentBgOpacity = parseInt(themeSettings.backgroundOpacity);
+        window.currentBgOpacity = currentBgOpacity;
         if (bgOpacitySlider) {
           bgOpacitySlider.value = currentBgOpacity;
           bgOpacityValue.textContent = `${currentBgOpacity}%`;
           backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
         }
-        console.log('应用默认设置完成');
+      }
+
+      // 加载背景图片 - 根据云端同步状态决定是否显示
+      const shouldShowBackground = window.syncManager && syncManager.isSupabaseEnabled;
+
+      if (shouldShowBackground && themeSettings.backgroundImageUrl) {
+        // 云端模式：显示URL背景图片
+        currentBgImageUrl = themeSettings.backgroundImageUrl;
+        currentBgImagePath = themeSettings.backgroundImagePath;
+        currentBgImageData = null;
+        window.currentBgImageUrl = currentBgImageUrl;
+        window.currentBgImagePath = currentBgImagePath;
+        window.currentBgImageData = currentBgImageData;
+        applyBackgroundImageToDOM(currentBgImageUrl);
+      } else if (shouldShowBackground && themeSettings.backgroundImage) {
+        // 兼容旧的base64格式
+        currentBgImageData = themeSettings.backgroundImage;
+        currentBgImageUrl = null;
+        currentBgImagePath = null;
+        window.currentBgImageData = currentBgImageData;
+        window.currentBgImageUrl = currentBgImageUrl;
+        window.currentBgImagePath = currentBgImagePath;
+        applyBackgroundImageToDOM(currentBgImageData);
+      } else {
+        // 本地模式或无背景图片：不显示背景图片
+        currentBgImageData = null;
+        currentBgImageUrl = null;
+        currentBgImagePath = null;
+        window.currentBgImageData = currentBgImageData;
+        window.currentBgImageUrl = currentBgImageUrl;
+        window.currentBgImagePath = currentBgImagePath;
+        applyBackgroundImageToDOM(null);
+      }
+
+      return;
+    }
+
+    // 如果没有找到主题设置数据，尝试迁移传统存储数据
+    try {
+      const legacySettings = await storage.get([THEME_STORAGE_KEY, BG_IMAGE_STORAGE_KEY, BG_OPACITY_STORAGE_KEY]);
+
+      let hasMigrationData = false;
+
+      if (legacySettings[THEME_STORAGE_KEY]) {
+        currentTheme = legacySettings[THEME_STORAGE_KEY];
+        hasMigrationData = true;
+      }
+
+      if (legacySettings[BG_OPACITY_STORAGE_KEY] !== undefined) {
+        currentBgOpacity = parseInt(legacySettings[BG_OPACITY_STORAGE_KEY]);
+        hasMigrationData = true;
+      }
+
+      if (legacySettings[BG_IMAGE_STORAGE_KEY]) {
+        currentBgImageData = legacySettings[BG_IMAGE_STORAGE_KEY];
+        hasMigrationData = true;
+      }
+
+      // 如果找到传统数据，迁移到新格式并保存
+      if (hasMigrationData) {
+        // 同步到window对象
+        window.currentTheme = currentTheme;
+        window.currentBgOpacity = currentBgOpacity;
+        window.currentBgImageData = currentBgImageData;
+
+        // 应用设置
+        applyTheme(currentTheme, false);
+        if (bgOpacitySlider) {
+          bgOpacitySlider.value = currentBgOpacity;
+          bgOpacityValue.textContent = `${currentBgOpacity}%`;
+          backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
+        }
+
+        // 背景图片只在云端模式下显示
+        const shouldShowBackground = window.syncManager && syncManager.isSupabaseEnabled && currentBgImageData;
+        applyBackgroundImageToDOM(shouldShowBackground ? currentBgImageData : null);
+
+        // 保存到新格式
+        await saveThemeSettingsUnified();
+
+        // 清理传统存储键
+        try {
+          if (chrome && chrome.storage && chrome.storage.sync) {
+            await chrome.storage.sync.remove([THEME_STORAGE_KEY, BG_IMAGE_STORAGE_KEY, BG_OPACITY_STORAGE_KEY]);
+          }
+        } catch (cleanupError) {
+          console.warn('清理传统存储数据失败:', cleanupError);
+        }
+
         return;
       }
+    } catch (migrationError) {
+      console.warn('数据迁移失败:', migrationError);
     }
 
-    // 回退到本地存储
-    console.log('从本地存储加载主题设置...');
-    const settings = await storage.get([THEME_STORAGE_KEY, BG_IMAGE_STORAGE_KEY, BG_OPACITY_STORAGE_KEY]);
-
-    if (settings[THEME_STORAGE_KEY]) {
-      currentTheme = settings[THEME_STORAGE_KEY];
-      applyTheme(currentTheme, false);
+    // 如果没有任何数据，应用默认设置
+    applyTheme(currentTheme, false);
+    applyBackgroundImageToDOM(null);
+    if (bgOpacitySlider) {
+      bgOpacitySlider.value = currentBgOpacity;
+      bgOpacityValue.textContent = `${currentBgOpacity}%`;
+      backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
     }
-
-    if (settings[BG_OPACITY_STORAGE_KEY] !== undefined) {
-      currentBgOpacity = parseInt(settings[BG_OPACITY_STORAGE_KEY]);
-      if (bgOpacitySlider) {
-        bgOpacitySlider.value = currentBgOpacity;
-        bgOpacityValue.textContent = `${currentBgOpacity}%`;
-        backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
-      }
-    }
-
-    if (settings[BG_IMAGE_STORAGE_KEY]) {
-      currentBgImageData = settings[BG_IMAGE_STORAGE_KEY];
-      applyBackgroundImageToDOM(currentBgImageData);
-    } else {
-      applyBackgroundImageToDOM(null);
-    }
-
-    console.log('主题设置已从本地存储加载');
   } catch (error) {
     console.error('加载主题设置出错:', error);
     // 出错时应用默认设置
@@ -225,38 +268,30 @@ async function loadThemeSettings() {
  * @param {boolean} save - 是否保存设置
  */
 async function applyTheme(theme, save = true) {
-  // 移除所有主题类
-  document.body.classList.remove(
-    'theme-default',
-    'theme-blue',
-    'theme-green',
-    'theme-purple',
-    'theme-pink',
-    'theme-dark'
-  );
+  // 安全地移除所有主题类
+  if (document.body && document.body.classList) {
+    document.body.classList.remove(
+      'theme-default',
+      'theme-blue',
+      'theme-green',
+      'theme-purple',
+      'theme-pink',
+      'theme-dark'
+    );
 
-  // 添加新主题类
-  document.body.classList.add(`theme-${theme}`);
+    // 添加新主题类
+    document.body.classList.add(`theme-${theme}`);
+  }
+
   currentTheme = theme;
+  window.currentTheme = currentTheme; // 同步到window对象
 
-  // 保存主题设置
+  // 保存主题设置 - 统一使用saveThemeSettingsUnified
   if (save) {
     try {
-      // 如果Supabase可用，保存到云端
-      if (isBackgroundImageAvailable()) {
-        await saveThemeSettingsToSupabase();
-      } else {
-        // 否则保存到本地
-        await storage.set({ [THEME_STORAGE_KEY]: theme });
-      }
+      await saveThemeSettingsUnified();
     } catch (error) {
       console.error('保存主题设置出错:', error);
-      // 如果云端保存失败，尝试本地保存
-      try {
-        await storage.set({ [THEME_STORAGE_KEY]: theme });
-      } catch (localError) {
-        console.error('本地保存也失败:', localError);
-      }
     }
   }
 }
@@ -281,9 +316,9 @@ function handleBgImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // 检查Supabase是否可用
-  if (!isBackgroundImageAvailable()) {
-    alert('背景图片功能需要配置Supabase云端存储，请先配置云端同步。');
+  // 检查Supabase是否可用（新上传需要Supabase）
+  if (!window.syncManager || !syncManager.isSupabaseEnabled) {
+    alert('上传新背景图片需要配置Supabase云端存储，请先配置云端同步。');
     event.target.value = ''; // 清空文件选择
     return;
   }
@@ -409,13 +444,18 @@ async function applyBackgroundImage() {
  * @param {string} imageData - 图片数据（base64）
  */
 function applyBackgroundImageToDOM(imageData) {
-  if (imageData) {
-    backgroundContainer.classList.add('has-bg-image');
-    backgroundContainer.style.backgroundImage = `url(${imageData})`;
-    backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
-  } else {
-    backgroundContainer.classList.remove('has-bg-image');
-    backgroundContainer.style.backgroundImage = '';
+  // 安全地操作DOM元素
+  if (backgroundContainer && backgroundContainer.classList) {
+    if (imageData) {
+      backgroundContainer.classList.add('has-bg-image');
+      backgroundContainer.style.backgroundImage = `url(${imageData})`;
+      if (backgroundOverlay) {
+        backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
+      }
+    } else {
+      backgroundContainer.classList.remove('has-bg-image');
+      backgroundContainer.style.backgroundImage = '';
+    }
   }
 }
 
@@ -450,15 +490,8 @@ async function removeBackgroundImage() {
     bgOpacitySlider.value = 30;
     bgOpacityValue.textContent = '30%';
 
-    // 保存设置
-    if (isBackgroundImageAvailable()) {
-      await saveThemeSettingsToSupabase();
-    } else {
-      await storage.set({
-        [BG_IMAGE_STORAGE_KEY]: null,
-        [BG_OPACITY_STORAGE_KEY]: 30
-      });
-    }
+    // 保存设置 - 使用统一保存函数
+    await saveThemeSettingsUnified();
 
     console.log('背景图片已移除');
   } catch (error) {
@@ -472,6 +505,12 @@ async function removeBackgroundImage() {
  * @returns {boolean} 是否可用
  */
 function isBackgroundImageAvailable() {
+  // 如果当前有背景图片，即使Supabase被禁用也应该允许管理
+  if (currentBgImageUrl || currentBgImageData) {
+    return true;
+  }
+
+  // 新上传背景图片需要Supabase
   return window.syncManager && syncManager.isSupabaseEnabled;
 }
 
@@ -479,16 +518,61 @@ function isBackgroundImageAvailable() {
  * 更新背景图片UI状态
  */
 function updateBackgroundImageUI() {
-  const isAvailable = isBackgroundImageAvailable();
+  const isSupabaseEnabled = window.syncManager && syncManager.isSupabaseEnabled;
+  const hasCurrentBg = currentBgImageUrl || currentBgImageData;
 
-  if (isAvailable) {
-    // 显示正常的背景图片设置界面
+  if (isSupabaseEnabled) {
+    // 云端模式：显示完整功能
     bgSetupPrompt.style.display = 'none';
     bgImageControls.style.display = 'block';
+    hideBackgroundDisabledWarning();
   } else {
-    // 显示配置Supabase的提示界面
+    // 本地模式：显示配置提示
     bgSetupPrompt.style.display = 'block';
     bgImageControls.style.display = 'none';
+
+    // 如果有背景图片但云端被禁用，显示警告
+    if (hasCurrentBg) {
+      showBackgroundDisabledWarning();
+    } else {
+      hideBackgroundDisabledWarning();
+    }
+  }
+}
+
+/**
+ * 显示背景图片功能被禁用的警告
+ */
+function showBackgroundDisabledWarning() {
+  let warningDiv = document.getElementById('bg-disabled-warning');
+  if (!warningDiv) {
+    warningDiv = document.createElement('div');
+    warningDiv.id = 'bg-disabled-warning';
+    warningDiv.className = 'bg-warning';
+    warningDiv.innerHTML = `
+      <div class="warning-content">
+        <span class="warning-icon">⚠️</span>
+        <div class="warning-text">
+          <strong>云端同步已禁用</strong>
+          <p>当前背景图片可能无法正常显示，已自动切换到纯色背景</p>
+        </div>
+        <button onclick="openSupabaseSetup()" class="warning-btn">重新启用</button>
+      </div>
+    `;
+
+    // 插入到背景图片控制区域的顶部
+    bgImageControls.insertBefore(warningDiv, bgImageControls.firstChild);
+  }
+  warningDiv.style.display = 'block';
+}
+
+/**
+ * 隐藏背景图片功能被禁用的警告
+ */
+function hideBackgroundDisabledWarning() {
+  const warningDiv = document.getElementById('bg-disabled-warning');
+  if (warningDiv) {
+    warningDiv.style.display = 'none';
   }
 }
 
@@ -508,49 +592,336 @@ function openSupabaseSetup() {
 }
 
 /**
- * 保存主题设置到Supabase
+ * 第三阶段：统一的主题设置保存函数
+ * 使用数据保存协调器确保数据一致性
+ */
+async function saveThemeSettingsUnified() {
+  try {
+    console.log('🎨 Theme: 开始保存主题设置...');
+
+    // 同步window对象的值到模块变量（确保使用最新值）
+    if (window.currentTheme !== undefined) {
+      currentTheme = window.currentTheme;
+    }
+    if (window.currentBgOpacity !== undefined) {
+      currentBgOpacity = window.currentBgOpacity;
+    }
+    if (window.currentBgImageUrl !== undefined) {
+      currentBgImageUrl = window.currentBgImageUrl;
+    }
+    if (window.currentBgImagePath !== undefined) {
+      currentBgImagePath = window.currentBgImagePath;
+    }
+
+    console.log('🎨 Theme: 同步后的当前值:', {
+      theme: currentTheme,
+      opacity: currentBgOpacity,
+      imageUrl: currentBgImageUrl,
+      imagePath: currentBgImagePath
+    });
+
+    // 准备主题设置数据
+    const themeSettingsData = {
+      themeSettings: {
+        theme: currentTheme,
+        backgroundImageUrl: currentBgImageUrl,
+        backgroundImagePath: currentBgImagePath,
+        backgroundOpacity: currentBgOpacity,
+        lastModified: new Date().toISOString()
+      }
+    };
+
+    console.log('🎨 Theme: 准备保存的主题设置:', themeSettingsData.themeSettings);
+
+    // 第三阶段：使用统一的数据保存协调器
+    if (window.dataSaveCoordinator) {
+      console.log('🎨 Theme: 使用数据保存协调器');
+
+      const result = await dataSaveCoordinator.saveData(themeSettingsData, {
+        source: 'themeSettings',
+        priority: 'normal',
+        mergeStrategy: 'smart',
+        validateBefore: true
+      });
+
+      if (result.success) {
+        console.log('🎨 Theme: 通过协调器保存成功');
+      } else {
+        throw new Error(result.error || '协调器保存失败');
+      }
+    } else {
+      // 备选方案：使用原有逻辑
+      console.log('🎨 Theme: 协调器不可用，使用备选方案');
+      await saveThemeSettingsLegacy(themeSettingsData);
+    }
+
+    console.log('🎨 Theme: 主题设置保存完成');
+  } catch (error) {
+    console.error('🎨 Theme: 保存主题设置失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 第三阶段：原有主题保存逻辑（备选方案）
+ */
+async function saveThemeSettingsLegacy(themeSettingsData) {
+  // 获取当前完整数据
+  let currentData;
+  if (window.syncManager) {
+    currentData = await syncManager.loadData(false) || { categories: [], settings: {} };
+  } else {
+    currentData = { categories: [], settings: {} };
+  }
+
+  // 合并主题设置
+  const mergedData = {
+    ...currentData,
+    ...themeSettingsData
+  };
+
+  // 保存数据
+  if (window.syncManager) {
+    await syncManager.saveData(mergedData);
+    console.log('🎨 Theme: 备选方案通过syncManager保存成功');
+  } else {
+    if (chrome && chrome.storage && chrome.storage.sync) {
+      await chrome.storage.sync.set({ quickNavData: mergedData });
+    } else {
+      localStorage.setItem('quickNavData', JSON.stringify(mergedData));
+    }
+    console.log('🎨 Theme: 备选方案保存到本地存储成功');
+  }
+}
+
+/**
+ * 保存主题设置到Supabase (保留兼容性)
  */
 async function saveThemeSettingsToSupabase() {
-  if (!isBackgroundImageAvailable()) {
+  if (!window.syncManager || !syncManager.isSupabaseEnabled) {
     throw new Error('Supabase未配置');
   }
 
-  try {
-    // 输出当前连接状态用于调试
-    const connectionStatus = supabaseClient.getConnectionStatus();
-    console.log('保存主题设置 - 当前连接状态:', connectionStatus);
+  // 直接调用统一保存函数
+  return await saveThemeSettingsUnified();
+}
 
-    // 获取当前数据（强制从云端加载，避免被Chrome Storage污染）
-    const currentData = await syncManager.loadData(true) || { categories: [], settings: {} };
+/**
+ * 独立的主题测试函数（不依赖DOM）
+ * @param {string} theme - 主题名称
+ * @param {boolean} save - 是否保存设置
+ */
+async function applyThemeForTesting(theme, save = true) {
+  console.log(`测试模式：应用主题 ${theme}`);
 
-    // 更新主题设置
-    currentData.themeSettings = {
-      theme: currentTheme,
-      backgroundImageUrl: currentBgImageUrl,
-      backgroundImagePath: currentBgImagePath,
-      backgroundOpacity: currentBgOpacity,
-      lastModified: new Date().toISOString()
-    };
+  currentTheme = theme;
+  window.currentTheme = currentTheme;
 
-    console.log('准备保存主题设置到用户ID:', connectionStatus.userId);
-    console.log('主题设置数据:', currentData.themeSettings);
-
-    // 保存到同步管理器（会自动同步到Supabase）
-    await syncManager.saveData(currentData);
-
-    console.log('主题设置已保存并同步到云端');
-  } catch (error) {
-    console.error('保存主题设置到Supabase失败:', error);
-    throw error;
+  // 保存主题设置
+  if (save) {
+    try {
+      await saveThemeSettingsUnified();
+      console.log(`测试模式：主题 ${theme} 已保存`);
+    } catch (error) {
+      console.error('测试模式：保存主题设置出错:', error);
+      throw error;
+    }
   }
+}
+
+/**
+ * 独立的主题加载测试函数（不依赖DOM）
+ */
+async function loadThemeSettingsForTesting() {
+  console.log('测试模式：开始加载主题设置...');
+
+  // 首先清空当前设置
+  currentTheme = 'default';
+  currentBgImageData = null;
+  currentBgImageUrl = null;
+  currentBgImagePath = null;
+  currentBgOpacity = 30;
+
+  // 同步清空window对象
+  window.currentTheme = currentTheme;
+  window.currentBgImageData = currentBgImageData;
+  window.currentBgImageUrl = currentBgImageUrl;
+  window.currentBgImagePath = currentBgImagePath;
+  window.currentBgOpacity = currentBgOpacity;
+
+  // 统一从syncManager加载数据
+  let loadedData = null;
+  if (window.syncManager) {
+    console.log('测试模式：从syncManager加载主题设置...');
+    const preferCloud = syncManager.isSupabaseEnabled;
+    loadedData = await syncManager.loadData(preferCloud);
+    console.log('测试模式：syncManager加载结果:', loadedData ? '有数据' : '无数据');
+  }
+
+  // 处理加载到的数据
+  if (loadedData && loadedData.themeSettings) {
+    const themeSettings = loadedData.themeSettings;
+    console.log('测试模式：找到主题设置数据:', themeSettings);
+
+    // 加载主题
+    if (themeSettings.theme) {
+      currentTheme = themeSettings.theme;
+      window.currentTheme = currentTheme;
+    }
+
+    // 加载背景透明度
+    if (themeSettings.backgroundOpacity !== undefined) {
+      currentBgOpacity = parseInt(themeSettings.backgroundOpacity);
+      window.currentBgOpacity = currentBgOpacity;
+    }
+
+    // 加载背景图片信息（但不应用到DOM）
+    if (themeSettings.backgroundImageUrl) {
+      currentBgImageUrl = themeSettings.backgroundImageUrl;
+      currentBgImagePath = themeSettings.backgroundImagePath;
+      currentBgImageData = null;
+      window.currentBgImageUrl = currentBgImageUrl;
+      window.currentBgImagePath = currentBgImagePath;
+      window.currentBgImageData = currentBgImageData;
+      console.log('测试模式：加载云端背景图片URL:', currentBgImageUrl);
+    } else if (themeSettings.backgroundImage) {
+      currentBgImageData = themeSettings.backgroundImage;
+      currentBgImageUrl = null;
+      currentBgImagePath = null;
+      window.currentBgImageData = currentBgImageData;
+      window.currentBgImageUrl = currentBgImageUrl;
+      window.currentBgImagePath = currentBgImagePath;
+      console.log('测试模式：加载云端背景图片(base64)');
+    }
+
+    console.log('测试模式：主题设置加载完成');
+    console.log('测试模式：最终状态:', {
+      theme: window.currentTheme,
+      bgImageUrl: window.currentBgImageUrl,
+      bgOpacity: window.currentBgOpacity,
+      cloudSync: window.syncManager && syncManager.isSupabaseEnabled
+    });
+    return;
+  }
+
+  // 如果没有找到主题设置数据，尝试迁移传统存储数据
+  console.log('测试模式：未找到统一格式的主题设置，尝试迁移传统数据...');
+
+  try {
+    const legacySettings = await storage.get([THEME_STORAGE_KEY, BG_IMAGE_STORAGE_KEY, BG_OPACITY_STORAGE_KEY]);
+    console.log('测试模式：传统存储数据:', legacySettings);
+
+    let hasMigrationData = false;
+
+    if (legacySettings[THEME_STORAGE_KEY]) {
+      currentTheme = legacySettings[THEME_STORAGE_KEY];
+      window.currentTheme = currentTheme;
+      hasMigrationData = true;
+    }
+
+    if (legacySettings[BG_OPACITY_STORAGE_KEY] !== undefined) {
+      currentBgOpacity = parseInt(legacySettings[BG_OPACITY_STORAGE_KEY]);
+      window.currentBgOpacity = currentBgOpacity;
+      hasMigrationData = true;
+    }
+
+    if (legacySettings[BG_IMAGE_STORAGE_KEY]) {
+      currentBgImageData = legacySettings[BG_IMAGE_STORAGE_KEY];
+      window.currentBgImageData = currentBgImageData;
+      hasMigrationData = true;
+    }
+
+    // 如果找到传统数据，迁移到新格式并保存
+    if (hasMigrationData) {
+      console.log('测试模式：发现传统数据，开始迁移...');
+
+      // 保存到新格式
+      await saveThemeSettingsUnified();
+
+      // 清理传统存储键
+      try {
+        if (chrome && chrome.storage && chrome.storage.sync) {
+          await chrome.storage.sync.remove([THEME_STORAGE_KEY, BG_IMAGE_STORAGE_KEY, BG_OPACITY_STORAGE_KEY]);
+        }
+        console.log('测试模式：传统存储数据已清理');
+      } catch (cleanupError) {
+        console.warn('测试模式：清理传统存储数据失败:', cleanupError);
+      }
+
+      console.log('测试模式：数据迁移完成');
+      console.log('测试模式：迁移后状态:', {
+        theme: window.currentTheme,
+        bgOpacity: window.currentBgOpacity,
+        bgImageData: window.currentBgImageData ? '有数据' : '无数据'
+      });
+      return;
+    }
+  } catch (migrationError) {
+    console.warn('测试模式：数据迁移失败:', migrationError);
+  }
+
+  console.log('测试模式：没有找到任何主题设置数据，使用默认设置');
 }
 
 // 导出主题设置相关函数和变量
 window.initThemeSettings = initThemeSettings;
 window.loadThemeSettings = loadThemeSettings;
+window.applyTheme = applyTheme;
 window.showCurrentBackgroundPreview = showCurrentBackgroundPreview;
 window.updateThemeOptionsUI = updateThemeOptionsUI;
 window.updateBackgroundImageUI = updateBackgroundImageUI;
+
+/**
+ * 第二阶段：配置切换后强制重新加载主题设置
+ */
+async function reloadThemeAfterConfigSwitch() {
+  try {
+    console.log('🔄 Theme: 配置切换后重新加载主题设置...');
+
+    // 强制重新加载，跳过缓存
+    if (window.syncManager) {
+      const preferCloud = syncManager.isSupabaseEnabled;
+      await loadThemeSettings();
+      console.log('🔄 Theme: 配置切换后主题设置重新加载完成');
+    }
+  } catch (error) {
+    console.error('🔄 Theme: 配置切换后重新加载主题设置失败:', error);
+  }
+}
+
+/**
+ * 第二阶段：数据验证函数
+ */
+function validateThemeData(data) {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  // 验证主题设置结构
+  if (data.themeSettings) {
+    const ts = data.themeSettings;
+    if (typeof ts !== 'object') return false;
+
+    // 验证主题名称
+    if (ts.theme && typeof ts.theme !== 'string') return false;
+
+    // 验证透明度
+    if (ts.backgroundOpacity !== undefined) {
+      const opacity = parseInt(ts.backgroundOpacity);
+      if (isNaN(opacity) || opacity < 0 || opacity > 100) return false;
+    }
+  }
+
+  return true;
+}
+
+// 导出测试专用函数
+window.applyThemeForTesting = applyThemeForTesting;
+window.loadThemeSettingsForTesting = loadThemeSettingsForTesting;
+
+// 导出第二阶段新增函数
+window.reloadThemeAfterConfigSwitch = reloadThemeAfterConfigSwitch;
+window.validateThemeData = validateThemeData;
 
 // 导出主题相关的全局变量
 window.currentTheme = currentTheme;

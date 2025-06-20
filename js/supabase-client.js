@@ -55,15 +55,31 @@ class SupabaseClient {
       throw new Error('Supabase客户端未初始化');
     }
 
-    // 尝试查询数据表，如果不存在则创建
-    const { error } = await this.client
-      .from(this.tableName)
-      .select('id')
-      .limit(1);
+    try {
+      // 尝试查询数据表
+      const { data, error } = await this.client
+        .from(this.tableName)
+        .select('id')
+        .limit(1);
 
-    if (error && error.code === 'PGRST116') {
-      // 表不存在，需要创建
-      throw new Error('数据表不存在，请先在Supabase中创建表结构');
+      if (error) {
+        if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('does not exist')) {
+          // 表不存在
+          throw new Error('数据表不存在，请先在Supabase中创建表结构');
+        } else if (error.code === '42P01') {
+          // PostgreSQL: relation does not exist
+          throw new Error('数据表不存在，请先在Supabase中创建表结构');
+        } else {
+          // 其他错误
+          throw new Error(`数据库连接测试失败: ${error.message}`);
+        }
+      }
+
+      // 连接成功
+      console.log('Supabase连接测试成功');
+    } catch (error) {
+      console.error('Supabase连接测试失败:', error);
+      throw error;
     }
   }
 
@@ -82,28 +98,16 @@ class SupabaseClient {
       updated_at: new Date().toISOString()
     };
 
-    // 先尝试更新，如果不存在则插入
-    const { data: existingData } = await this.client
+    // 使用 upsert 操作，更简洁和可靠
+    const { error } = await this.client
       .from(this.tableName)
-      .select('id')
-      .eq('user_id', this.userId)
-      .single();
+      .upsert(record, {
+        onConflict: 'user_id'
+      });
 
-    if (existingData) {
-      // 更新现有记录
-      const { error } = await this.client
-        .from(this.tableName)
-        .update(record)
-        .eq('user_id', this.userId);
-
-      if (error) throw error;
-    } else {
-      // 插入新记录
-      const { error } = await this.client
-        .from(this.tableName)
-        .insert(record);
-
-      if (error) throw error;
+    if (error) {
+      console.error('Supabase保存失败:', error);
+      throw error;
     }
 
     console.log('数据已保存到Supabase');
@@ -121,17 +125,108 @@ class SupabaseClient {
       .from(this.tableName)
       .select('data, updated_at')
       .eq('user_id', this.userId)
-      .single();
+      .maybeSingle(); // 使用 maybeSingle() 而不是 single()
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // 记录不存在
-        return null;
-      }
+      throw error;
+    }
+
+    // 如果没有数据，返回 null
+    if (!data) {
+      return null;
+    }
+
+    return data;
+  }
+
+  /**
+   * 删除用户数据
+   */
+  async deleteData() {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    const { error } = await this.client
+      .from(this.tableName)
+      .delete()
+      .eq('user_id', this.userId);
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('用户数据已从Supabase删除');
+    return { success: true };
+  }
+
+  /**
+   * 查询所有数据（用于调试和管理）
+   */
+  async getAllData() {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    const { data, error } = await this.client
+      .from(this.tableName)
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  /**
+   * 查询特定用户的数据（用于调试）
+   */
+  async getUserData(userId) {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    const { data, error } = await this.client
+      .from(this.tableName)
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
       throw error;
     }
 
     return data;
+  }
+
+  /**
+   * 删除当前用户的数据
+   */
+  async deleteData() {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    try {
+      console.log('SupabaseClient: 删除用户数据:', this.userId);
+
+      const { error } = await this.client
+        .from('quick_nav_data')
+        .delete()
+        .eq('user_id', this.userId);
+
+      if (error) {
+        console.error('SupabaseClient: 删除数据失败:', error);
+        throw error;
+      }
+
+      console.log('SupabaseClient: 用户数据删除成功');
+    } catch (error) {
+      console.error('SupabaseClient: 删除数据异常:', error);
+      throw error;
+    }
   }
 
   /**

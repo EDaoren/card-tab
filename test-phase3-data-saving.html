@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第三阶段：数据保存逻辑测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover { background: #3367d6; }
+        .button.success { background: #34a853; }
+        .button.warning { background: #fbbc04; color: #000; }
+        .button.danger { background: #ea4335; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e8eaed;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status-card {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .status-card.pass { background: #d4edda; border-color: #c3e6cb; }
+        .status-card.fail { background: #f8d7da; border-color: #f5c6cb; }
+        .status-card.warn { background: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💾 第三阶段：数据保存逻辑测试</h1>
+        <p>测试统一保存入口、数据一致性检查、StorageManager优化</p>
+
+        <div class="test-section">
+            <h3>📊 测试状态</h3>
+            <div id="status-overview" class="status-grid">
+                <div class="status-card" id="coordinator-test">
+                    <h4>保存协调器</h4>
+                    <div id="coordinator-status">未测试</div>
+                </div>
+                <div class="status-card" id="consistency-test">
+                    <h4>一致性检查</h4>
+                    <div id="consistency-status">未测试</div>
+                </div>
+                <div class="status-card" id="storage-test">
+                    <h4>StorageManager</h4>
+                    <div id="storage-status">未测试</div>
+                </div>
+                <div class="status-card" id="theme-test">
+                    <h4>主题保存</h4>
+                    <div id="theme-status">未测试</div>
+                </div>
+            </div>
+            <button class="button success" onclick="runAllPhase3Tests()">🚀 运行第三阶段全部测试</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 专项测试</h3>
+            <div>
+                <button class="button" onclick="testDataSaveCoordinator()">💾 数据保存协调器测试</button>
+                <button class="button" onclick="testConsistencyChecks()">🔍 一致性检查测试</button>
+                <button class="button" onclick="testStorageManagerSaving()">📦 StorageManager保存测试</button>
+                <button class="button" onclick="testThemeSaving()">🎨 主题保存测试</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 高级测试</h3>
+            <div>
+                <button class="button" onclick="testConcurrentSaves()">⚡ 并发保存测试</button>
+                <button class="button" onclick="testDataOverwriteProtection()">🛡️ 数据覆盖保护测试</button>
+                <button class="button" onclick="testSaveValidation()">✅ 保存验证测试</button>
+                <button class="button danger" onclick="testErrorRecovery()">🚨 错误恢复测试</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 测试日志</h3>
+            <div id="test-log" class="log"></div>
+            <button class="button" onclick="clearLog()">清空日志</button>
+        </div>
+    </div>
+
+    <!-- 引入必要的脚本 -->
+    <script src="js/utils.js"></script>
+    <script src="js/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/sync-manager.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/theme-config-manager.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/data-save-coordinator.js"></script>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('test-log');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            if (type === 'success') logEntry.style.color = '#155724';
+            else if (type === 'error') logEntry.style.color = '#721c24';
+            else if (type === 'warning') logEntry.style.color = '#856404';
+            
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('test-log').innerHTML = '';
+        }
+
+        // 更新状态卡片
+        function updateStatusCard(cardId, status, message) {
+            const card = document.getElementById(cardId);
+            const statusDiv = card.querySelector('div');
+            statusDiv.textContent = message;
+            
+            card.className = 'status-card';
+            if (status === 'pass') card.classList.add('pass');
+            else if (status === 'fail') card.classList.add('fail');
+            else if (status === 'warn') card.classList.add('warn');
+        }
+
+        // 运行所有第三阶段测试
+        async function runAllPhase3Tests() {
+            try {
+                log('🚀 开始第三阶段全部测试...', 'info');
+                
+                // 重置状态
+                ['coordinator-test', 'consistency-test', 'storage-test', 'theme-test'].forEach(id => {
+                    updateStatusCard(id, '', '测试中...');
+                });
+                
+                // 1. 数据保存协调器测试
+                log('💾 测试数据保存协调器...', 'info');
+                const coordinatorResult = await testDataSaveCoordinator();
+                updateStatusCard('coordinator-test', coordinatorResult.status, coordinatorResult.message);
+                
+                // 2. 一致性检查测试
+                log('🔍 测试一致性检查...', 'info');
+                const consistencyResult = await testConsistencyChecks();
+                updateStatusCard('consistency-test', consistencyResult.status, consistencyResult.message);
+                
+                // 3. StorageManager测试
+                log('📦 测试StorageManager...', 'info');
+                const storageResult = await testStorageManagerSaving();
+                updateStatusCard('storage-test', storageResult.status, storageResult.message);
+                
+                // 4. 主题保存测试
+                log('🎨 测试主题保存...', 'info');
+                const themeResult = await testThemeSaving();
+                updateStatusCard('theme-test', themeResult.status, themeResult.message);
+                
+                // 总结
+                const allResults = [coordinatorResult, consistencyResult, storageResult, themeResult];
+                const passCount = allResults.filter(r => r.status === 'pass').length;
+                const failCount = allResults.filter(r => r.status === 'fail').length;
+                const warnCount = allResults.filter(r => r.status === 'warn').length;
+                
+                log(`🎉 第三阶段测试完成！通过: ${passCount}, 警告: ${warnCount}, 失败: ${failCount}`, 
+                    failCount > 0 ? 'error' : warnCount > 0 ? 'warning' : 'success');
+                
+            } catch (error) {
+                log(`❌ 第三阶段测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 数据保存协调器测试
+        async function testDataSaveCoordinator() {
+            try {
+                log('💾 开始数据保存协调器测试...', 'info');
+                
+                if (!window.dataSaveCoordinator) {
+                    return { status: 'fail', message: '数据保存协调器不可用' };
+                }
+                
+                // 测试基本保存功能
+                const testData = {
+                    categories: [{ id: 'test', name: '测试分类', shortcuts: [] }],
+                    settings: { viewMode: 'grid' }
+                };
+                
+                log('  测试基本保存功能...', 'info');
+                const result = await dataSaveCoordinator.saveData(testData, {
+                    source: 'test',
+                    priority: 'normal',
+                    mergeStrategy: 'smart'
+                });
+                
+                if (result && result.success) {
+                    log('  ✅ 基本保存功能正常', 'success');
+                } else {
+                    return { status: 'fail', message: '基本保存功能失败' };
+                }
+                
+                // 测试保存状态
+                const status = dataSaveCoordinator.getSaveStatus();
+                log(`  保存状态: 队列长度=${status.queueLength}, 进行中=${status.saveInProgress}`, 'info');
+                
+                return { status: 'pass', message: '协调器功能正常' };
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // 一致性检查测试
+        async function testConsistencyChecks() {
+            try {
+                log('🔍 开始一致性检查测试...', 'info');
+                
+                if (!window.syncManager || typeof syncManager.performConsistencyCheck !== 'function') {
+                    return { status: 'fail', message: '一致性检查功能不可用' };
+                }
+                
+                // 测试正常数据
+                log('  测试正常数据一致性检查...', 'info');
+                const normalData = {
+                    categories: [{ id: 'test', name: '测试' }],
+                    settings: { viewMode: 'grid' },
+                    themeSettings: { theme: 'blue' }
+                };
+                
+                const normalResult = await syncManager.performConsistencyCheck(normalData);
+                log(`  正常数据检查结果: ${normalResult.passed ? '通过' : '失败'}, 警告数: ${normalResult.warnings.length}`, 'info');
+                
+                // 测试异常数据
+                log('  测试异常数据一致性检查...', 'info');
+                const badData = null;
+                
+                const badResult = await syncManager.performConsistencyCheck(badData);
+                log(`  异常数据检查结果: ${badResult.passed ? '通过' : '失败'}, 警告数: ${badResult.warnings.length}`, 'info');
+                
+                if (!badResult.passed) {
+                    log('  ✅ 异常数据正确被检测', 'success');
+                    return { status: 'pass', message: '一致性检查正常' };
+                } else {
+                    return { status: 'warn', message: '异常数据未被检测' };
+                }
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // StorageManager保存测试
+        async function testStorageManagerSaving() {
+            try {
+                log('📦 开始StorageManager保存测试...', 'info');
+                
+                if (!window.storageManager) {
+                    return { status: 'fail', message: 'StorageManager不可用' };
+                }
+                
+                // 保存测试数据
+                const originalCategories = storageManager.data.categories;
+                const testCategories = [
+                    { id: 'test-cat', name: '测试分类', shortcuts: [] }
+                ];
+                
+                log('  设置测试数据...', 'info');
+                storageManager.data.categories = testCategories;
+                
+                log('  执行保存操作...', 'info');
+                await storageManager.saveToStorage();
+                
+                // 验证保存结果
+                log('  验证保存结果...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 等待保存完成
+                
+                // 重新加载数据验证
+                if (window.syncManager) {
+                    const savedData = await syncManager.loadData(false);
+                    if (savedData && savedData.categories && savedData.categories.length > 0) {
+                        log('  ✅ StorageManager保存验证通过', 'success');
+                        
+                        // 恢复原始数据
+                        storageManager.data.categories = originalCategories;
+                        await storageManager.saveToStorage();
+                        
+                        return { status: 'pass', message: 'StorageManager保存正常' };
+                    } else {
+                        return { status: 'fail', message: '保存数据验证失败' };
+                    }
+                } else {
+                    return { status: 'warn', message: 'SyncManager不可用，无法验证' };
+                }
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // 主题保存测试
+        async function testThemeSaving() {
+            try {
+                log('🎨 开始主题保存测试...', 'info');
+                
+                if (typeof saveThemeSettingsUnified !== 'function') {
+                    return { status: 'fail', message: '主题保存函数不可用' };
+                }
+                
+                // 保存当前主题状态
+                const originalTheme = window.currentTheme;
+                const originalOpacity = window.currentBgOpacity;
+                
+                // 设置测试主题
+                const testTheme = 'test-theme';
+                const testOpacity = 75;
+                
+                log(`  设置测试主题: ${testTheme}, 透明度: ${testOpacity}%`, 'info');
+                window.currentTheme = testTheme;
+                window.currentBgOpacity = testOpacity;
+                
+                log('  执行主题保存...', 'info');
+                await saveThemeSettingsUnified();
+                
+                // 验证保存结果
+                log('  验证主题保存结果...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 等待保存完成
+                
+                if (window.syncManager) {
+                    const savedData = await syncManager.loadData(false);
+                    if (savedData && savedData.themeSettings) {
+                        const savedTheme = savedData.themeSettings.theme;
+                        const savedOpacity = savedData.themeSettings.backgroundOpacity;
+                        
+                        if (savedTheme === testTheme && savedOpacity == testOpacity) {
+                            log('  ✅ 主题保存验证通过', 'success');
+                            
+                            // 恢复原始主题
+                            window.currentTheme = originalTheme;
+                            window.currentBgOpacity = originalOpacity;
+                            await saveThemeSettingsUnified();
+                            
+                            return { status: 'pass', message: '主题保存正常' };
+                        } else {
+                            return { status: 'fail', message: `主题保存不匹配: 期望${testTheme}/${testOpacity}, 实际${savedTheme}/${savedOpacity}` };
+                        }
+                    } else {
+                        return { status: 'fail', message: '主题设置未保存' };
+                    }
+                } else {
+                    return { status: 'warn', message: 'SyncManager不可用，无法验证' };
+                }
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // 并发保存测试
+        async function testConcurrentSaves() {
+            try {
+                log('⚡ 开始并发保存测试...', 'info');
+                
+                if (!window.dataSaveCoordinator) {
+                    log('❌ 数据保存协调器不可用', 'error');
+                    return;
+                }
+                
+                // 创建多个并发保存请求
+                const promises = [];
+                for (let i = 0; i < 5; i++) {
+                    const testData = {
+                        categories: [{ id: `test-${i}`, name: `测试${i}` }],
+                        settings: { viewMode: 'grid' }
+                    };
+                    
+                    promises.push(dataSaveCoordinator.saveData(testData, {
+                        source: `test-${i}`,
+                        priority: i === 0 ? 'high' : 'normal'
+                    }));
+                }
+                
+                log('  发起5个并发保存请求...', 'info');
+                const results = await Promise.all(promises);
+                
+                const successCount = results.filter(r => r && r.success).length;
+                log(`  并发保存完成: ${successCount}/5 成功`, successCount === 5 ? 'success' : 'warning');
+                
+            } catch (error) {
+                log(`❌ 并发保存测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 数据覆盖保护测试
+        async function testDataOverwriteProtection() {
+            try {
+                log('🛡️ 开始数据覆盖保护测试...', 'info');
+                
+                // 这里可以添加更多的覆盖保护测试
+                log('  数据覆盖保护测试需要更多实现...', 'warning');
+                
+            } catch (error) {
+                log(`❌ 数据覆盖保护测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 保存验证测试
+        async function testSaveValidation() {
+            try {
+                log('✅ 开始保存验证测试...', 'info');
+                
+                if (!window.dataSaveCoordinator) {
+                    log('❌ 数据保存协调器不可用', 'error');
+                    return;
+                }
+                
+                // 测试无效数据验证
+                log('  测试无效数据验证...', 'info');
+                try {
+                    await dataSaveCoordinator.saveData(null, { source: 'test' });
+                    log('  ⚠️ 无效数据未被拒绝', 'warning');
+                } catch (error) {
+                    log('  ✅ 无效数据正确被拒绝', 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ 保存验证测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 错误恢复测试
+        async function testErrorRecovery() {
+            try {
+                log('🚨 开始错误恢复测试...', 'info');
+                
+                // 这里可以添加错误恢复测试
+                log('  错误恢复测试需要更多实现...', 'warning');
+                
+            } catch (error) {
+                log(`❌ 错误恢复测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 初始化
+        async function init() {
+            try {
+                log('🚀 初始化第三阶段测试工具...', 'info');
+                
+                await storageManager.init();
+                if (typeof initThemeSettings === 'function') {
+                    await initThemeSettings();
+                }
+                
+                log('✅ 第三阶段测试工具初始化完成', 'success');
+                
+            } catch (error) {
+                log(`❌ 初始化失败: ${error.message}`, 'error');
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

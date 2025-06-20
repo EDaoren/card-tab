@@ -45,7 +45,10 @@ class ShortcutManager {
     
     // Icon type radio change
     this.iconTypeRadios.forEach(radio => {
-      radio.addEventListener('change', () => this.toggleIconTypeFields());
+      radio.addEventListener('change', () => {
+        this.toggleIconTypeFields();
+        this.updateIconOptionStyles();
+      });
     });
     
     // URL input change - reset preview if URL changes
@@ -61,11 +64,11 @@ class ShortcutManager {
    */
   toggleIconTypeFields() {
     const selectedType = document.querySelector('input[name="icon-type"]:checked').value;
-    
+
     this.letterIconForm.classList.add('hidden');
     this.customIconForm.classList.add('hidden');
     this.faviconPreview.classList.add('hidden');
-    
+
     if (selectedType === 'letter') {
       this.letterIconForm.classList.remove('hidden');
     } else if (selectedType === 'custom') {
@@ -73,6 +76,25 @@ class ShortcutManager {
     } else if (selectedType === 'favicon') {
       if (this.currentFaviconUrl) {
         this.faviconPreview.classList.remove('hidden');
+      }
+    }
+  }
+
+  /**
+   * 更新图标选项的视觉样式（为不支持:has()的浏览器提供备用方案）
+   */
+  updateIconOptionStyles() {
+    // 移除所有选中状态
+    document.querySelectorAll('.icon-option').forEach(option => {
+      option.classList.remove('selected');
+    });
+
+    // 为选中的选项添加选中状态
+    const checkedRadio = document.querySelector('input[name="icon-type"]:checked');
+    if (checkedRadio) {
+      const parentOption = checkedRadio.closest('.icon-option');
+      if (parentOption) {
+        parentOption.classList.add('selected');
       }
     }
   }
@@ -155,6 +177,7 @@ class ShortcutManager {
     // Reset icon type to letter
     document.getElementById('icon-type-letter').checked = true;
     this.toggleIconTypeFields();
+    this.updateIconOptionStyles();
     
     // Reset preview
     this.currentFaviconUrl = '';
@@ -188,6 +211,7 @@ class ShortcutManager {
     
     // Set the correct icon type
     document.getElementById(`icon-type-${shortcut.iconType || 'letter'}`).checked = true;
+    this.updateIconOptionStyles();
     
     // Set favicon preview if available
     if (shortcut.iconType === 'favicon' && shortcut.iconUrl) {

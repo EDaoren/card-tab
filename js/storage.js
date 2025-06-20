@@ -130,33 +130,48 @@ class StorageManager {
    */
   async init() {
     try {
-      console.log('StorageManager: Starting initialization...');
-
       // Initialize sync manager first
-      console.log('StorageManager: Initializing sync manager...');
       await syncManager.init();
-      console.log('StorageManager: Sync manager initialized');
 
       // Load data using sync manager (handles Chrome Storage + Supabase)
-      console.log('StorageManager: Loading data...');
       const result = await syncManager.loadData();
-      console.log('StorageManager: Data loaded:', result ? 'success' : 'no data');
 
       // If no data exists, use default data
       if (!result || Object.keys(result).length === 0 || !result.categories) {
-        console.log('StorageManager: Using default data');
         this.data = DEFAULT_DATA;
+
+        // 保存默认数据时，智能保留现有的其他字段（如themeSettings）
+        const dataToSave = {
+          ...result,  // 保留现有数据（可能包含themeSettings等）
+          categories: this.data.categories,  // 设置默认categories
+          settings: this.data.settings,      // 设置默认settings
+          _metadata: {
+            ...result?._metadata,
+            lastModified: new Date().toISOString(),
+            source: 'storageManager_init'
+          }
+        };
+
+        // 保存完整数据的引用
+        this.fullData = dataToSave;
+
         try {
-          await syncManager.saveData(this.data);
-          console.log('StorageManager: Default data saved');
+          await syncManager.saveData(dataToSave);
         } catch (saveError) {
-          console.warn('StorageManager: Failed to save default data:', saveError);
+          console.warn('StorageManager: 保存默认数据失败:', saveError);
         }
       } else {
-        // Remove metadata if present
+        // Remove metadata if present, but keep other fields like themeSettings
         const { _metadata, ...cleanData } = result;
-        this.data = cleanData;
-        console.log('StorageManager: Loaded existing data with', this.data.categories?.length || 0, 'categories');
+
+        // StorageManager只管理categories和settings，但要保留完整数据的引用
+        this.data = {
+          categories: cleanData.categories || [],
+          settings: cleanData.settings || { viewMode: 'grid' }
+        };
+
+        // 保存完整数据的引用，用于saveToStorage时合并
+        this.fullData = cleanData;
       }
 
       return this.data;
@@ -164,17 +179,7 @@ class StorageManager {
       console.error('StorageManager: Error during initialization:', error);
 
       // Fallback to default data if there's an error
-      console.log('StorageManager: Using fallback default data');
       this.data = DEFAULT_DATA;
-
-      // Try to save to local storage as backup
-      try {
-        localStorage.setItem('quickNavData', JSON.stringify(this.data));
-        console.log('StorageManager: Fallback data saved to localStorage');
-      } catch (localError) {
-        console.warn('StorageManager: Failed to save to localStorage:', localError);
-      }
-
       return this.data;
     }
   }
@@ -190,31 +195,93 @@ class StorageManager {
           resolve(result.quickNavData || {});
         });
       } else {
-        // Fallback for development or when Chrome storage is not available
-        const localData = localStorage.getItem('quickNavData');
-        resolve(localData ? JSON.parse(localData) : {});
+        // Development environment fallback - return empty data
+        console.warn('Chrome storage not available, returning empty data');
+        resolve({});
       }
     });
   }
 
   /**
-   * Save data to storage (Chrome Storage + Supabase)
+   * Save data to storage (Chrome Storage + Supabase) - 第三阶段优化版本
    * @returns {Promise} Promise that resolves when data is saved
    */
   async saveToStorage() {
     try {
-      await syncManager.saveData(this.data);
-    } catch (error) {
-      console.error('Error saving to sync manager, falling back to Chrome storage:', error);
-      // Fallback to direct Chrome storage
-      return new Promise((resolve) => {
-        if (chrome.storage && chrome.storage.sync) {
-          chrome.storage.sync.set({ quickNavData: this.data }, resolve);
+      // 第三阶段：使用统一的数据保存协调器
+      if (window.dataSaveCoordinator) {
+        const saveData = {
+          categories: this.data.categories,
+          settings: this.data.settings
+        };
+
+        const result = await dataSaveCoordinator.saveData(saveData, {
+          source: 'storageManager',
+          priority: 'normal',
+          mergeStrategy: 'smart',
+          validateBefore: true
+        });
+
+        if (result.success) {
+          // 更新本地缓存
+          this.fullData = null; // 清空缓存，下次会重新加载
         } else {
-          localStorage.setItem('quickNavData', JSON.stringify(this.data));
-          resolve();
+          throw new Error(result.error || '协调器保存失败');
         }
-      });
+      } else {
+        // 备选方案：使用原有逻辑
+        await this.saveToStorageLegacy();
+      }
+    } catch (error) {
+      console.error('StorageManager: 保存失败:', error);
+      // 最终备选方案
+      await this.saveToStorageFallback();
+    }
+  }
+
+  /**
+   * 第三阶段：原有保存逻辑（备选方案）
+   */
+  async saveToStorageLegacy() {
+    // 获取当前完整数据，确保不丢失其他字段
+    let currentFullData = this.fullData;
+    if (!currentFullData) {
+      currentFullData = await syncManager.loadData(false) || {};
+    }
+
+    // 智能合并数据：只更新categories和settings，保留其他所有字段
+    const mergedData = {
+      ...currentFullData,
+      categories: this.data.categories,
+      settings: this.data.settings,
+      _metadata: {
+        ...currentFullData._metadata,
+        lastModified: new Date().toISOString(),
+        source: 'storageManager_legacy'
+      }
+    };
+
+    this.fullData = mergedData;
+    await syncManager.saveData(mergedData);
+  }
+
+  /**
+   * 第三阶段：最终备选方案
+   */
+  async saveToStorageFallback() {
+    const fallbackData = {
+      categories: this.data.categories,
+      settings: this.data.settings,
+      _metadata: {
+        lastModified: new Date().toISOString(),
+        source: 'storageManager_fallback'
+      }
+    };
+
+    if (chrome.storage && chrome.storage.sync) {
+      await chrome.storage.sync.set({ quickNavData: fallbackData });
+    } else {
+      console.warn('Chrome Storage不可用，跳过备选方案保存');
     }
   }
 
@@ -458,31 +525,16 @@ class StorageManager {
       if (chrome.storage && chrome.storage.sync) {
         chrome.storage.sync.get(keys, resolve);
       } else {
-        // 开发环境或Chrome存储不可用时的备选方案
+        // Development environment fallback - return empty result
+        console.warn('Chrome storage not available, returning empty result');
         if (Array.isArray(keys)) {
           const result = {};
           keys.forEach(key => {
-            const item = localStorage.getItem(key);
-            if (item) {
-              try {
-                result[key] = JSON.parse(item);
-              } catch (e) {
-                result[key] = item;
-              }
-            }
+            result[key] = undefined;
           });
           resolve(result);
         } else {
-          const item = localStorage.getItem(keys);
-          const result = {};
-          if (item) {
-            try {
-              result[keys] = JSON.parse(item);
-            } catch (e) {
-              result[keys] = item;
-            }
-          }
-          resolve(result);
+          resolve({ [keys]: undefined });
         }
       }
     });

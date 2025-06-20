@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第二阶段：数据加载逻辑测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover { background: #3367d6; }
+        .button.success { background: #34a853; }
+        .button.warning { background: #fbbc04; color: #000; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e8eaed;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status-card {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .status-card.pass { background: #d4edda; border-color: #c3e6cb; }
+        .status-card.fail { background: #f8d7da; border-color: #f5c6cb; }
+        .status-card.warn { background: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 第二阶段：数据加载逻辑测试</h1>
+        <p>测试数据源优先级、配置切换隔离、数据验证清理机制</p>
+
+        <div class="test-section">
+            <h3>📊 测试状态</h3>
+            <div id="status-overview" class="status-grid">
+                <div class="status-card" id="priority-test">
+                    <h4>数据源优先级</h4>
+                    <div id="priority-status">未测试</div>
+                </div>
+                <div class="status-card" id="isolation-test">
+                    <h4>配置隔离</h4>
+                    <div id="isolation-status">未测试</div>
+                </div>
+                <div class="status-card" id="validation-test">
+                    <h4>数据验证</h4>
+                    <div id="validation-status">未测试</div>
+                </div>
+            </div>
+            <button class="button success" onclick="runAllPhase2Tests()">🚀 运行第二阶段全部测试</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 专项测试</h3>
+            <div>
+                <button class="button" onclick="testDataSourcePriority()">📊 数据源优先级测试</button>
+                <button class="button" onclick="testConfigurationIsolation()">🏠 配置隔离测试</button>
+                <button class="button" onclick="testDataValidation()">✅ 数据验证测试</button>
+                <button class="button" onclick="testLoadStrategies()">🔄 加载策略测试</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 测试日志</h3>
+            <div id="test-log" class="log"></div>
+            <button class="button" onclick="clearLog()">清空日志</button>
+        </div>
+    </div>
+
+    <!-- 引入必要的脚本 -->
+    <script src="js/utils.js"></script>
+    <script src="js/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/sync-manager.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/theme-config-manager.js"></script>
+    <script src="js/theme.js"></script>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('test-log');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            if (type === 'success') logEntry.style.color = '#155724';
+            else if (type === 'error') logEntry.style.color = '#721c24';
+            else if (type === 'warning') logEntry.style.color = '#856404';
+            
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('test-log').innerHTML = '';
+        }
+
+        // 更新状态卡片
+        function updateStatusCard(cardId, status, message) {
+            const card = document.getElementById(cardId);
+            const statusDiv = card.querySelector('div');
+            statusDiv.textContent = message;
+            
+            card.className = 'status-card';
+            if (status === 'pass') card.classList.add('pass');
+            else if (status === 'fail') card.classList.add('fail');
+            else if (status === 'warn') card.classList.add('warn');
+        }
+
+        // 运行所有第二阶段测试
+        async function runAllPhase2Tests() {
+            try {
+                log('🚀 开始第二阶段全部测试...', 'info');
+                
+                // 重置状态
+                ['priority-test', 'isolation-test', 'validation-test'].forEach(id => {
+                    updateStatusCard(id, '', '测试中...');
+                });
+                
+                // 1. 数据源优先级测试
+                log('📊 测试数据源优先级...', 'info');
+                const priorityResult = await testDataSourcePriority();
+                updateStatusCard('priority-test', priorityResult.status, priorityResult.message);
+                
+                // 2. 配置隔离测试
+                log('🏠 测试配置隔离...', 'info');
+                const isolationResult = await testConfigurationIsolation();
+                updateStatusCard('isolation-test', isolationResult.status, isolationResult.message);
+                
+                // 3. 数据验证测试
+                log('✅ 测试数据验证...', 'info');
+                const validationResult = await testDataValidation();
+                updateStatusCard('validation-test', validationResult.status, validationResult.message);
+                
+                // 总结
+                const allResults = [priorityResult, isolationResult, validationResult];
+                const passCount = allResults.filter(r => r.status === 'pass').length;
+                const failCount = allResults.filter(r => r.status === 'fail').length;
+                const warnCount = allResults.filter(r => r.status === 'warn').length;
+                
+                log(`🎉 第二阶段测试完成！通过: ${passCount}, 警告: ${warnCount}, 失败: ${failCount}`, 
+                    failCount > 0 ? 'error' : warnCount > 0 ? 'warning' : 'success');
+                
+            } catch (error) {
+                log(`❌ 第二阶段测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 数据源优先级测试
+        async function testDataSourcePriority() {
+            try {
+                log('📊 开始数据源优先级测试...', 'info');
+                
+                if (!window.syncManager) {
+                    return { status: 'fail', message: 'SyncManager不可用' };
+                }
+                
+                // 测试不同的加载策略
+                const strategies = [
+                    { preferCloud: false, expected: 'chrome优先' },
+                    { preferCloud: true, expected: '云端优先' }
+                ];
+                
+                let passCount = 0;
+                
+                for (const strategy of strategies) {
+                    log(`  测试策略: preferCloud=${strategy.preferCloud}`, 'info');
+                    
+                    try {
+                        const data = await syncManager.loadData(strategy.preferCloud);
+                        log(`  结果: ${data ? '有数据' : '无数据'}`, 'info');
+                        
+                        if (data && data._metadata) {
+                            log(`  数据来源: ${data._metadata.source || '未知'}`, 'info');
+                        }
+                        
+                        passCount++;
+                    } catch (e) {
+                        log(`  策略测试失败: ${e.message}`, 'warning');
+                    }
+                }
+                
+                if (passCount === strategies.length) {
+                    return { status: 'pass', message: '优先级逻辑正常' };
+                } else if (passCount > 0) {
+                    return { status: 'warn', message: `部分通过 (${passCount}/${strategies.length})` };
+                } else {
+                    return { status: 'fail', message: '优先级测试失败' };
+                }
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // 配置隔离测试
+        async function testConfigurationIsolation() {
+            try {
+                log('🏠 开始配置隔离测试...', 'info');
+                
+                if (!window.themeConfigManager) {
+                    return { status: 'fail', message: 'ThemeConfigManager不可用' };
+                }
+                
+                // 获取当前配置
+                const currentConfig = themeConfigManager.getActiveConfig();
+                log(`  当前配置: ${currentConfig ? currentConfig.displayName : '无'}`, 'info');
+                
+                // 测试存储键隔离
+                if (window.syncManager) {
+                    const storageKey = syncManager.getCurrentStorageKey();
+                    log(`  当前存储键: ${storageKey}`, 'info');
+                    
+                    // 验证存储键是否包含配置标识
+                    const hasConfigId = storageKey.includes('_') && storageKey !== 'quickNavData';
+                    
+                    if (hasConfigId) {
+                        return { status: 'pass', message: '配置隔离正常' };
+                    } else {
+                        return { status: 'warn', message: '存储键可能未隔离' };
+                    }
+                } else {
+                    return { status: 'fail', message: 'SyncManager不可用' };
+                }
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // 数据验证测试
+        async function testDataValidation() {
+            try {
+                log('✅ 开始数据验证测试...', 'info');
+                
+                // 测试数据验证函数
+                if (typeof validateThemeData === 'function') {
+                    const testCases = [
+                        { data: null, expected: false, name: '空数据' },
+                        { data: {}, expected: true, name: '空对象' },
+                        { data: { themeSettings: { theme: 'blue' } }, expected: true, name: '有效主题数据' },
+                        { data: { themeSettings: { theme: 123 } }, expected: false, name: '无效主题类型' },
+                        { data: { themeSettings: { backgroundOpacity: 150 } }, expected: false, name: '无效透明度' }
+                    ];
+                    
+                    let passCount = 0;
+                    
+                    for (const testCase of testCases) {
+                        const result = validateThemeData(testCase.data);
+                        const passed = result === testCase.expected;
+                        
+                        log(`  ${testCase.name}: ${passed ? '通过' : '失败'} (期望: ${testCase.expected}, 实际: ${result})`, 
+                            passed ? 'info' : 'warning');
+                        
+                        if (passed) passCount++;
+                    }
+                    
+                    if (passCount === testCases.length) {
+                        return { status: 'pass', message: '数据验证功能正常' };
+                    } else {
+                        return { status: 'warn', message: `部分通过 (${passCount}/${testCases.length})` };
+                    }
+                } else {
+                    return { status: 'fail', message: '数据验证函数不可用' };
+                }
+                
+            } catch (error) {
+                return { status: 'fail', message: `测试失败: ${error.message}` };
+            }
+        }
+
+        // 加载策略测试
+        async function testLoadStrategies() {
+            try {
+                log('🔄 开始加载策略测试...', 'info');
+                
+                if (!window.syncManager) {
+                    log('❌ SyncManager不可用', 'error');
+                    return;
+                }
+                
+                // 测试不同的加载策略
+                const isSupabaseEnabled = syncManager.isSupabaseEnabled;
+                log(`  当前云端同步状态: ${isSupabaseEnabled}`, 'info');
+                
+                // 测试策略确定
+                if (typeof syncManager.determineLoadStrategy === 'function') {
+                    const strategies = [
+                        { preferCloud: false, name: '本地优先' },
+                        { preferCloud: true, name: '云端优先' }
+                    ];
+                    
+                    for (const test of strategies) {
+                        const strategy = syncManager.determineLoadStrategy(test.preferCloud);
+                        log(`  ${test.name}策略: ${strategy.strategy} (优先级: ${strategy.priority})`, 'info');
+                    }
+                    
+                    log('✅ 加载策略测试完成', 'success');
+                } else {
+                    log('⚠️ 策略确定函数不可用', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ 加载策略测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 初始化
+        async function init() {
+            try {
+                log('🚀 初始化第二阶段测试工具...', 'info');
+                
+                await storageManager.init();
+                if (typeof initThemeSettings === 'function') {
+                    await initThemeSettings();
+                }
+                
+                log('✅ 第二阶段测试工具初始化完成', 'success');
+                
+            } catch (error) {
+                log(`❌ 初始化失败: ${error.message}`, 'error');
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

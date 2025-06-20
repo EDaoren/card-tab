@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主题保存调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; }
+        .debug { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>主题保存调试工具</h1>
+        <p>用于调试主题保存到云端的问题</p>
+
+        <h3>测试步骤</h3>
+        <button onclick="step1()">1. 检查初始状态</button>
+        <button onclick="step2()">2. 模拟启用云端同步</button>
+        <button onclick="step3()">3. 测试主题保存</button>
+        <button onclick="step4()">4. 检查保存结果</button>
+        <button onclick="clearLog()">清空日志</button>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // 模拟全局变量
+        let currentTheme = 'default';
+        let currentBgImageUrl = null;
+        let currentBgImagePath = null;
+        let currentBgOpacity = 30;
+
+        // 模拟syncManager
+        window.syncManager = {
+            isSupabaseEnabled: false,
+            storageMode: 'chrome',
+            
+            async loadData(preferCloud = false) {
+                log(`syncManager.loadData(preferCloud=${preferCloud}) 被调用`, 'debug');
+                
+                // 模拟从云端或本地加载数据
+                const mockData = {
+                    categories: [
+                        {
+                            id: 'cat-1',
+                            name: '社交媒体',
+                            color: '#4285f4',
+                            collapsed: false,
+                            shortcuts: []
+                        }
+                    ],
+                    settings: { viewMode: 'grid' }
+                };
+                
+                log(`返回模拟数据: ${JSON.stringify(mockData)}`, 'debug');
+                return mockData;
+            },
+            
+            async saveData(data) {
+                log(`syncManager.saveData 被调用`, 'debug');
+                log(`要保存的数据: ${JSON.stringify(data, null, 2)}`, 'debug');
+                
+                // 检查是否包含themeSettings
+                if (data.themeSettings) {
+                    log(`✅ 发现主题设置: ${JSON.stringify(data.themeSettings)}`, 'success');
+                } else {
+                    log(`❌ 没有找到主题设置！`, 'error');
+                }
+                
+                // 模拟保存到云端
+                if (this.isSupabaseEnabled) {
+                    localStorage.setItem('mockCloudData', JSON.stringify(data));
+                    log('✅ 已保存到模拟云端存储', 'success');
+                }
+                
+                // 模拟保存到本地
+                localStorage.setItem('mockLocalData', JSON.stringify(data));
+                log('✅ 已保存到模拟本地存储', 'success');
+            }
+        };
+
+        // 模拟supabaseClient
+        window.supabaseClient = {
+            getConnectionStatus() {
+                return {
+                    isConnected: syncManager.isSupabaseEnabled,
+                    userId: 'test-user-123'
+                };
+            }
+        };
+
+        // 模拟storage
+        window.storage = {
+            async set(data) {
+                log(`storage.set 被调用: ${JSON.stringify(data)}`, 'debug');
+                Object.keys(data).forEach(key => {
+                    localStorage.setItem(key, JSON.stringify(data[key]));
+                });
+            }
+        };
+
+        // 复制真实的saveThemeSettingsToSupabase函数
+        async function saveThemeSettingsToSupabase() {
+            log('🔧 saveThemeSettingsToSupabase 开始执行', 'info');
+            
+            if (!window.syncManager || !syncManager.isSupabaseEnabled) {
+                throw new Error('Supabase未配置');
+            }
+
+            try {
+                // 输出当前连接状态用于调试
+                const connectionStatus = supabaseClient.getConnectionStatus();
+                log(`当前连接状态: ${JSON.stringify(connectionStatus)}`, 'debug');
+
+                // 获取当前数据（优先从云端加载）
+                log('正在加载当前数据...', 'debug');
+                const currentData = await syncManager.loadData(true) || { categories: [], settings: {} };
+                log(`加载的当前数据: ${JSON.stringify(currentData)}`, 'debug');
+
+                // 更新主题设置
+                const themeSettings = {
+                    theme: currentTheme,
+                    backgroundImageUrl: currentBgImageUrl,
+                    backgroundImagePath: currentBgImagePath,
+                    backgroundOpacity: currentBgOpacity,
+                    lastModified: new Date().toISOString()
+                };
+                
+                log(`准备设置的主题数据: ${JSON.stringify(themeSettings)}`, 'info');
+                currentData.themeSettings = themeSettings;
+                log(`合并后的完整数据: ${JSON.stringify(currentData)}`, 'debug');
+
+                log(`准备保存主题设置到用户ID: ${connectionStatus.userId}`, 'info');
+
+                // 保存到同步管理器（会自动同步到Supabase和Chrome Storage）
+                log('调用 syncManager.saveData...', 'debug');
+                await syncManager.saveData(currentData);
+
+                log('✅ 主题设置已保存并同步到云端', 'success');
+            } catch (error) {
+                log(`❌ 保存主题设置到Supabase失败: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // 复制真实的applyTheme函数
+        async function applyTheme(theme, save = true) {
+            log(`🎨 applyTheme 开始执行: theme=${theme}, save=${save}`, 'info');
+            
+            // 更新当前主题
+            currentTheme = theme;
+            log(`当前主题已更新为: ${currentTheme}`, 'debug');
+
+            // 保存主题设置
+            if (save) {
+                try {
+                    if (window.syncManager && syncManager.isSupabaseEnabled) {
+                        log('检测到云端同步已启用，准备保存到云端...', 'info');
+                        // 云端启用：通过syncManager保存（会自动保存到云端+本地）
+                        await saveThemeSettingsToSupabase();
+                        log(`✅ 主题 ${theme} 已保存到云端和本地`, 'success');
+                    } else {
+                        log('云端同步未启用，只保存到本地...', 'info');
+                        // 云端禁用：只保存到本地
+                        await storage.set({ 'quick_nav_theme': theme });
+                        log(`✅ 主题 ${theme} 已保存到本地`, 'success');
+                    }
+                } catch (error) {
+                    log(`❌ 保存主题设置出错: ${error.message}`, 'error');
+                    // 如果云端保存失败，尝试本地保存
+                    try {
+                        await storage.set({ 'quick_nav_theme': theme });
+                        log(`⚠️ 主题 ${theme} 云端保存失败，已保存到本地`, 'warning');
+                    } catch (localError) {
+                        log(`❌ 本地保存也失败: ${localError.message}`, 'error');
+                    }
+                }
+            }
+        }
+
+        // 测试步骤
+        async function step1() {
+            log('=== 步骤1: 检查初始状态 ===', 'info');
+            log(`syncManager.isSupabaseEnabled: ${syncManager.isSupabaseEnabled}`, 'debug');
+            log(`currentTheme: ${currentTheme}`, 'debug');
+            log(`currentBgImageUrl: ${currentBgImageUrl}`, 'debug');
+            log(`currentBgOpacity: ${currentBgOpacity}`, 'debug');
+        }
+
+        async function step2() {
+            log('=== 步骤2: 模拟启用云端同步 ===', 'info');
+            syncManager.isSupabaseEnabled = true;
+            syncManager.storageMode = 'hybrid';
+            log('✅ 云端同步已启用', 'success');
+        }
+
+        async function step3() {
+            log('=== 步骤3: 测试主题保存 ===', 'info');
+            try {
+                await applyTheme('dark', true);
+                log('✅ 主题保存测试完成', 'success');
+            } catch (error) {
+                log(`❌ 主题保存测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function step4() {
+            log('=== 步骤4: 检查保存结果 ===', 'info');
+            
+            // 检查本地数据
+            const localData = localStorage.getItem('mockLocalData');
+            if (localData) {
+                const data = JSON.parse(localData);
+                log(`本地数据: ${JSON.stringify(data, null, 2)}`, 'info');
+                if (data.themeSettings) {
+                    log(`✅ 本地找到主题设置: ${JSON.stringify(data.themeSettings)}`, 'success');
+                } else {
+                    log(`❌ 本地没有找到主题设置`, 'error');
+                }
+            } else {
+                log(`❌ 本地没有数据`, 'error');
+            }
+            
+            // 检查云端数据
+            const cloudData = localStorage.getItem('mockCloudData');
+            if (cloudData) {
+                const data = JSON.parse(cloudData);
+                log(`云端数据: ${JSON.stringify(data, null, 2)}`, 'info');
+                if (data.themeSettings) {
+                    log(`✅ 云端找到主题设置: ${JSON.stringify(data.themeSettings)}`, 'success');
+                } else {
+                    log(`❌ 云端没有找到主题设置`, 'error');
+                }
+            } else {
+                log(`❌ 云端没有数据`, 'error');
+            }
+        }
+
+        // 页面加载完成
+        window.addEventListener('load', () => {
+            log('调试工具加载完成', 'info');
+            log('请按顺序点击测试步骤按钮', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -245,10 +245,27 @@ class SyncUIManager {
 
     const hasValidConfig = url && key && userId;
 
+    // 根据同步状态设置输入框的只读状态
+    if (urlInput) {
+      urlInput.readOnly = status.isSupabaseEnabled;
+      urlInput.style.backgroundColor = status.isSupabaseEnabled ? '#f8f9fa' : '';
+      urlInput.style.cursor = status.isSupabaseEnabled ? 'not-allowed' : '';
+    }
+    if (keyInput) {
+      keyInput.readOnly = status.isSupabaseEnabled;
+      keyInput.style.backgroundColor = status.isSupabaseEnabled ? '#f8f9fa' : '';
+      keyInput.style.cursor = status.isSupabaseEnabled ? 'not-allowed' : '';
+    }
+    if (userIdInput) {
+      userIdInput.readOnly = status.isSupabaseEnabled;
+      userIdInput.style.backgroundColor = status.isSupabaseEnabled ? '#f8f9fa' : '';
+      userIdInput.style.cursor = status.isSupabaseEnabled ? 'not-allowed' : '';
+    }
+
     // 测试连接按钮
     const testBtn = document.getElementById('test-connection');
     if (testBtn) {
-      testBtn.disabled = !hasValidConfig;
+      testBtn.disabled = !hasValidConfig || status.isSupabaseEnabled;
     }
 
     // 启用/禁用同步按钮
@@ -282,7 +299,14 @@ class SyncUIManager {
       if (config) {
         document.getElementById('supabase-url').value = config.url || '';
         document.getElementById('supabase-anon-key').value = config.anonKey || '';
-        document.getElementById('user-id').value = config.userId || '';
+
+        // 不要填充默认的用户标识，强制用户输入
+        const userId = config.userId || '';
+        if (userId && userId !== 'default') {
+          document.getElementById('user-id').value = userId;
+        } else {
+          document.getElementById('user-id').value = '';
+        }
       }
     } catch (error) {
       console.error('加载配置失败:', error);
@@ -330,8 +354,24 @@ class SyncUIManager {
       enableBtn.disabled = true;
 
       const config = this.getConfigFromForm();
+
+      // 检查用户标识是否为默认值
+      if (config.userId === 'default') {
+        this.showMessage('请修改用户标识！不能使用默认值 "default"，建议使用您的邮箱或唯一标识符。', 'error');
+        return;
+      }
+
+      // 检查用户标识是否为空
+      if (!config.userId || config.userId.trim() === '') {
+        this.showMessage('请输入用户标识！建议使用您的邮箱或唯一标识符。', 'error');
+        return;
+      }
+
       await syncManager.enableSupabaseSync(config);
-      
+
+      // 立即重新加载和渲染页面数据
+      await this.refreshPageAfterEnableSync();
+
       this.updateSyncStatus();
       this.showMessage('云端同步已启用！', 'success');
     } catch (error) {
@@ -379,15 +419,104 @@ ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
       disableBtn.disabled = true;
 
       await syncManager.disableSupabaseSync();
-      
+
+      // 立即重新加载和渲染页面数据
+      await this.refreshPageAfterDisableSync();
+
       this.updateSyncStatus();
-      this.showMessage('云端同步已禁用，数据已同步到本地', 'success');
+      this.showMessage('云端同步已禁用，已切换到本地默认配置', 'success');
     } catch (error) {
       console.error('禁用同步失败:', error);
       this.showMessage(`禁用同步失败: ${error.message}`, 'error');
     } finally {
       disableBtn.textContent = originalText;
       disableBtn.disabled = false;
+    }
+  }
+
+  /**
+   * 禁用同步后刷新页面数据
+   */
+  async refreshPageAfterDisableSync() {
+    try {
+      console.log('SyncUI: 禁用同步后刷新页面数据');
+
+      // 1. 重新初始化存储管理器（重新加载数据）
+      if (typeof storageManager !== 'undefined') {
+        await storageManager.init();
+        console.log('SyncUI: 存储管理器已重新初始化');
+      }
+
+      // 2. 重新渲染分类数据
+      if (typeof categoryManager !== 'undefined') {
+        await categoryManager.renderCategories();
+        console.log('SyncUI: 分类数据已重新渲染');
+      }
+
+      // 3. 重新应用主题设置
+      if (typeof loadThemeSettings === 'function') {
+        await loadThemeSettings();
+        console.log('SyncUI: 主题设置已重新加载和应用');
+      }
+
+      // 4. 更新背景图片
+      if (typeof updateBackgroundImageUI === 'function') {
+        updateBackgroundImageUI();
+        console.log('SyncUI: 背景图片UI已更新');
+      }
+
+      // 5. 更新配置切换显示
+      if (typeof themeConfigUIManager !== 'undefined') {
+        await themeConfigUIManager.updateConfigSwitchDisplay();
+        console.log('SyncUI: 配置切换显示已更新');
+      }
+
+      console.log('SyncUI: 页面数据刷新完成');
+    } catch (error) {
+      console.error('SyncUI: 刷新页面数据失败:', error);
+    }
+  }
+
+  /**
+   * 启用同步后刷新页面数据
+   */
+  async refreshPageAfterEnableSync() {
+    try {
+      console.log('SyncUI: 启用同步后刷新页面数据');
+
+      // 1. 重新初始化存储管理器（重新加载数据）
+      if (typeof storageManager !== 'undefined') {
+        await storageManager.init();
+        console.log('SyncUI: 存储管理器已重新初始化');
+      }
+
+      // 2. 重新渲染分类数据
+      if (typeof categoryManager !== 'undefined') {
+        await categoryManager.renderCategories();
+        console.log('SyncUI: 分类数据已重新渲染');
+      }
+
+      // 3. 重新应用主题设置
+      if (typeof loadThemeSettings === 'function') {
+        await loadThemeSettings();
+        console.log('SyncUI: 主题设置已重新加载和应用');
+      }
+
+      // 4. 更新背景图片
+      if (typeof updateBackgroundImageUI === 'function') {
+        updateBackgroundImageUI();
+        console.log('SyncUI: 背景图片UI已更新');
+      }
+
+      // 5. 更新配置切换显示
+      if (typeof themeConfigUIManager !== 'undefined') {
+        await themeConfigUIManager.updateConfigSwitchDisplay();
+        console.log('SyncUI: 配置切换显示已更新');
+      }
+
+      console.log('SyncUI: 页面数据刷新完成');
+    } catch (error) {
+      console.error('SyncUI: 刷新页面数据失败:', error);
     }
   }
 
@@ -406,9 +535,14 @@ ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
       
       this.updateSyncStatus();
       this.showMessage('手动同步完成！', 'success');
-      
-      // 重新渲染界面
-      await categoryManager.renderCategories();
+
+      // 使用统一的配置刷新入口
+      if (typeof refreshCurrentConfiguration === 'function') {
+        await refreshCurrentConfiguration();
+      } else {
+        // 降级：重新渲染界面
+        await categoryManager.renderCategories();
+      }
     } catch (error) {
       console.error('手动同步失败:', error);
       this.showMessage(`手动同步失败: ${error.message}`, 'error');

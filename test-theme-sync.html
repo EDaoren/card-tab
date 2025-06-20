@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主题同步测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .button:hover {
+      background: #0056b3;
+    }
+    .button.success {
+      background: #28a745;
+    }
+    .button.danger {
+      background: #dc3545;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .data-display {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .theme-preview {
+      width: 100px;
+      height: 50px;
+      border-radius: 5px;
+      margin: 5px;
+      display: inline-block;
+      border: 2px solid #ddd;
+    }
+    .flex {
+      display: flex;
+      gap: 20px;
+    }
+    .flex > div {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 主题同步测试工具</h1>
+    
+    <div class="flex">
+      <div>
+        <h3>本地主题设置</h3>
+        <div id="local-theme-display" class="data-display">加载中...</div>
+        <button class="button" onclick="loadLocalTheme()">🔄 刷新本地主题</button>
+        <button class="button success" onclick="setDarkTheme()">🌙 设置暗黑主题</button>
+        <button class="button" onclick="setLightTheme()">☀️ 设置浅色主题</button>
+      </div>
+      
+      <div>
+        <h3>云端主题设置</h3>
+        <div id="cloud-theme-display" class="data-display">未连接</div>
+        <button class="button" onclick="loadCloudTheme()">☁️ 加载云端主题</button>
+        <button class="button danger" onclick="migrateThemeToCloud()">📤 迁移主题到云端</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>☁️ Supabase 配置</h2>
+    <div style="margin-bottom: 15px;">
+      <label>Supabase URL:</label><br>
+      <input type="text" id="supabase-url" placeholder="https://xxx.supabase.co" style="width: 300px; padding: 5px; margin: 5px 0;">
+    </div>
+    <div style="margin-bottom: 15px;">
+      <label>Anon Key:</label><br>
+      <input type="password" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="width: 300px; padding: 5px; margin: 5px 0;">
+    </div>
+    <div style="margin-bottom: 15px;">
+      <label>User ID:</label><br>
+      <input type="text" id="user-id" placeholder="test-user" style="width: 300px; padding: 5px; margin: 5px 0;">
+    </div>
+    <button class="button" onclick="connectSupabase()">🔗 连接 Supabase</button>
+    <button class="button" onclick="loadSupabaseConfig()">📋 加载已保存配置</button>
+    <div id="supabase-status" class="status info" style="display: none;"></div>
+  </div>
+
+  <div class="container">
+    <h2>🔧 测试操作</h2>
+    <button class="button" onclick="testThemeMigration()">🧪 测试主题迁移</button>
+    <button class="button" onclick="compareThemes()">🔍 对比主题设置</button>
+    <button class="button" onclick="clearLogs()">🗑️ 清空日志</button>
+
+    <div id="test-logs" class="status info" style="display: none;"></div>
+  </div>
+
+  <!-- 引入必要的JS文件 -->
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/sync-manager.js"></script>
+  <script src="js/theme.js"></script>
+
+  <script>
+    let logs = [];
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      logs.push(`[${timestamp}] ${message}`);
+      
+      const logEl = document.getElementById('test-logs');
+      logEl.textContent = logs.join('\n');
+      logEl.className = `status ${type}`;
+      logEl.style.display = 'block';
+      
+      console.log(message);
+    }
+
+    function clearLogs() {
+      logs = [];
+      document.getElementById('test-logs').style.display = 'none';
+    }
+
+    // 连接 Supabase
+    async function connectSupabase() {
+      try {
+        const url = document.getElementById('supabase-url').value.trim();
+        const key = document.getElementById('supabase-key').value.trim();
+        const userId = document.getElementById('user-id').value.trim();
+
+        if (!url || !key || !userId) {
+          throw new Error('请填写完整的Supabase配置信息');
+        }
+
+        log('正在连接 Supabase...');
+
+        const config = { url, anonKey: key, userId };
+
+        // 保存配置
+        await syncManager.saveSupabaseConfig({ ...config, enabled: true });
+
+        // 初始化连接
+        await supabaseClient.initialize(config);
+
+        // 更新 syncManager 状态
+        syncManager.isSupabaseEnabled = true;
+        syncManager.currentSupabaseConfig = config;
+
+        log('Supabase 连接成功！', 'success');
+
+        const statusEl = document.getElementById('supabase-status');
+        statusEl.textContent = '✅ Supabase 已连接';
+        statusEl.className = 'status success';
+        statusEl.style.display = 'block';
+
+      } catch (error) {
+        log(`连接 Supabase 失败: ${error.message}`, 'error');
+
+        const statusEl = document.getElementById('supabase-status');
+        statusEl.textContent = `❌ 连接失败: ${error.message}`;
+        statusEl.className = 'status error';
+        statusEl.style.display = 'block';
+      }
+    }
+
+    // 加载已保存的 Supabase 配置
+    async function loadSupabaseConfig() {
+      try {
+        log('正在加载已保存的 Supabase 配置...');
+
+        const config = await syncManager.getSupabaseConfig();
+        if (config) {
+          document.getElementById('supabase-url').value = config.url || '';
+          document.getElementById('supabase-key').value = config.anonKey || '';
+          document.getElementById('user-id').value = config.userId || '';
+
+          log('已保存的配置加载成功', 'success');
+
+          if (config.enabled) {
+            log('检测到已启用的配置，尝试自动连接...');
+            await connectSupabase();
+          }
+        } else {
+          log('没有找到已保存的配置');
+        }
+      } catch (error) {
+        log(`加载配置失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 加载本地主题设置
+    async function loadLocalTheme() {
+      try {
+        log('正在加载本地主题设置...');
+        
+        // 从 Chrome Storage 加载
+        let localData = null;
+        if (chrome && chrome.storage && chrome.storage.sync) {
+          localData = await new Promise(resolve => {
+            chrome.storage.sync.get(['quickNavData'], result => {
+              resolve(result.quickNavData || {});
+            });
+          });
+        } else {
+          const data = localStorage.getItem('quickNavData');
+          localData = data ? JSON.parse(data) : {};
+        }
+        
+        const themeSettings = localData.themeSettings || {};
+        document.getElementById('local-theme-display').textContent = JSON.stringify(themeSettings, null, 2);
+        
+        log(`本地主题设置加载成功: ${themeSettings.theme || '未设置'}`, 'success');
+        return themeSettings;
+      } catch (error) {
+        log(`加载本地主题失败: ${error.message}`, 'error');
+        return null;
+      }
+    }
+
+    // 加载云端主题设置
+    async function loadCloudTheme() {
+      try {
+        log('正在加载云端主题设置...');
+        
+        if (typeof syncManager === 'undefined') {
+          throw new Error('syncManager 未定义');
+        }
+        
+        const cloudData = await syncManager.loadFromSupabase();
+        const themeSettings = cloudData?.themeSettings || {};
+        
+        document.getElementById('cloud-theme-display').textContent = JSON.stringify(themeSettings, null, 2);
+        
+        log(`云端主题设置加载成功: ${themeSettings.theme || '未设置'}`, 'success');
+        return themeSettings;
+      } catch (error) {
+        log(`加载云端主题失败: ${error.message}`, 'error');
+        return null;
+      }
+    }
+
+    // 设置暗黑主题
+    async function setDarkTheme() {
+      try {
+        log('正在设置暗黑主题...');
+        
+        const themeSettings = {
+          theme: 'dark',
+          backgroundImageUrl: null,
+          backgroundImagePath: null,
+          backgroundOpacity: 30
+        };
+        
+        // 保存到本地
+        const data = { themeSettings };
+        if (chrome && chrome.storage && chrome.storage.sync) {
+          await chrome.storage.sync.set({ quickNavData: data });
+        } else {
+          localStorage.setItem('quickNavData', JSON.stringify(data));
+        }
+        
+        log('暗黑主题设置成功', 'success');
+        await loadLocalTheme();
+      } catch (error) {
+        log(`设置暗黑主题失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 设置浅色主题
+    async function setLightTheme() {
+      try {
+        log('正在设置浅色主题...');
+        
+        const themeSettings = {
+          theme: 'light',
+          backgroundImageUrl: null,
+          backgroundImagePath: null,
+          backgroundOpacity: 30
+        };
+        
+        // 保存到本地
+        const data = { themeSettings };
+        if (chrome && chrome.storage && chrome.storage.sync) {
+          await chrome.storage.sync.set({ quickNavData: data });
+        } else {
+          localStorage.setItem('quickNavData', JSON.stringify(data));
+        }
+        
+        log('浅色主题设置成功', 'success');
+        await loadLocalTheme();
+      } catch (error) {
+        log(`设置浅色主题失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 迁移主题到云端
+    async function migrateThemeToCloud() {
+      try {
+        log('正在迁移主题到云端...');
+
+        if (typeof syncManager === 'undefined') {
+          throw new Error('syncManager 未定义');
+        }
+
+        // 直接从存储读取数据（不依赖syncManager的存储键逻辑）
+        let localData = null;
+        if (chrome && chrome.storage && chrome.storage.sync) {
+          localData = await new Promise(resolve => {
+            chrome.storage.sync.get(['quickNavData'], result => {
+              resolve(result.quickNavData || {});
+            });
+          });
+        } else {
+          const data = localStorage.getItem('quickNavData');
+          localData = data ? JSON.parse(data) : {};
+        }
+
+        log(`本地数据: ${JSON.stringify(localData, null, 2)}`);
+
+        if (localData && Object.keys(localData).length > 0) {
+          if (localData.themeSettings) {
+            log(`本地主题设置: ${JSON.stringify(localData.themeSettings, null, 2)}`);
+          }
+
+          // 保存到云端
+          await syncManager.saveToSupabase(localData);
+          log('主题迁移到云端成功', 'success');
+
+          // 验证云端数据
+          await loadCloudTheme();
+        } else {
+          log('本地没有数据需要迁移', 'error');
+        }
+      } catch (error) {
+        log(`迁移主题到云端失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 测试主题迁移
+    async function testThemeMigration() {
+      try {
+        log('=== 开始主题迁移测试 ===');
+        
+        // 1. 设置本地暗黑主题
+        await setDarkTheme();
+        
+        // 2. 迁移到云端
+        await migrateThemeToCloud();
+        
+        // 3. 对比结果
+        await compareThemes();
+        
+        log('=== 主题迁移测试完成 ===');
+      } catch (error) {
+        log(`主题迁移测试失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 深度比较两个对象
+    function deepEqual(obj1, obj2) {
+      if (obj1 === obj2) return true;
+
+      if (obj1 == null || obj2 == null) return false;
+
+      if (typeof obj1 !== typeof obj2) return false;
+
+      if (typeof obj1 !== 'object') return obj1 === obj2;
+
+      const keys1 = Object.keys(obj1);
+      const keys2 = Object.keys(obj2);
+
+      if (keys1.length !== keys2.length) return false;
+
+      for (let key of keys1) {
+        if (!keys2.includes(key)) return false;
+        if (!deepEqual(obj1[key], obj2[key])) return false;
+      }
+
+      return true;
+    }
+
+    // 对比主题设置
+    async function compareThemes() {
+      try {
+        log('正在对比本地和云端主题设置...');
+
+        const localTheme = await loadLocalTheme();
+        const cloudTheme = await loadCloudTheme();
+
+        if (localTheme && cloudTheme) {
+          const isMatch = deepEqual(localTheme, cloudTheme);
+          log(`主题对比结果: ${isMatch ? '✅ 一致' : '❌ 不一致'}`, isMatch ? 'success' : 'error');
+
+          if (!isMatch) {
+            log(`本地主题: ${JSON.stringify(localTheme)}`);
+            log(`云端主题: ${JSON.stringify(cloudTheme)}`);
+
+            // 详细对比每个属性
+            const allKeys = new Set([...Object.keys(localTheme), ...Object.keys(cloudTheme)]);
+            for (let key of allKeys) {
+              const localVal = localTheme[key];
+              const cloudVal = cloudTheme[key];
+              if (!deepEqual(localVal, cloudVal)) {
+                log(`  差异属性 ${key}: 本地="${localVal}" vs 云端="${cloudVal}"`);
+              }
+            }
+          } else {
+            log('🎉 主题设置完全一致！主题同步正常工作', 'success');
+          }
+        } else {
+          log('无法对比主题设置（数据不完整）', 'error');
+        }
+      } catch (error) {
+        log(`对比主题设置失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 页面加载时初始化
+    window.addEventListener('load', async () => {
+      log('主题同步测试工具已加载');
+      
+      // 初始化 syncManager
+      if (typeof syncManager !== 'undefined') {
+        try {
+          await syncManager.init();
+          log('syncManager 初始化成功');
+        } catch (error) {
+          log(`syncManager 初始化失败: ${error.message}`, 'error');
+        }
+      }
+      
+      // 加载当前主题设置
+      await loadLocalTheme();
+    });
+  </script>
+</body>
+</html>
