@@ -43,11 +43,16 @@ function initThemeSettings() {
   loadThemeSettings();
   
   // 打开主题设置模态框
-  themeBtn.addEventListener('click', () => {
+  themeBtn.addEventListener('click', async () => {
     openModal(themeModal);
     updateThemeOptionsUI();
     updateBackgroundImageUI();
     showCurrentBackgroundPreview();
+
+    // 更新配置切换区域显示
+    if (window.themeConfigUIManager) {
+      await themeConfigUIManager.updateConfigSwitchDisplay();
+    }
   });
   
   // 主题选项点击事件
@@ -80,21 +85,42 @@ function initThemeSettings() {
  */
 async function loadThemeSettings() {
   try {
+    console.log('开始加载主题设置...');
+
+    // 首先清空当前设置
+    currentTheme = 'default';
+    currentBgImageData = null;
+    currentBgImageUrl = null;
+    currentBgImagePath = null;
+    currentBgOpacity = 30;
+
+    // 同步清空window对象
+    window.currentTheme = currentTheme;
+    window.currentBgImageData = currentBgImageData;
+    window.currentBgImageUrl = currentBgImageUrl;
+    window.currentBgImagePath = currentBgImagePath;
+    window.currentBgOpacity = currentBgOpacity;
+
     // 首先尝试从Supabase加载
     if (window.syncManager && syncManager.isSupabaseEnabled) {
-      const syncData = await syncManager.loadData();
+      console.log('从云端加载主题设置...');
+      const syncData = await syncManager.loadData(true); // 强制优先从云端加载
+
       if (syncData && syncData.themeSettings) {
         const themeSettings = syncData.themeSettings;
+        console.log('找到云端主题设置:', themeSettings);
 
         // 加载主题
         if (themeSettings.theme) {
           currentTheme = themeSettings.theme;
+          window.currentTheme = currentTheme; // 同步到window对象
           applyTheme(currentTheme, false);
         }
 
         // 加载背景透明度
         if (themeSettings.backgroundOpacity !== undefined) {
           currentBgOpacity = parseInt(themeSettings.backgroundOpacity);
+          window.currentBgOpacity = currentBgOpacity; // 同步到window对象
           if (bgOpacitySlider) {
             bgOpacitySlider.value = currentBgOpacity;
             bgOpacityValue.textContent = `${currentBgOpacity}%`;
@@ -106,19 +132,61 @@ async function loadThemeSettings() {
         if (themeSettings.backgroundImageUrl) {
           currentBgImageUrl = themeSettings.backgroundImageUrl;
           currentBgImagePath = themeSettings.backgroundImagePath;
+          currentBgImageData = null; // 清空base64数据
+          // 同步到window对象
+          window.currentBgImageUrl = currentBgImageUrl;
+          window.currentBgImagePath = currentBgImagePath;
+          window.currentBgImageData = currentBgImageData;
           applyBackgroundImageToDOM(currentBgImageUrl);
+          console.log('应用云端背景图片:', currentBgImageUrl);
         } else if (themeSettings.backgroundImage) {
           // 兼容旧的base64格式
           currentBgImageData = themeSettings.backgroundImage;
+          currentBgImageUrl = null; // 清空URL数据
+          currentBgImagePath = null;
+          // 同步到window对象
+          window.currentBgImageData = currentBgImageData;
+          window.currentBgImageUrl = currentBgImageUrl;
+          window.currentBgImagePath = currentBgImagePath;
           applyBackgroundImageToDOM(currentBgImageData);
+          console.log('应用云端背景图片(base64)');
+        } else {
+          // 没有背景图片，清空所有背景相关数据
+          currentBgImageData = null;
+          currentBgImageUrl = null;
+          currentBgImagePath = null;
+          // 同步到window对象
+          window.currentBgImageData = currentBgImageData;
+          window.currentBgImageUrl = currentBgImageUrl;
+          window.currentBgImagePath = currentBgImagePath;
+          applyBackgroundImageToDOM(null);
+          console.log('当前配置无背景图片');
         }
 
         console.log('主题设置已从云端加载');
+        console.log('加载完成后的状态:', {
+          theme: window.currentTheme,
+          bgImageUrl: window.currentBgImageUrl,
+          bgOpacity: window.currentBgOpacity
+        });
+        return;
+      } else {
+        console.log('云端没有找到主题设置数据');
+        // 如果云端没有数据，应用默认设置
+        applyTheme(currentTheme, false);
+        applyBackgroundImageToDOM(null);
+        if (bgOpacitySlider) {
+          bgOpacitySlider.value = currentBgOpacity;
+          bgOpacityValue.textContent = `${currentBgOpacity}%`;
+          backgroundOverlay.style.opacity = 1 - (currentBgOpacity / 100);
+        }
+        console.log('应用默认设置完成');
         return;
       }
     }
 
     // 回退到本地存储
+    console.log('从本地存储加载主题设置...');
     const settings = await storage.get([THEME_STORAGE_KEY, BG_IMAGE_STORAGE_KEY, BG_OPACITY_STORAGE_KEY]);
 
     if (settings[THEME_STORAGE_KEY]) {
@@ -138,11 +206,16 @@ async function loadThemeSettings() {
     if (settings[BG_IMAGE_STORAGE_KEY]) {
       currentBgImageData = settings[BG_IMAGE_STORAGE_KEY];
       applyBackgroundImageToDOM(currentBgImageData);
+    } else {
+      applyBackgroundImageToDOM(null);
     }
 
     console.log('主题设置已从本地存储加载');
   } catch (error) {
     console.error('加载主题设置出错:', error);
+    // 出错时应用默认设置
+    applyTheme('default', false);
+    applyBackgroundImageToDOM(null);
   }
 }
 
@@ -443,8 +516,12 @@ async function saveThemeSettingsToSupabase() {
   }
 
   try {
-    // 获取当前数据
-    const currentData = await syncManager.loadData() || { categories: [], settings: {} };
+    // 输出当前连接状态用于调试
+    const connectionStatus = supabaseClient.getConnectionStatus();
+    console.log('保存主题设置 - 当前连接状态:', connectionStatus);
+
+    // 获取当前数据（强制从云端加载，避免被Chrome Storage污染）
+    const currentData = await syncManager.loadData(true) || { categories: [], settings: {} };
 
     // 更新主题设置
     currentData.themeSettings = {
@@ -454,6 +531,9 @@ async function saveThemeSettingsToSupabase() {
       backgroundOpacity: currentBgOpacity,
       lastModified: new Date().toISOString()
     };
+
+    console.log('准备保存主题设置到用户ID:', connectionStatus.userId);
+    console.log('主题设置数据:', currentData.themeSettings);
 
     // 保存到同步管理器（会自动同步到Supabase）
     await syncManager.saveData(currentData);
@@ -465,5 +545,16 @@ async function saveThemeSettingsToSupabase() {
   }
 }
 
-// 导出主题设置初始化函数
+// 导出主题设置相关函数和变量
 window.initThemeSettings = initThemeSettings;
+window.loadThemeSettings = loadThemeSettings;
+window.showCurrentBackgroundPreview = showCurrentBackgroundPreview;
+window.updateThemeOptionsUI = updateThemeOptionsUI;
+window.updateBackgroundImageUI = updateBackgroundImageUI;
+
+// 导出主题相关的全局变量
+window.currentTheme = currentTheme;
+window.currentBgImageUrl = currentBgImageUrl;
+window.currentBgImageData = currentBgImageData;
+window.currentBgImagePath = currentBgImagePath;
+window.currentBgOpacity = currentBgOpacity;

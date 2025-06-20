@@ -7,13 +7,15 @@ class SyncUIManager {
   constructor() {
     this.syncModal = null;
     this.sqlModal = null;
+    this.configEditModal = null;
     this.isInitialized = false;
+    this.editingConfigId = null;
   }
 
   /**
    * 初始化同步界面
    */
-  init() {
+  async init() {
     if (this.isInitialized) return;
 
     this.syncModal = document.getElementById('sync-modal');
@@ -528,6 +530,8 @@ ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
       this.showMessage('复制失败，请手动复制', 'error');
     }
   }
+
+
 }
 
 // 创建全局实例

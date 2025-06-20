@@ -2040,3 +2040,392 @@ header {
     width: 100%;
   }
 }
+
+/* 配置切换区域样式 */
+.config-switch-section {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* 配置提示样式 */
+.config-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, rgba(66, 133, 244, 0.02) 100%);
+  border: 2px dashed rgba(66, 133, 244, 0.3);
+  border-radius: 12px;
+  gap: 20px;
+}
+
+.prompt-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.prompt-content .material-symbols-rounded {
+  font-size: 32px;
+  color: var(--primary-color);
+  opacity: 0.8;
+}
+
+.prompt-text p {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.prompt-text small {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 配置选择器样式 */
+.config-selector {
+  padding: 16px 0;
+}
+
+.current-config {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.config-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.config-dropdown {
+  position: relative;
+  flex: 1;
+}
+
+.config-dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--card-bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.config-dropdown-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(66, 133, 244, 0.05);
+}
+
+.config-dropdown-btn .config-name {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.config-dropdown-btn .config-user {
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.config-dropdown-btn .material-symbols-rounded {
+  font-size: 20px;
+  color: var(--text-secondary);
+  transition: transform 0.3s ease;
+}
+
+.config-dropdown.open .config-dropdown-btn .material-symbols-rounded {
+  transform: rotate(180deg);
+}
+
+.config-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+}
+
+.config-dropdown.open .config-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.config-dropdown-menu .config-list {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.config-dropdown-menu .config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.config-dropdown-menu .config-item:hover {
+  background: var(--hover-color);
+}
+
+.config-dropdown-menu .config-item.active {
+  background: rgba(66, 133, 244, 0.1);
+  color: var(--primary-color);
+}
+
+.config-dropdown-menu .config-item.active::before {
+  content: '✓';
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.config-actions {
+  padding: 8px 0;
+}
+
+.config-action-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-color);
+  transition: background 0.3s ease;
+}
+
+.config-action-item:hover {
+  background: var(--hover-color);
+}
+
+.config-action-item .material-symbols-rounded {
+  font-size: 18px;
+}
+
+/* 新建配置模态框样式 */
+#new-config-modal .modal-content {
+  max-width: 450px;
+}
+
+.info-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(66, 133, 244, 0.05);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.info-note .material-symbols-rounded {
+  font-size: 18px;
+  color: var(--primary-color);
+}
+
+/* 配置管理样式 */
+.config-list {
+  margin-bottom: 20px;
+}
+
+.config-item-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  background: var(--hover-color);
+  border-radius: 12px;
+  border: 2px dashed var(--border-color);
+}
+
+.config-item-placeholder p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.config-item-placeholder small {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  background: var(--card-bg-color);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.config-item:hover {
+  border-color: var(--primary-color);
+  background: rgba(66, 133, 244, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(66, 133, 244, 0.1);
+}
+
+.config-item.active {
+  border-color: var(--primary-color);
+  background: rgba(66, 133, 244, 0.08);
+  box-shadow: 0 4px 15px rgba(66, 133, 244, 0.15);
+}
+
+.config-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary-color);
+  border-radius: 0 4px 4px 0;
+}
+
+.config-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-name .active-badge {
+  background: var(--primary-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.config-details {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.config-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: 16px;
+}
+
+.config-sync-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.config-shortcut-count {
+  font-size: 12px;
+  background: var(--hover-color);
+  color: var(--text-color);
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.config-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.config-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.config-item-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.config-item:hover .config-item-actions {
+  opacity: 1;
+}
+
+.config-action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--hover-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 18px;
+}
+
+.config-action-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: scale(1.1);
+}
+
+.config-action-btn.delete:hover {
+  background: var(--danger-color);
+}
+
+/* 配置编辑模态框样式 */
+#config-edit-modal .modal-content {
+  max-width: 500px;
+}
+
+#config-edit-form .form-group {
+  margin-bottom: 20px;
+}
+
+#config-edit-form .form-group:last-of-type {
+  margin-bottom: 0;
+}

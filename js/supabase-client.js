@@ -233,11 +233,11 @@ class SupabaseClient {
   getTableCreationSQL() {
     return `
 -- =====================================================
--- Quick Tab Chrome扩展 - Supabase完整初始化脚本
+-- Quick Tab Chrome扩展 - Supabase简化初始化脚本
 -- =====================================================
--- 请在Supabase项目的SQL编辑器中执行以下完整脚本
+-- 请在Supabase项目的SQL编辑器中执行以下脚本
 
--- 1. 创建数据表
+-- 1. 创建数据表（禁用RLS以避免权限问题）
 -- =====================================================
 CREATE TABLE IF NOT EXISTS ${this.tableName} (
   id SERIAL PRIMARY KEY,
@@ -251,18 +251,10 @@ CREATE TABLE IF NOT EXISTS ${this.tableName} (
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_user_id ON ${this.tableName}(user_id);
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_updated_at ON ${this.tableName}(updated_at);
 
--- 2. 配置数据表RLS策略
--- =====================================================
--- 启用行级安全策略
-ALTER TABLE ${this.tableName} ENABLE ROW LEVEL SECURITY;
+-- 禁用行级安全策略（简化配置，适合个人使用）
+ALTER TABLE ${this.tableName} DISABLE ROW LEVEL SECURITY;
 
--- 创建策略：允许所有用户基于user_id访问自己的数据
-CREATE POLICY "Enable all access based on user_id" ON ${this.tableName}
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
-
--- 3. 创建Storage存储桶
+-- 2. 创建Storage存储桶
 -- =====================================================
 -- 创建backgrounds桶（用于存储背景图片）
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -270,28 +262,15 @@ VALUES (
   'backgrounds',
   'backgrounds',
   true,
-  52428800,  -- 50MB限制（Supabase免费版最大限制）
+  52428800,  -- 50MB限制
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
 
--- 4. 配置Storage RLS策略
--- =====================================================
--- 启用Storage RLS
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+-- 禁用Storage RLS（简化配置）
+ALTER TABLE storage.objects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE storage.buckets DISABLE ROW LEVEL SECURITY;
 
--- 允许查看桶列表
-CREATE POLICY "Allow bucket listing" ON storage.buckets
-  FOR SELECT
-  USING (true);
-
--- 允许在backgrounds桶中进行所有操作
-CREATE POLICY "Allow all operations on backgrounds bucket" ON storage.objects
-  FOR ALL
-  USING (bucket_id = 'backgrounds')
-  WITH CHECK (bucket_id = 'backgrounds');
-
--- 5. 验证配置
+-- 3. 验证配置
 -- =====================================================
 -- 检查数据表是否创建成功
 SELECT 'Data table created successfully' as status
@@ -308,12 +287,13 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 -- 1. 返回Chrome扩展
 -- 2. 配置Supabase连接信息
 -- 3. 测试连接和同步功能
--- 4. 使用背景图片功能
+-- 4. 使用背景图片和多配置功能
 --
 -- 注意事项：
--- - 数据通过user_id字段进行隔离
+-- - 此配置适合个人使用，已禁用RLS简化设置
+-- - 数据通过user_id字段进行区分
 -- - 背景图片存储在backgrounds桶中
--- - 所有配置都支持多用户安全访问
+-- - 如需更高安全性，请参考文档配置RLS策略
     `.trim();
   }
 }

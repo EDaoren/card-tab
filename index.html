@@ -177,6 +177,50 @@
         <button class="close-modal">×</button>
       </div>
       <div class="modal-body">
+        <!-- 配置切换区域 -->
+        <div class="config-switch-section" id="config-switch-section">
+          <!-- 未配置Supabase时显示 -->
+          <div class="config-prompt" id="config-prompt" style="display: none;">
+            <div class="prompt-content">
+              <span class="material-symbols-rounded">cloud_sync</span>
+              <div class="prompt-text">
+                <p>配置云端同步后可保存多套主题配置</p>
+                <small>支持工作、个人等多套配置，数据云端同步</small>
+              </div>
+            </div>
+            <button id="setup-sync-btn" class="primary-btn">立即配置云端同步</button>
+          </div>
+
+          <!-- 已配置Supabase时显示 -->
+          <div class="config-selector" id="config-selector" style="display: none;">
+            <div class="current-config">
+              <span class="config-label">当前配置：</span>
+              <div class="config-dropdown">
+                <button class="config-dropdown-btn" id="config-dropdown-btn">
+                  <span class="config-name" id="current-config-name">默认配置</span>
+                  <span class="config-user" id="current-config-user">(user@example.com)</span>
+                  <span class="material-symbols-rounded">expand_more</span>
+                </button>
+                <div class="config-dropdown-menu" id="config-dropdown-menu">
+                  <div class="config-list" id="theme-config-list">
+                    <!-- 配置列表将在这里动态生成 -->
+                  </div>
+                  <div class="config-actions">
+                    <button class="config-action-item" id="new-config-btn">
+                      <span class="material-symbols-rounded">add</span>
+                      新建配置
+                    </button>
+                    <button class="config-action-item" id="manage-configs-btn">
+                      <span class="material-symbols-rounded">settings</span>
+                      管理配置
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="themes-section">
           <h3>选择主题颜色</h3>
           <div class="theme-options">
@@ -365,12 +409,45 @@
     </div>
   </div>
 
+  <!-- New Config Modal -->
+  <div id="new-config-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>新建配置</h2>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="new-config-form">
+          <div class="form-group">
+            <label for="new-config-name">配置名称</label>
+            <input type="text" id="new-config-name" placeholder="例如：个人配置、工作配置" required>
+          </div>
+          <div class="form-group">
+            <label for="new-config-user-id">用户标识</label>
+            <input type="text" id="new-config-user-id" placeholder="user-personal" required>
+            <small>用于区分不同配置的唯一标识</small>
+          </div>
+          <div class="info-note">
+            <span class="material-symbols-rounded">info</span>
+            <span>将使用相同的Supabase连接</span>
+          </div>
+          <div class="form-actions centered">
+            <button type="button" class="secondary-btn" id="cancel-new-config-btn">取消</button>
+            <button type="submit" class="save-btn" id="create-config-btn">创建并切换</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="js/supabase.min.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/theme-config-manager.js"></script>
   <script src="js/sync-manager.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/sync-ui.js"></script>
+  <script src="js/theme-config-ui.js"></script>
   <script src="js/category.js"></script>
   <script src="js/shortcut.js"></script>
   <script src="js/search.js"></script>

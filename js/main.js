@@ -23,13 +23,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing view...');
     await viewManager.initView();
 
-    // Initialize theme settings
+    // Initialize sync UI first
+    console.log('Initializing sync UI...');
+    await syncUIManager.init();
+
+    // Initialize theme config UI
+    console.log('Initializing theme config UI...');
+    if (typeof themeConfigUIManager !== 'undefined') {
+      await themeConfigUIManager.init();
+    } else {
+      console.warn('themeConfigUIManager not available, skipping theme config UI initialization');
+    }
+
+    // Initialize theme settings after sync is ready
     console.log('Initializing theme settings...');
     initThemeSettings();
-
-    // Initialize sync UI
-    console.log('Initializing sync UI...');
-    syncUIManager.init();
 
     // Render categories and shortcuts
     console.log('Rendering categories...');
