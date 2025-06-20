@@ -215,10 +215,10 @@ function handleBgImageUpload(event) {
     return;
   }
 
-  // 检查文件大小 (10MB限制)
-  const maxFileSize = 10 * 1024 * 1024; // 10MB
+  // 检查文件大小 (50MB限制，Supabase免费版限制)
+  const maxFileSize = 50 * 1024 * 1024; // 50MB
   if (file.size > maxFileSize) {
-    alert('图片文件过大，请选择小于10MB的图片');
+    alert('图片文件过大，请选择小于50MB的图片');
     event.target.value = '';
     return;
   }

@@ -270,7 +270,7 @@ VALUES (
   'backgrounds',
   'backgrounds',
   true,
-  10485760,  -- 10MB限制
+  52428800,  -- 50MB限制（Supabase免费版最大限制）
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
 

@@ -342,13 +342,16 @@ class CategoryManager {
    */
   async toggleCategoryCollapse(categoryId) {
     try {
-      const updatedCategory = await storageManager.toggleCategoryCollapse(categoryId);
-      
+      // 立即更新UI，不等待存储操作
       const categoryElement = document.querySelector(`.category-card[data-id="${categoryId}"]`);
       const categoryContent = categoryElement.querySelector('.category-content');
       const toggleButton = categoryElement.querySelector('.category-actions button:last-child span');
-      
-      if (updatedCategory.collapsed) {
+
+      // 获取当前状态
+      const isCurrentlyExpanded = categoryContent.classList.contains('expanded');
+
+      // 立即切换UI状态
+      if (isCurrentlyExpanded) {
         categoryContent.classList.remove('expanded');
         toggleButton.textContent = 'expand_more';
         toggleButton.closest('button').title = '展开';
@@ -357,6 +360,21 @@ class CategoryManager {
         toggleButton.textContent = 'expand_less';
         toggleButton.closest('button').title = '折叠';
       }
+
+      // 异步保存到存储，不阻塞UI
+      storageManager.toggleCategoryCollapse(categoryId).catch(error => {
+        console.error('Error saving category collapse state:', error);
+        // 如果保存失败，回滚UI状态
+        if (isCurrentlyExpanded) {
+          categoryContent.classList.add('expanded');
+          toggleButton.textContent = 'expand_less';
+          toggleButton.closest('button').title = '折叠';
+        } else {
+          categoryContent.classList.remove('expanded');
+          toggleButton.textContent = 'expand_more';
+          toggleButton.closest('button').title = '展开';
+        }
+      });
     } catch (error) {
       console.error('Error toggling category collapse:', error);
     }
