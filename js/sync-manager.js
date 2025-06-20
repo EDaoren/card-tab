@@ -108,94 +108,7 @@ class SyncManager {
     }
   }
 
-  /**
-   * 第三阶段：保存前数据一致性检查
-   */
-  async performConsistencyCheck(data) {
-    const warnings = [];
-    let passed = true;
 
-    console.log('🔍 SyncManager: 执行数据一致性检查...');
-
-    try {
-      // 检查数据结构完整性
-      if (!data || typeof data !== 'object') {
-        warnings.push('数据不是有效对象');
-        passed = false;
-        return { passed, warnings };
-      }
-
-      // 检查是否会覆盖重要数据
-      const currentData = await this.loadData(false);
-      if (currentData) {
-        // 检查categories
-        if (currentData.categories && currentData.categories.length > 0 &&
-            (!data.categories || data.categories.length === 0)) {
-          warnings.push('可能会丢失现有分类数据');
-        }
-
-        // 检查themeSettings
-        if (currentData.themeSettings && !data.themeSettings) {
-          warnings.push('可能会丢失主题设置');
-        }
-
-        // 检查settings
-        if (currentData.settings && !data.settings) {
-          warnings.push('可能会丢失应用设置');
-        }
-      }
-
-      // 检查数据大小
-      const dataSize = JSON.stringify(data).length;
-      if (dataSize > 1024 * 1024) { // 1MB
-        warnings.push(`数据大小较大: ${Math.round(dataSize / 1024)}KB`);
-      }
-
-      console.log(`🔍 SyncManager: 一致性检查完成，警告数量: ${warnings.length}`);
-      return { passed, warnings };
-
-    } catch (error) {
-      warnings.push(`一致性检查失败: ${error.message}`);
-      return { passed: false, warnings };
-    }
-  }
-
-  /**
-   * 第三阶段：保存后验证
-   */
-  async performPostSaveVerification(originalData, chromeSuccess, supabaseSuccess) {
-    console.log('🔍 SyncManager: 执行保存后验证...');
-
-    try {
-      // 验证Chrome Storage
-      if (chromeSuccess) {
-        const chromeData = await this.loadFromChromeStorage();
-        if (!chromeData || Object.keys(chromeData).length === 0) {
-          console.warn('🔍 SyncManager: Chrome Storage验证失败 - 数据为空');
-        } else {
-          console.log('🔍 SyncManager: Chrome Storage验证通过');
-        }
-      }
-
-      // 验证Supabase
-      if (supabaseSuccess && this.isSupabaseEnabled) {
-        try {
-          const supabaseData = await this.loadFromSupabase();
-          if (!supabaseData || Object.keys(supabaseData).length === 0) {
-            console.warn('🔍 SyncManager: Supabase验证失败 - 数据为空');
-          } else {
-            console.log('🔍 SyncManager: Supabase验证通过');
-          }
-        } catch (error) {
-          console.warn('🔍 SyncManager: Supabase验证失败:', error.message);
-        }
-      }
-
-      console.log('🔍 SyncManager: 保存后验证完成');
-    } catch (error) {
-      console.warn('🔍 SyncManager: 保存后验证出错:', error.message);
-    }
-  }
 
   /**
    * 加载数据
@@ -272,39 +185,7 @@ class SyncManager {
     }
   }
 
-  /**
-   * 第二阶段：确定数据加载策略
-   */
-  determineLoadStrategy(preferCloud) {
-    const strategy = {
-      strategy: '',
-      loadChrome: false,
-      loadSupabase: false,
-      priority: 'chrome' // 'chrome' | 'supabase' | 'merge'
-    };
 
-    if (!this.isSupabaseEnabled) {
-      // 云端同步禁用：只加载本地数据
-      strategy.strategy = 'local-only';
-      strategy.loadChrome = true;
-      strategy.loadSupabase = false;
-      strategy.priority = 'chrome';
-    } else if (preferCloud) {
-      // 明确要求优先云端：优先加载云端，本地作为备选
-      strategy.strategy = 'cloud-priority';
-      strategy.loadChrome = true;
-      strategy.loadSupabase = true;
-      strategy.priority = 'supabase';
-    } else {
-      // 默认策略：加载两者，根据时间戳或配置决定优先级
-      strategy.strategy = 'hybrid';
-      strategy.loadChrome = true;
-      strategy.loadSupabase = true;
-      strategy.priority = 'merge';
-    }
-
-    return strategy;
-  }
 
   /**
    * 第二阶段：数据验证和清理
@@ -514,98 +395,7 @@ class SyncManager {
     }
   }
 
-  /**
-   * 第二阶段：优化的数据合并策略
-   */
-  async mergeDataWithStrategy(chromeData, supabaseData, loadStrategy) {
-    console.log(`🔄 数据合并策略: ${loadStrategy.strategy}`);
-    console.log(`  - Chrome数据: ${chromeData ? '有数据' : '无数据'}`);
-    console.log(`  - Supabase数据: ${supabaseData ? '有数据' : '无数据'}`);
-    console.log(`  - 优先级: ${loadStrategy.priority}`);
 
-    // 如果只有一个数据源
-    if (!chromeData && !supabaseData) {
-      console.log('  - 结果: 无数据');
-      return null;
-    }
-    if (!chromeData) {
-      console.log('  - 结果: 只有Supabase数据');
-      return supabaseData;
-    }
-    if (!supabaseData) {
-      console.log('  - 结果: 只有Chrome数据');
-      return chromeData;
-    }
-
-    // 根据加载策略决定合并方式
-    switch (loadStrategy.strategy) {
-      case 'local-only':
-        console.log('  - 结果: 本地优先策略，返回Chrome数据');
-        return chromeData;
-
-      case 'cloud-priority':
-        console.log('  - 结果: 云端优先策略，返回Supabase数据');
-        return supabaseData;
-
-      case 'hybrid':
-        return await this.mergeDataIntelligently(chromeData, supabaseData);
-
-      default:
-        console.log('  - 结果: 默认策略，返回Chrome数据');
-        return chromeData;
-    }
-  }
-
-  /**
-   * 第二阶段：智能数据合并
-   */
-  async mergeDataIntelligently(chromeData, supabaseData) {
-    console.log('  - 执行智能数据合并...');
-
-    // 比较时间戳
-    const chromeTime = chromeData._metadata?.lastModified;
-    const supabaseTime = supabaseData._metadata?.lastModified;
-
-    console.log(`  - Chrome时间戳: ${chromeTime || '无'}`);
-    console.log(`  - Supabase时间戳: ${supabaseTime || '无'}`);
-
-    // 根据冲突解决策略
-    switch (this.conflictResolution) {
-      case 'latest':
-        if (!chromeTime && !supabaseTime) {
-          console.log('  - 无时间戳，使用Chrome数据');
-          return chromeData;
-        }
-        if (!chromeTime) {
-          console.log('  - Chrome无时间戳，使用Supabase数据');
-          return supabaseData;
-        }
-        if (!supabaseTime) {
-          console.log('  - Supabase无时间戳，使用Chrome数据');
-          return chromeData;
-        }
-
-        const useSupabase = new Date(supabaseTime) > new Date(chromeTime);
-        console.log(`  - 时间戳比较: 使用${useSupabase ? 'Supabase' : 'Chrome'}数据`);
-        return useSupabase ? supabaseData : chromeData;
-
-      case 'chrome':
-        console.log('  - 强制使用Chrome数据');
-        return chromeData;
-
-      case 'supabase':
-        console.log('  - 强制使用Supabase数据');
-        return supabaseData;
-
-      case 'manual':
-        console.log('  - 手动解决冲突');
-        return await this.showConflictResolution(chromeData, supabaseData);
-
-      default:
-        console.log('  - 默认策略: 使用Chrome数据');
-        return chromeData;
-    }
-  }
 
   /**
    * 获取Supabase配置

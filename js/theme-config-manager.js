@@ -358,14 +358,14 @@ class ThemeConfigManager {
     await this.saveConfigs();
     console.log('ThemeConfigManager: 切换到配置成功', config.displayName);
 
-    // 第二阶段：确保配置切换时的数据隔离
+    // 确保配置切换时的数据隔离
     await this.ensureConfigDataIsolation(config);
 
     return config;
   }
 
   /**
-   * 第二阶段：确保配置数据隔离
+   * 确保配置数据隔离
    */
   async ensureConfigDataIsolation(config) {
     try {

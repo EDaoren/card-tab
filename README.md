@@ -79,7 +79,13 @@
 3. 复制并执行以下脚本：
 
 ```sql
--- 创建数据表
+-- =====================================================
+-- Quick Tab Chrome扩展 - Supabase初始化脚本
+-- =====================================================
+-- 请在Supabase项目的SQL编辑器中执行以下脚本
+
+-- 1. 创建数据表
+-- =====================================================
 CREATE TABLE IF NOT EXISTS quick_nav_data (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,
@@ -88,11 +94,16 @@ CREATE TABLE IF NOT EXISTS quick_nav_data (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 创建索引提升性能
+-- 创建索引提升查询性能
 CREATE INDEX IF NOT EXISTS idx_quick_nav_data_user_id ON quick_nav_data(user_id);
 CREATE INDEX IF NOT EXISTS idx_quick_nav_data_updated_at ON quick_nav_data(updated_at);
 
--- 创建Storage存储桶（用于背景图片）
+-- 禁用行级安全策略（简化配置，适合个人使用）
+ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+
+-- 2. 创建Storage存储桶
+-- =====================================================
+-- 创建backgrounds桶（用于存储背景图片）
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'backgrounds',
@@ -102,10 +113,17 @@ VALUES (
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
 
--- 设置Storage访问策略
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'backgrounds');
-CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'backgrounds');
-CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id = 'backgrounds');
+-- Storage桶已创建，使用默认权限设置
+
+-- 3. 验证配置
+-- =====================================================
+-- 检查数据表是否创建成功
+SELECT 'Data table created successfully' as status
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quick_nav_data');
+
+-- 检查存储桶是否创建成功
+SELECT 'Storage bucket created successfully' as status
+WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 ```
 
 #### 步骤4：配置扩展

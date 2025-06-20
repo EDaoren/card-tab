@@ -264,7 +264,7 @@ class StorageManager {
   }
 
   /**
-   * 第三阶段：最终备选方案
+   * 最终备选方案
    */
   async saveToStorageFallback() {
     const fallbackData = {

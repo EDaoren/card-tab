@@ -79,7 +79,13 @@ For multi-device synchronization, you can optionally configure Supabase cloud sy
 3. Copy and execute the complete script below:
 
 ```sql
--- Create data table
+-- =====================================================
+-- Quick Tab Chrome Extension - Supabase Setup Script
+-- =====================================================
+-- Execute this script in your Supabase project's SQL Editor
+
+-- 1. Create Data Table
+-- =====================================================
 CREATE TABLE IF NOT EXISTS quick_nav_data (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,
@@ -92,7 +98,12 @@ CREATE TABLE IF NOT EXISTS quick_nav_data (
 CREATE INDEX IF NOT EXISTS idx_quick_nav_data_user_id ON quick_nav_data(user_id);
 CREATE INDEX IF NOT EXISTS idx_quick_nav_data_updated_at ON quick_nav_data(updated_at);
 
--- Create Storage bucket for background images
+-- Disable Row Level Security (simplified setup for personal use)
+ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+
+-- 2. Create Storage Bucket
+-- =====================================================
+-- Create backgrounds bucket for storing background images
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'backgrounds',
@@ -102,10 +113,17 @@ VALUES (
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
 
--- Set Storage access policies
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'backgrounds');
-CREATE POLICY "Public Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'backgrounds');
-CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id = 'backgrounds');
+-- Storage bucket created with default permissions
+
+-- 3. Verify Setup
+-- =====================================================
+-- Check if data table was created successfully
+SELECT 'Data table created successfully' as status
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quick_nav_data');
+
+-- Check if storage bucket was created successfully
+SELECT 'Storage bucket created successfully' as status
+WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 ```
 
 #### Step 4: Configure Extension

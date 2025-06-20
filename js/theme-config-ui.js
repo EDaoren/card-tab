@@ -804,48 +804,7 @@ class ThemeConfigUIManager {
     `;
   }
 
-  /**
-   * 调试配置切换（开发用）
-   */
-  async debugConfigSwitch() {
-    try {
-      console.log('=== 配置切换调试开始 ===');
 
-      // 1. 检查当前状态
-      const currentConnection = supabaseClient.getConnectionStatus();
-      console.log('当前连接状态:', currentConnection);
-
-      const configs = themeConfigManager.getAllConfigs();
-      console.log('所有配置:', configs);
-
-      const activeConfig = themeConfigManager.getActiveConfig();
-      console.log('当前活跃配置:', activeConfig);
-
-      // 2. 加载当前数据
-      const currentData = await syncManager.loadData();
-      console.log('当前数据:', currentData);
-
-      // 3. 如果有多个配置，测试切换
-      if (configs.length >= 2) {
-        const targetConfig = configs.find(c => !c.isActive);
-        if (targetConfig) {
-          console.log('准备切换到配置:', targetConfig);
-          await this.switchToConfig(targetConfig.id);
-
-          // 验证切换结果
-          const newConnection = supabaseClient.getConnectionStatus();
-          console.log('切换后连接状态:', newConnection);
-
-          const newData = await syncManager.loadData();
-          console.log('切换后数据:', newData);
-        }
-      }
-
-      console.log('=== 配置切换调试结束 ===');
-    } catch (error) {
-      console.error('配置切换调试失败:', error);
-    }
-  }
 
   /**
    * 处理配置搜索
@@ -1244,11 +1203,4 @@ window.refreshCurrentConfiguration = async function() {
   }
 };
 
-// 添加全局调试函数
-window.debugConfigSwitch = () => {
-  if (themeConfigUIManager.isInitialized) {
-    themeConfigUIManager.debugConfigSwitch();
-  } else {
-    console.log('主题配置UI管理器尚未初始化，请稍后再试');
-  }
-};
+

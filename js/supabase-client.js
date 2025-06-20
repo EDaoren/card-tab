@@ -361,9 +361,7 @@ VALUES (
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
 
--- 禁用Storage RLS（简化配置）
-ALTER TABLE storage.objects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE storage.buckets DISABLE ROW LEVEL SECURITY;
+-- Storage桶已创建，使用默认权限设置
 
 -- 3. 验证配置
 -- =====================================================
