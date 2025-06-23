@@ -25,8 +25,41 @@
 
 ## 截图
 
+### 主界面展示
 <div align="center">
-  <p><i>截图将在发布到Chrome Web Store时更新。</i></p>
+  <img src="store-assets/screenshots/main-interface0.png" alt="主界面 - 默认主题" width="600">
+  <p><i>主界面 - 默认主题</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/main-interface1.png" alt="主界面 - 深色主题" width="600">
+  <p><i>主界面 - 深色主题</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/main-interface3.png" alt="主界面 - 彩色主题" width="600">
+  <p><i>主界面 - 彩色主题</i></p>
+</div>
+
+### 功能特性
+<div align="center">
+  <img src="store-assets/screenshots/category-management.png" alt="分类管理" width="600">
+  <p><i>分类管理 - 添加和编辑分类</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/theme-customization.png" alt="主题定制" width="600">
+  <p><i>主题定制 - 多种主题选择</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/search-feature.png" alt="搜索功能" width="600">
+  <p><i>智能搜索 - 快速查找书签</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/cloud-sync.png" alt="云端同步" width="600">
+  <p><i>云端同步 - Supabase配置</i></p>
 </div>
 
 ## 安装方法

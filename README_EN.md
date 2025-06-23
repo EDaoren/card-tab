@@ -25,8 +25,41 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 
 ## Screenshots
 
+### Main Interface
 <div align="center">
-  <p><i>Screenshots will be updated when publishing to Chrome Web Store.</i></p>
+  <img src="store-assets/screenshots/main-interface0.png" alt="Main Interface - Default Theme" width="600">
+  <p><i>Main Interface - Default Theme</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/main-interface1.png" alt="Main Interface - Dark Theme" width="600">
+  <p><i>Main Interface - Dark Theme</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/main-interface3.png" alt="Main Interface - Colorful Theme" width="600">
+  <p><i>Main Interface - Colorful Theme</i></p>
+</div>
+
+### Key Features
+<div align="center">
+  <img src="store-assets/screenshots/category-management.png" alt="Category Management" width="600">
+  <p><i>Category Management - Add and Edit Categories</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/theme-customization.png" alt="Theme Customization" width="600">
+  <p><i>Theme Customization - Multiple Theme Options</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/search-feature.png" alt="Search Feature" width="600">
+  <p><i>Smart Search - Quick Bookmark Finding</i></p>
+</div>
+
+<div align="center">
+  <img src="store-assets/screenshots/cloud-sync.png" alt="Cloud Sync" width="600">
+  <p><i>Cloud Sync - Supabase Configuration</i></p>
 </div>
 
 ## Installation
