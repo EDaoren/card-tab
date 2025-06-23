@@ -1,13 +1,13 @@
 -- =====================================================
--- Quick Tab Chrome扩展 - Supabase初始化脚本
--- Quick Tab Chrome Extension - Supabase Setup Script
+-- Card Tab Chrome扩展 - Supabase初始化脚本
+-- Card Tab Chrome Extension - Supabase Setup Script
 -- =====================================================
 -- 请在Supabase项目的SQL编辑器中执行以下脚本
 -- Execute this script in your Supabase project's SQL Editor
 
 -- 1. 创建数据表 / Create Data Table
 -- =====================================================
-CREATE TABLE IF NOT EXISTS quick_nav_data (
+CREATE TABLE IF NOT EXISTS card_tab_data (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,
   data JSONB NOT NULL,
@@ -16,12 +16,12 @@ CREATE TABLE IF NOT EXISTS quick_nav_data (
 );
 
 -- 创建索引提升查询性能 / Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_quick_nav_data_user_id ON quick_nav_data(user_id);
-CREATE INDEX IF NOT EXISTS idx_quick_nav_data_updated_at ON quick_nav_data(updated_at);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_user_id ON card_tab_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_updated_at ON card_tab_data(updated_at);
 
 -- 禁用行级安全策略（简化配置，适合个人使用）
 -- Disable Row Level Security (simplified setup for personal use)
-ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
 
 -- 2. 创建Storage存储桶 / Create Storage Bucket
 -- =====================================================
@@ -43,7 +43,7 @@ VALUES (
 -- =====================================================
 -- 检查数据表是否创建成功 / Check if data table was created successfully
 SELECT 'Data table created successfully' as status
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quick_nav_data');
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_tab_data');
 
 -- 检查存储桶是否创建成功 / Check if storage bucket was created successfully
 SELECT 'Storage bucket created successfully' as status

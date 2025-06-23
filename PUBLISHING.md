@@ -1,6 +1,6 @@
 # Chrome Web Store 发布指南
 
-本文档提供了将 Quick Nav Tab 扩展发布到 Chrome Web Store 的详细步骤。
+本文档提供了将 Card Tab 扩展发布到 Chrome Web Store 的详细步骤。
 
 ## 准备工作
 
@@ -16,7 +16,7 @@
 
 3. **打包扩展**
    - 运行 `npm run build` 命令生成 zip 包
-   - 检查 `build` 目录中的 `quick-nav-tab.zip` 文件
+   - 检查 `build` 目录中的 `card-tab.zip` 文件
 
 ## 上传步骤
 
@@ -25,7 +25,7 @@
    - 点击 "New Item" 按钮
 
 2. **上传扩展包**
-   - 上传刚才生成的 `quick-nav-tab.zip` 文件
+   - 上传刚才生成的 `card-tab.zip` 文件
    - 等待系统解析包内容
 
 3. **填写商店信息**

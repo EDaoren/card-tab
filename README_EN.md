@@ -1,7 +1,7 @@
-# Quick Nav Tab
+# Card Tab
 
 <div align="center">
-  <img src="icons/icon128.png" alt="Quick Nav Tab Logo" width="80">
+  <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
   <br>
   <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
   <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version 1.0.0">
@@ -10,7 +10,7 @@
 
 A modern, customizable new tab page for Chrome browser with cloud sync support.
 
-**Quick Nav Tab** transforms your new tab experience with a clean, organized interface for managing your bookmarks and shortcuts. Features include customizable themes, cloud synchronization via Supabase, and a beautiful card-based design.
+**Card Tab** transforms your new tab experience with a clean, organized interface for managing your bookmarks and shortcuts. Features include customizable themes, cloud synchronization via Supabase, and a beautiful card-based design.
 
 ## Features
 
@@ -42,7 +42,7 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
 4. Click "Load unpacked" and select the extension folder
-5. Open a new tab to see Quick Nav Tab in action
+5. Open a new tab to see Card Tab in action
 
 ## Quick Start
 
@@ -80,13 +80,13 @@ For multi-device synchronization, you can optionally configure Supabase cloud sy
 
 ```sql
 -- =====================================================
--- Quick Tab Chrome Extension - Supabase Setup Script
+-- Card Tab Chrome Extension - Supabase Setup Script
 -- =====================================================
 -- Execute this script in your Supabase project's SQL Editor
 
 -- 1. Create Data Table
 -- =====================================================
-CREATE TABLE IF NOT EXISTS quick_nav_data (
+CREATE TABLE IF NOT EXISTS card_tab_data (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,
   data JSONB NOT NULL,
@@ -95,11 +95,11 @@ CREATE TABLE IF NOT EXISTS quick_nav_data (
 );
 
 -- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_quick_nav_data_user_id ON quick_nav_data(user_id);
-CREATE INDEX IF NOT EXISTS idx_quick_nav_data_updated_at ON quick_nav_data(updated_at);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_user_id ON card_tab_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_updated_at ON card_tab_data(updated_at);
 
 -- Disable Row Level Security (simplified setup for personal use)
-ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
 
 -- 2. Create Storage Bucket
 -- =====================================================
@@ -119,7 +119,7 @@ VALUES (
 -- =====================================================
 -- Check if data table was created successfully
 SELECT 'Data table created successfully' as status
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quick_nav_data');
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_tab_data');
 
 -- Check if storage bucket was created successfully
 SELECT 'Storage bucket created successfully' as status
@@ -128,7 +128,7 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 
 #### Step 4: Configure Extension
 
-1. Open Quick Nav Tab in a new browser tab
+1. Open Card Tab in a new browser tab
 2. Click the **sync button** (⟲ icon) on the right side
 3. Fill in the configuration:
    - **Supabase URL**: Your project URL from Step 2

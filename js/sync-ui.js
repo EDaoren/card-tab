@@ -389,7 +389,7 @@ class SyncUIManager {
 2. 进入 SQL Editor
 3. 执行以下命令：
 
-ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
 
 这将禁用行级安全策略，允许数据访问。
 详细说明请查看项目中的 SUPABASE_FIX_RLS.md 文件。`);

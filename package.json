@@ -1,5 +1,5 @@
 {
-  "name": "quick-nav-tab",
+  "name": "card-tab",
   "version": "1.0.0",
   "description": "A modern, customizable new tab page for Chrome browser",
   "main": "index.html",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/quick-nav-tab"
+    "url": "https://github.com/yourusername/card-tab"
   },
   "keywords": [
     "chrome-extension",
@@ -22,4 +22,4 @@
     "bookmarks",
     "shortcuts"
   ]
-} 
+}

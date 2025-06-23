@@ -3,7 +3,7 @@
 ## 基本信息
 
 ### 扩展名称
-**Quick Nav Tab - 快捷导航标签页**
+**Card Tab - 卡片标签页**
 
 ### 简短描述 (132字符以内)
 现代化的新标签页，支持分类书签管理、主题定制和云端同步，提升您的浏览效率
@@ -19,7 +19,7 @@
 
 ### 中文版本
 
-🚀 **Quick Nav Tab** 是一个现代化的Chrome新标签页扩展，旨在提升您的浏览效率和体验。
+🚀 **Card Tab** 是一个现代化的Chrome新标签页扩展，旨在提升您的浏览效率和体验。
 
 **✨ 核心功能**
 
@@ -62,7 +62,7 @@
 
 ### English Version
 
-🚀 **Quick Nav Tab** is a modern Chrome new tab extension designed to enhance your browsing efficiency and experience.
+🚀 **Card Tab** is a modern Chrome new tab extension designed to enhance your browsing efficiency and experience.
 
 **✨ Core Features**
 
@@ -114,8 +114,8 @@
 详细的隐私政策请查看：[Privacy Policy](privacy-policy.html)
 
 ## 支持与反馈
-- 项目主页：https://github.com/yourusername/quick-nav-tab
-- 问题反馈：https://github.com/yourusername/quick-nav-tab/issues
+- 项目主页：https://github.com/yourusername/card-tab
+- 问题反馈：https://github.com/yourusername/card-tab/issues
 - 邮箱支持：support@example.com
 
 ## 更新日志

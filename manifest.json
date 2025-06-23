@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Quick Nav Tab",
+  "name": "Card Tab",
   "version": "1.0.0",
   "description": "现代化的新标签页，支持分类书签管理、主题定制和云端同步，提升您的浏览效率",
   "permissions": ["storage"],
@@ -14,7 +14,7 @@
     "128": "icons/icon128.png"
   },
   "author": "Your Name or Organization",
-  "homepage_url": "https://github.com/yourusername/quick-nav-tab",
+  "homepage_url": "https://github.com/yourusername/card-tab",
   "action": {
     "default_icon": {
       "16": "icons/icon16.png",
@@ -22,6 +22,6 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Quick Nav Tab - 快捷导航标签页"
+    "default_title": "Card Tab - 卡片标签页"
   }
 }

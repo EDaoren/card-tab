@@ -1,7 +1,7 @@
-# 快捷导航标签页
+# 卡片标签页
 
 <div align="center">
-  <img src="icons/icon128.png" alt="Quick Nav Tab Logo" width="80">
+  <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
   <br>
   <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
   <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version 1.0.0">
@@ -10,7 +10,7 @@
 
 一个现代化的、可自定义的Chrome浏览器新标签页，支持云端同步。
 
-**快捷导航标签页**通过简洁、有组织的界面改变您的新标签页体验，帮助您管理书签和快捷方式。功能包括可自定义主题、通过Supabase的云端同步，以及美观的卡片式设计。
+**卡片标签页**通过简洁、有组织的界面改变您的新标签页体验，帮助您管理书签和快捷方式。功能包括可自定义主题、通过Supabase的云端同步，以及美观的卡片式设计。
 
 ## 功能特点
 
@@ -42,7 +42,7 @@
 2. 打开Chrome浏览器并访问 `chrome://extensions/`
 3. 在右上角启用"开发者模式"
 4. 点击"加载已解压的扩展程序"并选择扩展文件夹
-5. 打开新标签页即可看到快捷导航标签页
+5. 打开新标签页即可看到卡片标签页
 
 ## 快速开始
 
@@ -80,13 +80,13 @@
 
 ```sql
 -- =====================================================
--- Quick Tab Chrome扩展 - Supabase初始化脚本
+-- Card Tab Chrome扩展 - Supabase初始化脚本
 -- =====================================================
 -- 请在Supabase项目的SQL编辑器中执行以下脚本
 
 -- 1. 创建数据表
 -- =====================================================
-CREATE TABLE IF NOT EXISTS quick_nav_data (
+CREATE TABLE IF NOT EXISTS card_tab_data (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL UNIQUE,
   data JSONB NOT NULL,
@@ -95,11 +95,11 @@ CREATE TABLE IF NOT EXISTS quick_nav_data (
 );
 
 -- 创建索引提升查询性能
-CREATE INDEX IF NOT EXISTS idx_quick_nav_data_user_id ON quick_nav_data(user_id);
-CREATE INDEX IF NOT EXISTS idx_quick_nav_data_updated_at ON quick_nav_data(updated_at);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_user_id ON card_tab_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_updated_at ON card_tab_data(updated_at);
 
 -- 禁用行级安全策略（简化配置，适合个人使用）
-ALTER TABLE quick_nav_data DISABLE ROW LEVEL SECURITY;
+ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
 
 -- 2. 创建Storage存储桶
 -- =====================================================
@@ -119,7 +119,7 @@ VALUES (
 -- =====================================================
 -- 检查数据表是否创建成功
 SELECT 'Data table created successfully' as status
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quick_nav_data');
+WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_tab_data');
 
 -- 检查存储桶是否创建成功
 SELECT 'Storage bucket created successfully' as status
@@ -128,7 +128,7 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 
 #### 步骤4：配置扩展
 
-1. 在新浏览器标签页中打开Quick Nav Tab
+1. 在新浏览器标签页中打开Card Tab
 2. 点击右侧的**同步按钮**（⟲图标）
 3. 填写配置信息：
    - **Supabase URL**: 步骤2中的项目URL
@@ -175,7 +175,7 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 npm run build
 ```
 
-构建脚本会创建可用于Chrome Web Store提交的`quick-nav-tab.zip`文件。
+构建脚本会创建可用于Chrome Web Store提交的`card-tab.zip`文件。
 
 ## 隐私与安全
 

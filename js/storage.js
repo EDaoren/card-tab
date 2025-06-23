@@ -1,5 +1,5 @@
 /**
- * Storage handler for the Quick Nav Tab extension
+ * Storage handler for the Card Tab extension
  * Uses Chrome's storage.sync API to store and retrieve data
  */
 
@@ -191,8 +191,8 @@ class StorageManager {
   async getFromStorage() {
     return new Promise((resolve) => {
       if (chrome.storage && chrome.storage.sync) {
-        chrome.storage.sync.get('quickNavData', (result) => {
-          resolve(result.quickNavData || {});
+        chrome.storage.sync.get('cardTabData', (result) => {
+          resolve(result.cardTabData || {});
         });
       } else {
         // Development environment fallback - return empty data
@@ -277,7 +277,7 @@ class StorageManager {
     };
 
     if (chrome.storage && chrome.storage.sync) {
-      await chrome.storage.sync.set({ quickNavData: fallbackData });
+      await chrome.storage.sync.set({ cardTabData: fallbackData });
     } else {
       console.warn('Chrome Storage不可用，跳过备选方案保存');
     }

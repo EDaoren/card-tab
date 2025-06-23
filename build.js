@@ -1,6 +1,6 @@
 /**
- * Build script for Quick Nav Tab Chrome Extension
- * 
+ * Build script for Card Tab Chrome Extension
+ *
  * This script helps package the extension for Chrome Web Store submission
  */
 
@@ -15,7 +15,7 @@ if (!fs.existsSync(buildDir)) {
 }
 
 // Create a file to stream archive data to
-const output = fs.createWriteStream(path.join(buildDir, 'quick-nav-tab.zip'));
+const output = fs.createWriteStream(path.join(buildDir, 'card-tab.zip'));
 const archive = archiver('zip', {
   zlib: { level: 9 } // Set compression level
 });

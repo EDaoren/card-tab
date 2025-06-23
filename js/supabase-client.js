@@ -8,7 +8,7 @@ class SupabaseClient {
     this.client = null;
     this.isConnected = false;
     this.config = null;
-    this.tableName = 'quick_nav_data';
+    this.tableName = 'card_tab_data';
     this.userId = null;
   }
 
@@ -213,7 +213,7 @@ class SupabaseClient {
       console.log('SupabaseClient: 删除用户数据:', this.userId);
 
       const { error } = await this.client
-        .from('quick_nav_data')
+        .from('card_tab_data')
         .delete()
         .eq('user_id', this.userId);
 

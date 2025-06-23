@@ -236,15 +236,15 @@ class SyncManager {
   getCurrentStorageKey() {
     // 如果有Supabase配置，使用用户ID作为键的一部分
     if (this.currentSupabaseConfig && this.currentSupabaseConfig.userId) {
-      return `quickNavData_${this.currentSupabaseConfig.userId}`;
+      return `cardTabData_${this.currentSupabaseConfig.userId}`;
     }
 
     // 如果云端同步被禁用，检查是否有默认配置数据
     if (!this.isSupabaseEnabled) {
-      return 'quickNavData_default'; // 使用默认配置键
+      return 'cardTabData_default'; // 使用默认配置键
     }
 
-    return 'quickNavData'; // 默认键
+    return 'cardTabData'; // 默认键
   }
 
   /**
@@ -808,7 +808,7 @@ class SyncManager {
       }
 
       // 保存到本地存储（使用默认存储键）
-      const defaultStorageKey = 'quickNavData_default';
+      const defaultStorageKey = 'cardTabData_default';
       if (chrome && chrome.storage && chrome.storage.sync) {
         await chrome.storage.sync.set({ [defaultStorageKey]: defaultConfigData });
       } else {

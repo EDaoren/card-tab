@@ -1,5 +1,5 @@
 /**
- * Search handler for the Quick Nav Tab extension
+ * Search handler for the Card Tab extension
  */
 
 class SearchManager {

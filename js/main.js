@@ -1,10 +1,10 @@
 /**
- * Main entry point for the Quick Nav Tab extension
+ * Main entry point for the Card Tab extension
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    console.log('🚀 Initializing Quick Nav Tab...');
+    console.log('🚀 Initializing Card Tab...');
 
     // Initialize all managers first (they need DOM elements to exist)
     viewManager = new ViewManager();
@@ -35,9 +35,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize icon system after everything is rendered
     iconManager.init();
 
-    console.log('✅ Quick Nav Tab initialized successfully');
+    console.log('✅ Card Tab initialized successfully');
   } catch (error) {
-    console.error('❌ Error initializing Quick Nav Tab:', error);
+    console.error('❌ Error initializing Card Tab:', error);
 
     // 即使初始化失败，也要尝试创建基本的管理器实例
     try {

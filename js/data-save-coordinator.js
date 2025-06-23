@@ -323,7 +323,7 @@ class DataSaveCoordinator {
         // 备选方案
         if (chrome && chrome.storage && chrome.storage.sync) {
           await new Promise((resolve, reject) => {
-            chrome.storage.sync.set({ quickNavData: data }, () => {
+            chrome.storage.sync.set({ cardTabData: data }, () => {
               if (chrome.runtime.lastError) {
                 reject(new Error(chrome.runtime.lastError.message));
               } else {
