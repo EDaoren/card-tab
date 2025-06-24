@@ -1,0 +1,231 @@
+/* 离线图标样式 - 搜索引擎和常用网站图标 */
+
+/* 搜索引擎图标基础样式 */
+.search-engine-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* 搜索引擎图标 - 使用CSS绘制的备选方案 */
+.search-engine-icon.offline-google {
+  background: linear-gradient(45deg, #4285f4 25%, #34a853 25%, #34a853 50%, #fbbc05 50%, #fbbc05 75%, #ea4335 75%);
+  background-size: 8px 8px;
+  position: relative;
+}
+
+.search-engine-icon.offline-google::after {
+  content: "G";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+}
+
+.search-engine-icon.offline-bing {
+  background: linear-gradient(135deg, #00809d 0%, #0078d4 100%);
+  position: relative;
+}
+
+.search-engine-icon.offline-bing::after {
+  content: "B";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.search-engine-icon.offline-baidu {
+  background: linear-gradient(135deg, #2932e1 0%, #4c6ef5 100%);
+  position: relative;
+}
+
+.search-engine-icon.offline-baidu::after {
+  content: "百";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.search-engine-icon.offline-duckduckgo {
+  background: linear-gradient(135deg, #de5833 0%, #ff6b47 100%);
+  position: relative;
+}
+
+.search-engine-icon.offline-duckduckgo::after {
+  content: "🦆";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+}
+
+/* 通用网站图标备选方案 */
+.favicon-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+/* 常用网站图标 */
+.favicon-fallback.github::after { content: "🐙"; }
+.favicon-fallback.youtube::after { content: "📺"; }
+.favicon-fallback.twitter::after { content: "🐦"; }
+.favicon-fallback.facebook::after { content: "📘"; }
+.favicon-fallback.instagram::after { content: "📷"; }
+.favicon-fallback.linkedin::after { content: "💼"; }
+.favicon-fallback.reddit::after { content: "🤖"; }
+.favicon-fallback.stackoverflow::after { content: "📚"; }
+.favicon-fallback.gmail::after { content: "📧"; }
+.favicon-fallback.drive::after { content: "💾"; }
+.favicon-fallback.docs::after { content: "📄"; }
+.favicon-fallback.sheets::after { content: "📊"; }
+.favicon-fallback.slides::after { content: "📽️"; }
+
+/* 离线状态指示器 */
+.offline-indicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 193, 7, 0.9);
+  color: #856404;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  backdrop-filter: blur(10px);
+}
+
+.offline-indicator.show {
+  display: block;
+}
+
+.offline-indicator::before {
+  content: "📡";
+  margin-right: 6px;
+}
+
+/* 离线模式下的样式调整 */
+body.offline-mode .search-engine-icon[src*="google.com"] {
+  display: none;
+}
+
+body.offline-mode .search-engine-icon[src*="google.com"] + .offline-google {
+  display: inline-block;
+}
+
+body.offline-mode .search-engine-icon[src*="bing.com"] {
+  display: none;
+}
+
+body.offline-mode .search-engine-icon[src*="bing.com"] + .offline-bing {
+  display: inline-block;
+}
+
+body.offline-mode .search-engine-icon[src*="baidu.com"] {
+  display: none;
+}
+
+body.offline-mode .search-engine-icon[src*="baidu.com"] + .offline-baidu {
+  display: inline-block;
+}
+
+body.offline-mode .search-engine-icon[src*="duckduckgo.com"] {
+  display: none;
+}
+
+body.offline-mode .search-engine-icon[src*="duckduckgo.com"] + .offline-duckduckgo {
+  display: inline-block;
+}
+
+/* 网络状态恢复时的动画 */
+.network-restored {
+  animation: networkRestore 0.5s ease-out;
+}
+
+@keyframes networkRestore {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 离线提示样式 */
+.offline-notice {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 1px solid #ffeaa7;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-size: 14px;
+  display: none;
+}
+
+.offline-notice.show {
+  display: block;
+}
+
+.offline-notice::before {
+  content: "⚠️ ";
+  margin-right: 6px;
+}
+
+/* 功能限制提示 */
+.feature-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+
+.feature-disabled::after {
+  content: "需要网络连接";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.feature-disabled:hover::after {
+  opacity: 1;
+}

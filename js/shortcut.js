@@ -297,6 +297,15 @@ class ShortcutManager {
    * @returns {string} Favicon URL
    */
   getFaviconUrl(domain) {
+    // 检查网络状态
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      // 离线状态：返回空字符串，让错误处理机制创建备选图标
+      console.log('ShortcutManager: 离线状态，跳过favicon获取');
+      return '';
+    }
+
     // 优先使用网站自己的favicon
     const directFavicon = `https://${domain}/favicon.ico`;
 

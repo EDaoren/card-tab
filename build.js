@@ -59,7 +59,7 @@ const filesToInclude = [
 
 // Files to exclude from js directory
 const jsFilesToExclude = [
-  'js/config-manager.js' // 已废弃，功能合并到theme-config-manager.js
+  // 目前没有需要排除的JS文件
 ];
 
 // Add each file/directory to the archive

@@ -35,6 +35,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize icon system after everything is rendered
     iconManager.init();
 
+    // Initialize offline manager for network status handling
+    if (typeof offlineManager !== 'undefined') {
+      offlineManager.init();
+    }
+
     console.log('✅ Card Tab initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing Card Tab:', error);

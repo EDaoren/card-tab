@@ -1,8 +1,36 @@
-/* 本地图标系统 - 备选方案 */
+/* Material Symbols Rounded - 本地字体 */
 /*
- * 仅在Material Symbols字体加载失败时使用
- * 不影响正常的在线字体显示
+ * 本地化的 Material Symbols 字体
+ * 替代在线 Google Fonts，提升加载性能
  */
+
+/* 本地字体定义 */
+@font-face {
+  font-display: swap; /* 优化字体加载性能 */
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700; /* 支持多种字重 */
+  src: url('material-symbols-rounded-v255-latin-regular.woff2') format('woff2');
+}
+
+/* Material Symbols 基础样式 */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
 
 /* 基础图标样式 */
 .icon {

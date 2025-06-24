@@ -22,6 +22,8 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 - **📱 Responsive Design**: Grid and list view modes
 - **⚡ Fast & Lightweight**: Optimized performance with smooth animations
 - **🔒 Privacy First**: Your data stays in your own Supabase project
+- **🌐 Offline Support**: Fully functional offline with automatic graceful degradation
+- **🎯 Local Fonts**: Material Symbols fonts localized, no external dependencies
 
 ## Screenshots
 
@@ -183,13 +185,63 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 - **401 Unauthorized**: Wrong API key or expired credentials
 - **403 Forbidden**: Permission denied - check database policies
 
+## Project Structure
+
+```
+card-tab/
+├── index.html                 # Main page entry point
+├── manifest.json             # Chrome extension configuration
+├── package.json              # Project dependencies and build scripts
+├── build.js                  # Build and packaging script
+├── fonts/                    # Local font files
+│   ├── material-symbols-rounded.css                    # Font style definitions
+│   └── material-symbols-rounded-v255-latin-regular.woff2  # Font file
+├── styles/                   # Stylesheet files
+│   ├── main.css              # Main stylesheet
+│   └── offline-icons.css     # Offline icon styles
+├── js/                       # JavaScript modules
+│   ├── main.js               # Main entry point
+│   ├── storage.js            # Data storage management
+│   ├── sync-manager.js       # Cloud sync management
+│   ├── theme-config-manager.js # Theme configuration management
+│   ├── offline-manager.js    # Offline functionality management
+│   ├── category.js           # Category management
+│   ├── shortcut.js           # Shortcut management
+│   ├── search.js             # Search functionality
+│   ├── view.js               # View management
+│   ├── theme.js              # Theme switching
+│   ├── icons.js              # Icon management
+│   ├── supabase-client.js    # Supabase client
+│   ├── sync-ui.js            # Sync UI management
+│   ├── theme-config-ui.js    # Theme configuration UI
+│   ├── data-save-coordinator.js # Data save coordinator
+│   └── supabase.min.js       # Supabase SDK
+├── icons/                    # Extension icons
+│   ├── icon16.png            # 16x16 icon
+│   ├── icon32.png            # 32x32 icon
+│   ├── icon48.png            # 48x48 icon
+│   ├── icon128.png           # 128x128 icon
+│   └── icon512.png           # 512x512 icon
+├── store-assets/             # Store assets
+│   ├── screenshots/          # Application screenshots
+│   └── promotional/          # Promotional materials
+├── test-local-font.html      # Font testing page
+├── test-offline.html         # Offline functionality testing page
+├── supabase-init.sql         # Supabase initialization script
+├── privacy-policy.html       # Privacy policy
+├── README.md                 # Chinese documentation
+├── README_EN.md              # English documentation
+└── LICENSE                   # Open source license
+```
+
 ## Technologies
 
 ### Frontend
 - **HTML5 & CSS3**: Modern web standards with custom properties
 - **JavaScript ES6+**: Modular architecture with async/await
-- **Material Design**: Google Material Symbols for consistent UI
+- **Material Symbols**: Localized Google Material icon fonts
 - **Responsive Design**: Optimized for different screen sizes
+- **Offline First**: Fully offline-capable design architecture
 
 ### Chrome Extension APIs
 - **chrome.storage**: Local and sync storage for data persistence
@@ -198,6 +250,11 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 ### Cloud Integration
 - **Supabase**: PostgreSQL database with real-time capabilities
 - **Supabase Storage**: File storage for background images
+
+### Performance Optimizations
+- **Local Fonts**: Material Symbols fonts fully localized
+- **Offline Support**: Intelligent network status detection and graceful degradation
+- **Caching Strategy**: Cache-aside pattern for improved data sync performance
 
 ## Development
 
@@ -208,7 +265,24 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 npm run build
 ```
 
-The build script creates `quick-nav-tab.zip` ready for Chrome Web Store submission.
+The build script creates `card-tab.zip` ready for Chrome Web Store submission.
+
+### Testing
+
+The project includes dedicated testing pages for functionality verification:
+
+```bash
+# Font loading test
+open test-local-font.html
+
+# Offline functionality test
+open test-offline.html
+```
+
+**Testing Steps:**
+1. **Font Test**: Verify Material Symbols icons display correctly
+2. **Offline Test**: Use browser developer tools to simulate offline state
+3. **Functionality Test**: Test all core features in offline mode
 
 ## Privacy & Security
 

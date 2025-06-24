@@ -448,7 +448,7 @@ class ThemeConfigManager {
     console.log('ThemeConfigManager: 开始清理无效配置');
     console.log('ThemeConfigManager: 清理前配置数量:', this.configs.length);
 
-    // 过滤掉无效配置
+    // 1. 过滤掉无效配置
     const validConfigs = this.configs.filter(config => {
       // 保留默认配置
       if (config.id === this.DEFAULT_CONFIG_ID) {
@@ -466,16 +466,47 @@ class ThemeConfigManager {
              !config.isDefault;  // 排除标记为默认的配置
     });
 
-    if (validConfigs.length !== this.configs.length) {
-      console.log('ThemeConfigManager: 发现无效配置，清理中...');
-      console.log('ThemeConfigManager: 清理后配置数量:', validConfigs.length);
+    // 2. 清理重复配置
+    const configGroups = {};
+    validConfigs.forEach(config => {
+      if (!config.isDefault) {
+        const key = `${config.userId}@${config.supabaseUrl}`;
+        if (!configGroups[key]) {
+          configGroups[key] = [];
+        }
+        configGroups[key].push(config);
+      }
+    });
 
-      this.configs = validConfigs;
+    // 保留最新的，删除重复的
+    const finalConfigs = [];
+    Object.values(configGroups).forEach(group => {
+      if (group.length > 1) {
+        // 按创建时间排序，保留最新的
+        group.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        finalConfigs.push(group[0]);
+        console.log('ThemeConfigManager: 清理重复配置，保留最新的:', group[0].displayName);
+      } else {
+        finalConfigs.push(group[0]);
+      }
+    });
+
+    // 添加默认配置
+    const defaultConfig = validConfigs.find(c => c.id === this.DEFAULT_CONFIG_ID);
+    if (defaultConfig) {
+      finalConfigs.unshift(defaultConfig);
+    }
+
+    if (finalConfigs.length !== this.configs.length) {
+      console.log('ThemeConfigManager: 发现无效/重复配置，清理中...');
+      console.log('ThemeConfigManager: 清理后配置数量:', finalConfigs.length);
+
+      this.configs = finalConfigs;
       await this.saveConfigs();
 
-      console.log('ThemeConfigManager: 无效配置清理完成');
+      console.log('ThemeConfigManager: 配置清理完成');
     } else {
-      console.log('ThemeConfigManager: 没有发现无效配置');
+      console.log('ThemeConfigManager: 没有发现无效或重复配置');
     }
   }
 
@@ -508,47 +539,7 @@ class ThemeConfigManager {
     }
   }
 
-  /**
-   * 清理重复或无效的配置
-   */
-  async cleanupDuplicateConfigs() {
-    const configGroups = {};
 
-    // 按 userId + supabaseUrl 分组
-    this.configs.forEach(config => {
-      if (!config.isDefault) {
-        const key = `${config.userId}@${config.supabaseUrl}`;
-        if (!configGroups[key]) {
-          configGroups[key] = [];
-        }
-        configGroups[key].push(config);
-      }
-    });
-
-    // 保留最新的，删除重复的
-    let hasChanges = false;
-    Object.values(configGroups).forEach(group => {
-      if (group.length > 1) {
-        // 按创建时间排序，保留最新的
-        group.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        const toKeep = group[0];
-        const toRemove = group.slice(1);
-
-        toRemove.forEach(config => {
-          const index = this.configs.findIndex(c => c.id === config.id);
-          if (index > -1) {
-            this.configs.splice(index, 1);
-            hasChanges = true;
-            console.log('ThemeConfigManager: 清理重复配置', config.displayName);
-          }
-        });
-      }
-    });
-
-    if (hasChanges) {
-      await this.saveConfigs();
-    }
-  }
 
   /**
    * 检查配置是否存在
