@@ -563,6 +563,19 @@ body {
   color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
+  /* 防止字体加载时的闪烁 */
+  font-display: swap;
+}
+
+/* 加载状态样式 */
+body:not(.loaded) {
+  /* 在加载完成前稍微降低透明度 */
+  opacity: 0.95;
+}
+
+body.loaded {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
 }
 
 .container {

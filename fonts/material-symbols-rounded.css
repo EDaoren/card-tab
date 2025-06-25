@@ -76,6 +76,40 @@
   line-height: 24px;
 }
 
+/* 改进的备选图标映射 */
+.material-symbols-fallback[data-icon="search"]:before,
+.material-symbols-fallback:contains("search"):before { content: "🔍"; }
+
+.material-symbols-fallback[data-icon="expand_more"]:before,
+.material-symbols-fallback:contains("expand_more"):before { content: "▼"; }
+
+.material-symbols-fallback[data-icon="sync"]:before,
+.material-symbols-fallback:contains("sync"):before { content: "⟲"; }
+
+.material-symbols-fallback[data-icon="palette"]:before,
+.material-symbols-fallback:contains("palette"):before { content: "🎨"; }
+
+.material-symbols-fallback[data-icon="grid_view"]:before,
+.material-symbols-fallback:contains("grid_view"):before { content: "⊞"; }
+
+.material-symbols-fallback[data-icon="view_list"]:before,
+.material-symbols-fallback:contains("view_list"):before { content: "☰"; }
+
+.material-symbols-fallback[data-icon="add"]:before,
+.material-symbols-fallback:contains("add"):before { content: "+"; font-weight: bold; }
+
+.material-symbols-fallback[data-icon="download"]:before,
+.material-symbols-fallback:contains("download"):before { content: "⬇"; }
+
+.material-symbols-fallback[data-icon="cloud_upload"]:before,
+.material-symbols-fallback:contains("cloud_upload"):before { content: "⬆"; }
+
+.material-symbols-fallback[data-icon="settings"]:before,
+.material-symbols-fallback:contains("settings"):before { content: "⚙"; }
+
+.material-symbols-fallback[data-icon="info"]:before,
+.material-symbols-fallback:contains("info"):before { content: "ℹ"; }
+
 /* 常用图标的CSS实现 - 无需字体文件 */
 .icon-search:before { content: "🔍"; }
 .icon-palette:before { content: "🎨"; }

@@ -49,28 +49,46 @@ class ThemeConfigUIManager {
 
   /**
    * 将当前活跃配置应用到同步管理器
+   * 修改：检查配置是否有变化，避免重复保存相同配置
    */
   async applyActiveConfigToSyncManager() {
     try {
       const activeConfig = themeConfigManager.getActiveConfig();
 
-      if (activeConfig) {
-        console.log('ThemeConfigUIManager: 应用活跃配置到同步管理器:', activeConfig.displayName);
+      if (activeConfig && activeConfig.supabaseUrl && activeConfig.supabaseKey) {
+        console.log('ThemeConfigUIManager: 检查活跃配置:', activeConfig.displayName);
 
-        // 更新同步管理器配置
-        await syncManager.saveSupabaseConfig({
+        // 检查当前同步管理器配置是否已经是这个配置
+        const currentConfig = await syncManager.getSupabaseConfig();
+        const newConfig = {
           url: activeConfig.supabaseUrl,
           anonKey: activeConfig.supabaseKey,
           userId: activeConfig.userId,
           enabled: true
-        });
+        };
 
-        // 重新初始化同步管理器
-        await syncManager.init();
+        // 比较配置是否相同，避免重复保存
+        const isSameConfig = currentConfig &&
+          currentConfig.url === newConfig.url &&
+          currentConfig.anonKey === newConfig.anonKey &&
+          currentConfig.userId === newConfig.userId &&
+          currentConfig.enabled === newConfig.enabled;
 
-        console.log('ThemeConfigUIManager: 活跃配置已应用到同步管理器');
+        if (!isSameConfig) {
+          console.log('ThemeConfigUIManager: 配置有变化，更新同步管理器配置');
+
+          // 更新同步管理器配置
+          await syncManager.saveSupabaseConfig(newConfig);
+
+          // 重新初始化同步管理器
+          await syncManager.init();
+
+          console.log('ThemeConfigUIManager: 活跃配置已应用到同步管理器');
+        } else {
+          console.log('ThemeConfigUIManager: 配置无变化，跳过保存操作');
+        }
       } else {
-        console.log('ThemeConfigUIManager: 没有活跃配置，使用默认同步管理器配置');
+        console.log('ThemeConfigUIManager: 没有有效的活跃配置，使用默认同步管理器配置');
       }
     } catch (error) {
       console.error('ThemeConfigUIManager: 应用活跃配置失败:', error);

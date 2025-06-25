@@ -72,30 +72,36 @@ class ViewManager {
   /**
    * Set the view mode (grid or list)
    * @param {string} mode - The view mode ('grid' or 'list')
+   * @param {boolean} shouldSave - Whether to save the setting (default: true)
    */
-  async setViewMode(mode) {
+  async setViewMode(mode, shouldSave = true) {
     if (mode !== 'grid' && mode !== 'list') {
       console.error('Invalid view mode:', mode);
       return;
     }
-    
+
     // Update view mode
     this.currentViewMode = mode;
-    
+
     // Update UI
     this.updateViewButtons();
     this.updateContainerClass();
-    
+
     // Notify category manager
     if (categoryManager) {
       categoryManager.setViewMode(mode);
     }
-    
-    // Save setting
-    try {
-      await storageManager.updateSettings({ viewMode: mode });
-    } catch (error) {
-      console.error('Error saving view mode setting:', error);
+
+    // Save setting only when explicitly requested (user action)
+    if (shouldSave) {
+      try {
+        await storageManager.updateSettings({ viewMode: mode });
+        console.log('ViewManager: View mode saved:', mode);
+      } catch (error) {
+        console.error('Error saving view mode setting:', error);
+      }
+    } else {
+      console.log('ViewManager: View mode applied without saving:', mode);
     }
   }
 
@@ -126,10 +132,18 @@ class ViewManager {
     try {
       const settings = storageManager.getSettings();
       if (settings && settings.viewMode) {
-        this.setViewMode(settings.viewMode);
+        // Apply saved view mode without saving (avoid unnecessary Supabase operations)
+        await this.setViewMode(settings.viewMode, false);
+        console.log('ViewManager: Initialized with saved view mode:', settings.viewMode);
+      } else {
+        // Apply default view mode without saving
+        await this.setViewMode('grid', false);
+        console.log('ViewManager: Initialized with default view mode: grid');
       }
     } catch (error) {
       console.error('Error initializing view:', error);
+      // Fallback to default view mode without saving
+      await this.setViewMode('grid', false);
     }
   }
 }

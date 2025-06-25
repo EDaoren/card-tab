@@ -35,6 +35,8 @@ const filesToInclude = [
 const filesToExclude = [
   'test-local-font.html',
   'test-offline.html',
+  'test-performance.html',
+  'test-supabase-fix.html',
   'build.js',
   'package.json',
   'package-lock.json',
@@ -42,8 +44,8 @@ const filesToExclude = [
   '.git',
   '.gitignore',
   'build',
-  'PROJECT_STRUCTURE.md',
-  'OPTIMIZATION_SUMMARY.md'
+  'verify-csp-compliance.js',
+  'csp-violations-report.json'
 ];
 
 /**

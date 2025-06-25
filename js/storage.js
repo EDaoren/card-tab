@@ -136,30 +136,23 @@ class StorageManager {
       // Load data using sync manager (handles Chrome Storage + Supabase)
       const result = await syncManager.loadData();
 
-      // If no data exists, use default data
+      // If no data exists, use default data (but don't save automatically)
       if (!result || Object.keys(result).length === 0 || !result.categories) {
+        console.log('StorageManager: No data found, using default data (not saving automatically)');
         this.data = DEFAULT_DATA;
 
-        // 保存默认数据时，智能保留现有的其他字段（如themeSettings）
-        const dataToSave = {
+        // 保存默认数据的引用，但不自动保存到Supabase
+        // 用户真正操作时才会触发保存，避免不必要的循环
+        this.fullData = {
           ...result,  // 保留现有数据（可能包含themeSettings等）
           categories: this.data.categories,  // 设置默认categories
           settings: this.data.settings,      // 设置默认settings
           _metadata: {
             ...result?._metadata,
             lastModified: new Date().toISOString(),
-            source: 'storageManager_init'
+            source: 'storageManager_init_default'
           }
         };
-
-        // 保存完整数据的引用
-        this.fullData = dataToSave;
-
-        try {
-          await syncManager.saveData(dataToSave);
-        } catch (saveError) {
-          console.warn('StorageManager: 保存默认数据失败:', saveError);
-        }
       } else {
         // Remove metadata if present, but keep other fields like themeSettings
         const { _metadata, ...cleanData } = result;
@@ -208,29 +201,8 @@ class StorageManager {
    */
   async saveToStorage() {
     try {
-      // 使用统一的数据保存协调器
-      if (window.dataSaveCoordinator) {
-        const saveData = {
-          categories: this.data.categories,
-          settings: this.data.settings
-        };
-
-        const result = await dataSaveCoordinator.saveData(saveData, {
-          source: 'storageManager',
-          priority: 'normal',
-          mergeStrategy: 'smart',
-          validateBefore: true
-        });
-
-        if (result.success) {
-          this.fullData = null; // 清空缓存，下次会重新加载
-        } else {
-          throw new Error(result.error || '协调器保存失败');
-        }
-      } else {
-        // 备选方案：使用原有逻辑
-        await this.saveToStorageLegacy();
-      }
+      // 简化的保存逻辑：直接使用syncManager
+      await this.saveToStorageDirect();
     } catch (error) {
       console.error('StorageManager: 保存失败:', error);
       await this.saveToStorageFallback();
@@ -238,9 +210,9 @@ class StorageManager {
   }
 
   /**
-   * 原有保存逻辑（备选方案）
+   * 直接保存逻辑（简化版本）
    */
-  async saveToStorageLegacy() {
+  async saveToStorageDirect() {
     // 获取当前完整数据，确保不丢失其他字段
     let currentFullData = this.fullData;
     if (!currentFullData) {
@@ -255,12 +227,13 @@ class StorageManager {
       _metadata: {
         ...currentFullData._metadata,
         lastModified: new Date().toISOString(),
-        source: 'storageManager_legacy'
+        source: 'storageManager'
       }
     };
 
     this.fullData = mergedData;
     await syncManager.saveData(mergedData);
+    console.log('StorageManager: 数据已保存');
   }
 
   /**

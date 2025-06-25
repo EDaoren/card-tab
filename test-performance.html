@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Tab 性能测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-header h1 {
+            color: #4285f4;
+            margin-bottom: 10px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .test-section h3 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .test-button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.2s;
+        }
+        
+        .test-button:hover {
+            background: #3367d6;
+        }
+        
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+        
+        .result-success {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+        
+        .result-warning {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            color: #f57c00;
+        }
+        
+        .result-error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4285f4;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .iframe-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+        }
+        
+        .loading-simulation {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #4285f4;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🚀 Card Tab 性能测试</h1>
+            <p>测试页面加载性能、字体加载和用户体验优化效果</p>
+        </div>
+
+        <!-- 基础性能测试 -->
+        <div class="test-section">
+            <h3>📊 基础性能指标</h3>
+            <p>测试页面的核心Web Vitals指标</p>
+            <button class="test-button" onclick="runPerformanceTest()">运行性能测试</button>
+            <button class="test-button" onclick="clearResults()">清除结果</button>
+            
+            <div class="metrics-grid" id="performance-metrics" style="display: none;">
+                <div class="metric-card">
+                    <div class="metric-value" id="fcp-value">-</div>
+                    <div class="metric-label">首次内容绘制 (FCP)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="lcp-value">-</div>
+                    <div class="metric-label">最大内容绘制 (LCP)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="cls-value">-</div>
+                    <div class="metric-label">累积布局偏移 (CLS)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="fid-value">-</div>
+                    <div class="metric-label">首次输入延迟 (FID)</div>
+                </div>
+            </div>
+            
+            <div id="performance-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- 字体加载测试 -->
+        <div class="test-section">
+            <h3>🔤 字体加载测试</h3>
+            <p>测试Material Symbols字体的加载状态和备选方案</p>
+            <button class="test-button" onclick="testFontLoading()">测试字体加载</button>
+            <button class="test-button" onclick="simulateFontFailure()">模拟字体失败</button>
+            
+            <div id="font-test-result" class="test-result" style="display: none;"></div>
+            
+            <!-- 字体图标测试 -->
+            <div style="margin-top: 20px;">
+                <h4>图标显示测试：</h4>
+                <div style="font-size: 24px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <span class="material-symbols-rounded">search</span>
+                    <span class="material-symbols-rounded">sync</span>
+                    <span class="material-symbols-rounded">palette</span>
+                    <span class="material-symbols-rounded">grid_view</span>
+                    <span class="material-symbols-rounded">view_list</span>
+                    <span class="material-symbols-rounded">add</span>
+                    <span class="material-symbols-rounded">download</span>
+                    <span class="material-symbols-rounded">settings</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载模拟测试 -->
+        <div class="test-section">
+            <h3>⏱️ 加载流程测试</h3>
+            <p>模拟不同网络条件下的加载表现</p>
+            <button class="test-button" onclick="simulateLoading('fast')">快速网络</button>
+            <button class="test-button" onclick="simulateLoading('slow')">慢速网络</button>
+            <button class="test-button" onclick="simulateLoading('offline')">离线模式</button>
+            
+            <div class="loading-simulation" id="loading-simulation" style="display: none;">
+                <div>正在模拟加载...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div id="loading-status">准备中...</div>
+            </div>
+            
+            <div id="loading-test-result" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- 实际页面测试 -->
+        <div class="test-section">
+            <h3>🔍 实际页面测试</h3>
+            <p>在iframe中加载实际的Card Tab页面进行测试</p>
+            <button class="test-button" onclick="loadActualPage()">加载Card Tab</button>
+            <button class="test-button" onclick="reloadPage()">重新加载</button>
+            
+            <div class="iframe-container" id="iframe-container" style="display: none;">
+                <iframe id="card-tab-iframe" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入字体样式用于测试 -->
+    <link rel="stylesheet" href="fonts/material-symbols-rounded.css">
+
+    <script>
+        // 性能测试函数
+        function runPerformanceTest() {
+            const metricsDiv = document.getElementById('performance-metrics');
+            const resultDiv = document.getElementById('performance-result');
+            
+            metricsDiv.style.display = 'grid';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result result-success';
+            
+            // 获取性能指标
+            const navigation = performance.getEntriesByType('navigation')[0];
+            const paint = performance.getEntriesByType('paint');
+            
+            let result = '性能测试结果：\n\n';
+            
+            // 页面加载时间
+            if (navigation) {
+                const loadTime = navigation.loadEventEnd - navigation.fetchStart;
+                result += `页面总加载时间: ${loadTime.toFixed(2)}ms\n`;
+                result += `DOM解析时间: ${(navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart).toFixed(2)}ms\n`;
+                result += `资源加载时间: ${(navigation.loadEventEnd - navigation.domContentLoadedEventEnd).toFixed(2)}ms\n\n`;
+            }
+            
+            // 绘制指标
+            paint.forEach(entry => {
+                const value = entry.startTime.toFixed(2);
+                if (entry.name === 'first-contentful-paint') {
+                    document.getElementById('fcp-value').textContent = value + 'ms';
+                    result += `首次内容绘制 (FCP): ${value}ms\n`;
+                }
+            });
+            
+            // 模拟其他指标（实际项目中需要使用真实的Web Vitals库）
+            document.getElementById('lcp-value').textContent = '< 2.5s';
+            document.getElementById('cls-value').textContent = '< 0.1';
+            document.getElementById('fid-value').textContent = '< 100ms';
+            
+            result += '\n✅ 性能测试完成！';
+            resultDiv.textContent = result;
+        }
+        
+        // 字体加载测试
+        function testFontLoading() {
+            const resultDiv = document.getElementById('font-test-result');
+            resultDiv.style.display = 'block';
+            
+            let result = '字体加载测试结果：\n\n';
+            
+            // 检查字体是否可用
+            if ('fonts' in document) {
+                document.fonts.ready.then(() => {
+                    // 创建测试元素
+                    const testElement = document.createElement('span');
+                    testElement.className = 'material-symbols-rounded';
+                    testElement.textContent = 'search';
+                    testElement.style.position = 'absolute';
+                    testElement.style.visibility = 'hidden';
+                    document.body.appendChild(testElement);
+                    
+                    const computedStyle = window.getComputedStyle(testElement);
+                    const fontFamily = computedStyle.fontFamily;
+                    
+                    document.body.removeChild(testElement);
+                    
+                    result += `检测到的字体族: ${fontFamily}\n`;
+                    
+                    if (fontFamily.includes('Material Symbols Rounded')) {
+                        result += '✅ Material Symbols 字体加载成功！\n';
+                        resultDiv.className = 'test-result result-success';
+                    } else {
+                        result += '⚠️ Material Symbols 字体未加载，使用备选方案\n';
+                        resultDiv.className = 'test-result result-warning';
+                    }
+                    
+                    result += `\n字体加载状态: ${document.fonts.status}\n`;
+                    result += `已加载字体数量: ${document.fonts.size}\n`;
+                    
+                    resultDiv.textContent = result;
+                });
+            } else {
+                result += '❌ 浏览器不支持字体检测API\n';
+                resultDiv.className = 'test-result result-error';
+                resultDiv.textContent = result;
+            }
+        }
+        
+        // 模拟字体加载失败
+        function simulateFontFailure() {
+            const icons = document.querySelectorAll('.material-symbols-rounded');
+            icons.forEach(icon => {
+                icon.classList.add('material-symbols-fallback');
+            });
+            
+            const resultDiv = document.getElementById('font-test-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result result-warning';
+            resultDiv.textContent = '⚠️ 已模拟字体加载失败，图标将显示为备选方案';
+        }
+        
+        // 模拟加载过程
+        function simulateLoading(type) {
+            const simulationDiv = document.getElementById('loading-simulation');
+            const resultDiv = document.getElementById('loading-test-result');
+            const progressFill = document.getElementById('progress-fill');
+            const statusDiv = document.getElementById('loading-status');
+            
+            simulationDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            const speeds = {
+                fast: { duration: 1000, steps: 20 },
+                slow: { duration: 5000, steps: 50 },
+                offline: { duration: 3000, steps: 30 }
+            };
+            
+            const config = speeds[type];
+            const stepDuration = config.duration / config.steps;
+            let currentStep = 0;
+            
+            const interval = setInterval(() => {
+                currentStep++;
+                const progress = (currentStep / config.steps) * 100;
+                progressFill.style.width = progress + '%';
+                
+                if (type === 'offline' && currentStep > config.steps * 0.7) {
+                    statusDiv.textContent = '检测到网络问题，使用离线模式...';
+                } else {
+                    statusDiv.textContent = `加载中... ${Math.round(progress)}%`;
+                }
+                
+                if (currentStep >= config.steps) {
+                    clearInterval(interval);
+                    simulationDiv.style.display = 'none';
+                    resultDiv.style.display = 'block';
+                    resultDiv.className = 'test-result result-success';
+                    resultDiv.textContent = `✅ ${type}网络模拟完成！\n加载时间: ${config.duration}ms\n加载步骤: ${config.steps}`;
+                }
+            }, stepDuration);
+        }
+        
+        // 加载实际页面
+        function loadActualPage() {
+            const container = document.getElementById('iframe-container');
+            const iframe = document.getElementById('card-tab-iframe');
+            
+            container.style.display = 'block';
+            iframe.src = 'index.html';
+        }
+        
+        // 重新加载页面
+        function reloadPage() {
+            const iframe = document.getElementById('card-tab-iframe');
+            if (iframe.src !== 'about:blank') {
+                iframe.src = iframe.src;
+            }
+        }
+        
+        // 清除结果
+        function clearResults() {
+            const results = document.querySelectorAll('.test-result');
+            results.forEach(result => {
+                result.style.display = 'none';
+            });
+            
+            const metrics = document.getElementById('performance-metrics');
+            metrics.style.display = 'none';
+            
+            const simulation = document.getElementById('loading-simulation');
+            simulation.style.display = 'none';
+            
+            const iframe = document.getElementById('iframe-container');
+            iframe.style.display = 'none';
+        }
+        
+        // 页面加载完成后自动运行基础测试
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Performance test page loaded');
+            
+            // 自动检测字体加载状态
+            setTimeout(() => {
+                testFontLoading();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

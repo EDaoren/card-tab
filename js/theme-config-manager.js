@@ -26,12 +26,15 @@ class ThemeConfigManager {
 
   /**
    * 确保默认配置存在
+   * 修改：初始化时不自动保存，避免不必要的Supabase操作
    */
   async ensureDefaultConfig() {
     const defaultConfig = this.configs.find(c => c.id === this.DEFAULT_CONFIG_ID);
 
     if (!defaultConfig) {
-      // 创建默认配置
+      console.log('ThemeConfigManager: Creating default config in memory (not saving automatically)');
+
+      // 创建默认配置（只在内存中，不自动保存）
       const newDefaultConfig = {
         id: this.DEFAULT_CONFIG_ID,
         displayName: '默认配置',
@@ -48,23 +51,27 @@ class ThemeConfigManager {
 
       this.configs.unshift(newDefaultConfig);
       this.activeConfigId = this.DEFAULT_CONFIG_ID;
-      await this.saveConfigs();
+      // 不自动保存，用户操作时才保存
     } else if (!this.activeConfigId) {
-      // 如果没有活跃配置，激活默认配置
+      // 如果没有活跃配置，激活默认配置（只在内存中）
       this.activeConfigId = this.DEFAULT_CONFIG_ID;
       defaultConfig.isActive = true;
-      await this.saveConfigs();
+      // 不自动保存，用户操作时才保存
+      console.log('ThemeConfigManager: Default config activated in memory');
     }
   }
 
   /**
    * 强制确保默认配置存在（用于修复丢失的默认配置）
+   * 修改：初始化时不自动保存，避免不必要的Supabase操作
    */
   async forceEnsureDefaultConfig() {
     let defaultConfig = this.configs.find(c => c.id === this.DEFAULT_CONFIG_ID);
 
     if (!defaultConfig) {
-      // 创建默认配置
+      console.log('ThemeConfigManager: Creating default config in memory (not saving automatically)');
+
+      // 创建默认配置（只在内存中，不自动保存）
       defaultConfig = {
         id: this.DEFAULT_CONFIG_ID,
         displayName: '默认配置',
@@ -85,11 +92,12 @@ class ThemeConfigManager {
         this.activeConfigId = this.DEFAULT_CONFIG_ID;
       }
 
-      await this.saveConfigs();
+      // 不自动保存，用户真正操作时才会触发保存
+      console.log('ThemeConfigManager: Default config created in memory, will save when user makes changes');
     } else if (!defaultConfig.isDefault) {
-      // 确保默认配置有正确的属性
+      // 确保默认配置有正确的属性（只在内存中修改）
       defaultConfig.isDefault = true;
-      await this.saveConfigs();
+      console.log('ThemeConfigManager: Default config properties updated in memory');
     }
   }
 

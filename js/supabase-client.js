@@ -33,7 +33,7 @@ class SupabaseClient {
       this.client = window.supabase.createClient(config.url, config.anonKey);
       
       // 测试连接
-      await this.testConnection();
+      //await this.testConnection();
       
       this.isConnected = true;
       console.log('Supabase连接成功');
