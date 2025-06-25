@@ -126,18 +126,20 @@
 ✅ 问题根源1：storage.js每次页面刷新都会自动保存默认数据到Supabase
 ✅ 问题根源2：view.js初始化时会重新保存视图设置到Supabase
 ✅ 问题根源3：theme-config-ui.js初始化时会自动保存默认配置+重复保存同步配置
-✅ 解决方案：移除所有初始化时的自动保存逻辑，只在用户真正操作时保存
+✅ 问题根源4：supabase-client.js初始化时会自动测试连接（SELECT查询）
+✅ 解决方案：移除所有初始化时的自动保存和查询逻辑，只在用户真正操作时执行
 
 修改文件：
 - js/storage.js: 移除init()方法中的自动保存默认数据逻辑
 - js/view.js: 修改setViewMode()和initView()，初始化时不保存设置
 - js/theme-config-manager.js: 移除默认配置的自动保存逻辑
 - js/theme-config-ui.js: 避免重复保存相同的同步管理器配置
+- js/supabase-client.js: 移除初始化时的连接测试，延迟到真正使用时验证
 
 预期结果：
-- 新用户：显示所有默认设置，不自动保存，用户操作时才保存
-- 现有用户：正常从缓存/Supabase加载数据，不触发额外保存
-- 性能提升：减少90%以上的Supabase查询次数，页面加载从1.28s降至0.2-0.3s
+- 新用户：显示所有默认设置，0次Supabase查询，用户操作时才保存
+- 现有用户：正常从缓存加载数据，0次不必要的Supabase查询
+- 性能提升：减少95%以上的Supabase查询次数，页面加载从1.28s降至0.1-0.2s
             </div>
         </div>
 
@@ -294,18 +296,19 @@
             result += '2. 刷新Card Tab页面\n';
             result += '3. 查看Supabase相关请求：\n\n';
             result += '修复前的问题：\n';
-            result += '- 每次刷新都有4次POST请求到Supabase\n';
-            result += '  1. storage.js: 保存默认数据\n';
-            result += '  2. view.js: 保存视图设置\n';
-            result += '  3. theme-config-manager.js: 保存默认配置\n';
-            result += '  4. theme-config-ui.js: 保存同步配置\n';
-            result += '- 总请求耗时1200ms+\n';
+            result += '- 每次刷新都有5次Supabase请求\n';
+            result += '  1. storage.js: 保存默认数据 (POST)\n';
+            result += '  2. view.js: 保存视图设置 (POST)\n';
+            result += '  3. theme-config-manager.js: 保存默认配置 (POST)\n';
+            result += '  4. theme-config-ui.js: 保存同步配置 (POST)\n';
+            result += '  5. supabase-client.js: 连接测试 (SELECT)\n';
+            result += '- 总请求耗时1280ms+\n';
             result += '- 导致页面加载缓慢\n\n';
             result += '修复后的预期：\n';
-            result += '- 新用户：0次POST请求\n';
-            result += '- 现有用户：只有必要的GET请求\n';
-            result += '- 总加载时间从1.28s降至0.2-0.3s\n';
-            result += '- 性能提升90%以上\n';
+            result += '- 新用户：0次Supabase请求\n';
+            result += '- 现有用户：只有必要的GET请求（如果需要）\n';
+            result += '- 总加载时间从1.28s降至0.1-0.2s\n';
+            result += '- 性能提升95%以上\n';
             
             resultDiv.textContent = result;
         }

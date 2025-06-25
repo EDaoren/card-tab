@@ -31,15 +31,14 @@ class SupabaseClient {
 
       // 创建Supabase客户端
       this.client = window.supabase.createClient(config.url, config.anonKey);
-      
-      // 测试连接
-      //await this.testConnection();
-      
-      this.isConnected = true;
-      console.log('Supabase连接成功');
+
+      // 延迟连接测试：不在初始化时测试，提升页面加载性能
+      // 连接验证将在真正使用时进行（saveData/loadData）
+      this.isConnected = true; // 乐观假设连接成功
+      console.log('Supabase客户端已初始化（延迟连接验证）');
       return true;
     } catch (error) {
-      console.error('Supabase连接失败:', error);
+      console.error('Supabase客户端初始化失败:', error);
       this.isConnected = false;
       throw error;
     }
@@ -48,7 +47,37 @@ class SupabaseClient {
 
 
   /**
-   * 测试Supabase连接
+   * 判断是否是连接相关错误
+   * @param {Object} error - 错误对象
+   * @returns {boolean} 是否是连接错误
+   */
+  isConnectionError(error) {
+    if (!error) return false;
+
+    // 常见的连接错误标识
+    const connectionErrorCodes = ['PGRST116', '42P01', 'ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT'];
+    const connectionErrorMessages = [
+      'relation', 'does not exist', 'network', 'connection', 'timeout',
+      'unreachable', 'refused', 'invalid', 'unauthorized'
+    ];
+
+    // 检查错误代码
+    if (error.code && connectionErrorCodes.includes(error.code)) {
+      return true;
+    }
+
+    // 检查错误消息
+    if (error.message) {
+      const message = error.message.toLowerCase();
+      return connectionErrorMessages.some(keyword => message.includes(keyword));
+    }
+
+    return false;
+  }
+
+  /**
+   * 测试Supabase连接（手动调用）
+   * 注意：此方法不在初始化时自动调用，只用于用户手动测试
    */
   async testConnection() {
     if (!this.client) {
@@ -76,8 +105,10 @@ class SupabaseClient {
       }
 
       // 连接成功
+      this.isConnected = true;
       console.log('Supabase连接测试成功');
     } catch (error) {
+      this.isConnected = false;
       console.error('Supabase连接测试失败:', error);
       throw error;
     }
@@ -92,25 +123,34 @@ class SupabaseClient {
       throw new Error('Supabase未连接');
     }
 
-    const record = {
-      user_id: this.userId,
-      data: data,
-      updated_at: new Date().toISOString()
-    };
+    try {
+      const record = {
+        user_id: this.userId,
+        data: data,
+        updated_at: new Date().toISOString()
+      };
 
-    // 使用 upsert 操作，更简洁和可靠
-    const { error } = await this.client
-      .from(this.tableName)
-      .upsert(record, {
-        onConflict: 'user_id'
-      });
+      // 使用 upsert 操作，更简洁和可靠
+      const { error } = await this.client
+        .from(this.tableName)
+        .upsert(record, {
+          onConflict: 'user_id'
+        });
 
-    if (error) {
+      if (error) {
+        // 如果是连接相关错误，标记为未连接
+        if (this.isConnectionError(error)) {
+          this.isConnected = false;
+          throw new Error(`Supabase连接失败: ${error.message}`);
+        }
+        throw error;
+      }
+
+      console.log('数据已保存到Supabase');
+    } catch (error) {
       console.error('Supabase保存失败:', error);
       throw error;
     }
-
-    console.log('数据已保存到Supabase');
   }
 
   /**
@@ -121,22 +161,32 @@ class SupabaseClient {
       throw new Error('Supabase未连接');
     }
 
-    const { data, error } = await this.client
-      .from(this.tableName)
-      .select('data, updated_at')
-      .eq('user_id', this.userId)
-      .maybeSingle(); // 使用 maybeSingle() 而不是 single()
+    try {
+      const { data, error } = await this.client
+        .from(this.tableName)
+        .select('data, updated_at')
+        .eq('user_id', this.userId)
+        .maybeSingle(); // 使用 maybeSingle() 而不是 single()
 
-    if (error) {
+      if (error) {
+        // 如果是连接相关错误，标记为未连接
+        if (this.isConnectionError(error)) {
+          this.isConnected = false;
+          throw new Error(`Supabase连接失败: ${error.message}`);
+        }
+        throw error;
+      }
+
+      // 如果没有数据，返回 null
+      if (!data) {
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Supabase加载失败:', error);
       throw error;
     }
-
-    // 如果没有数据，返回 null
-    if (!data) {
-      return null;
-    }
-
-    return data;
   }
 
   /**
