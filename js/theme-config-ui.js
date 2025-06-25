@@ -280,6 +280,11 @@ class ThemeConfigUIManager {
         const connectionStatus = supabaseClient.getConnectionStatus();
         console.log('切换后的连接状态:', connectionStatus);
 
+        // 清除Chrome Storage缓存，确保重新加载正确的用户数据
+        console.log('清除Chrome Storage缓存...');
+        await syncManager.clearChromeStorageCache();
+        console.log('缓存已清除');
+
         // 强制从云端重新加载数据（验证数据是否正确）
         console.log('强制从云端重新加载数据...');
         const freshData = await syncManager.loadData(true, true); // preferCloud=true, forceRefresh=true
@@ -331,12 +336,12 @@ class ThemeConfigUIManager {
       await syncManager.clearChromeStorageCache();
       console.log('Chrome Storage缓存已清除');
 
-      // 3. 重新初始化连接到新用户
+      // 3. 重新初始化连接到新用户（验证连接）
       await supabaseClient.initialize({
         url: supabaseClient.config?.url,
         anonKey: supabaseClient.config?.anonKey,
         userId: config.userId
-      });
+      }, true); // shouldTest = true，验证新配置是否有效
 
       // 4. 更新syncManager状态
       if (typeof syncManager !== 'undefined') {
@@ -349,10 +354,57 @@ class ThemeConfigUIManager {
         };
       }
 
+      // 5. 同步更新传统配置系统（确保两套系统一致）
+      console.log('同步更新传统配置系统...');
+      await this.syncDynamicConfigToTraditional(config);
+      console.log('传统配置系统已同步更新');
+
       console.log('动态配置切换完成（旁路缓存模式），新用户ID:', config.userId);
     } catch (error) {
       console.error('切换动态配置失败:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 同步动态配置到传统配置系统
+   * 确保动态配置切换时，传统配置系统也能正确更新
+   */
+  async syncDynamicConfigToTraditional(dynamicConfig) {
+    try {
+      console.log('开始同步动态配置到传统配置系统:', dynamicConfig.userId);
+
+      // 1. 查找或创建对应的传统配置
+      let traditionalConfig = themeConfigManager.configs.find(c => c.userId === dynamicConfig.userId);
+
+      if (!traditionalConfig) {
+        // 如果不存在，创建新的传统配置
+        console.log('创建新的传统配置:', dynamicConfig.userId);
+        traditionalConfig = {
+          id: `theme_config_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          displayName: dynamicConfig.displayName || `配置_${dynamicConfig.userId}`,
+          userId: dynamicConfig.userId,
+          supabaseUrl: supabaseClient.config?.url || '',
+          supabaseKey: supabaseClient.config?.anonKey || '',
+          isActive: false,
+          isDefault: false,
+          createdAt: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+          lastSync: new Date().toISOString(),
+          shortcutCount: dynamicConfig.shortcutCount || 0
+        };
+
+        themeConfigManager.configs.push(traditionalConfig);
+      }
+
+      // 2. 切换到这个传统配置
+      console.log('切换传统配置系统到:', traditionalConfig.id);
+      await themeConfigManager.switchConfig(traditionalConfig.id);
+
+      console.log('动态配置已同步到传统配置系统');
+    } catch (error) {
+      console.error('同步动态配置到传统配置系统失败:', error);
+      // 不抛出错误，避免影响主流程
     }
   }
 

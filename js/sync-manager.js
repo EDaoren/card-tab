@@ -437,8 +437,8 @@ class SyncManager {
       const configWithEnabled = { ...config, enabled: true };
       await this.saveSupabaseConfig(configWithEnabled);
 
-      // 2. 初始化连接
-      await supabaseClient.initialize(config);
+      // 2. 初始化连接（验证连接）
+      await supabaseClient.initialize(config, true); // shouldTest = true，验证新启用的配置
 
       // 3. 查找现有的云端配置
       let cloudConfig = null;

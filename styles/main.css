@@ -83,9 +83,10 @@ body.theme-dark {
 body.theme-dark .form-group input[type="text"],
 body.theme-dark .form-group input[type="url"],
 body.theme-dark .form-group input[type="password"] {
-  background-color: #3c4043;
+  background-color: #202124;
   border-color: #5f6368;
-  color: #e8eaed;
+  color: #ffffff;
+  font-weight: 500;
 }
 
 body.theme-dark .form-group input[type="text"]:focus,
@@ -93,24 +94,246 @@ body.theme-dark .form-group input[type="url"]:focus,
 body.theme-dark .form-group input[type="password"]:focus {
   border-color: #8ab4f8;
   box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.2);
+  background-color: #1a1a1a;
 }
 
 body.theme-dark .form-group input[type="text"]:hover,
 body.theme-dark .form-group input[type="url"]:hover,
 body.theme-dark .form-group input[type="password"]:hover {
   border-color: #80868b;
+  background-color: #1a1a1a;
 }
 
 body.theme-dark .form-group input[type="text"]::placeholder,
 body.theme-dark .form-group input[type="url"]::placeholder,
 body.theme-dark .form-group input[type="password"]::placeholder {
   color: #9aa0a6;
+  opacity: 0.8;
 }
 
 /* 深色主题下的背景设置提示 */
 body.theme-dark .bg-setup-prompt {
   background: #3c4043;
   border-color: #5f6368;
+}
+
+/* 深色主题下的同步模态框优化 */
+body.theme-dark .sync-status {
+  background: #3c4043;
+  border: 1px solid #5f6368;
+}
+
+body.theme-dark .sync-section {
+  border-bottom-color: #5f6368;
+}
+
+body.theme-dark .sync-message.success {
+  background: rgba(52, 168, 83, 0.15);
+  color: #81c995;
+  border-color: rgba(52, 168, 83, 0.3);
+}
+
+body.theme-dark .sync-message.error {
+  background: rgba(234, 67, 53, 0.15);
+  color: #f28b82;
+  border-color: rgba(234, 67, 53, 0.3);
+}
+
+body.theme-dark .sync-message.info {
+  background: rgba(66, 133, 244, 0.15);
+  color: #8ab4f8;
+  border-color: rgba(66, 133, 244, 0.3);
+}
+
+body.theme-dark .status-value.connected {
+  color: #81c995;
+}
+
+body.theme-dark .status-value.disconnected {
+  color: #f28b82;
+}
+
+body.theme-dark .sql-code {
+  background: #202124;
+  border-color: #5f6368;
+  color: #e8eaed;
+}
+
+/* 深色主题下的按钮优化 */
+body.theme-dark .primary-btn {
+  background-color: #8ab4f8;
+  color: #202124;
+  box-shadow: 0 2px 4px rgba(138, 180, 248, 0.3);
+}
+
+body.theme-dark .primary-btn:hover {
+  background-color: #aecbfa;
+  box-shadow: 0 4px 8px rgba(138, 180, 248, 0.4);
+}
+
+body.theme-dark .secondary-btn {
+  border-color: #5f6368;
+  color: #9aa0a6;
+}
+
+body.theme-dark .secondary-btn:hover {
+  background-color: #3c4043;
+  border-color: #8ab4f8;
+  color: #8ab4f8;
+}
+
+body.theme-dark .danger-btn {
+  border-color: #f28b82;
+  color: #f28b82;
+}
+
+body.theme-dark .danger-btn:hover {
+  background-color: rgba(242, 139, 130, 0.15);
+}
+
+/* 深色主题下的表单和文本优化 */
+body.theme-dark .form-group label {
+  color: #e8eaed;
+}
+
+body.theme-dark .form-group small {
+  color: #9aa0a6;
+}
+
+body.theme-dark .warning-text {
+  color: #fdd663;
+}
+
+body.theme-dark .info-note {
+  background: rgba(138, 180, 248, 0.1);
+  border-color: rgba(138, 180, 248, 0.3);
+  color: #aecbfa;
+}
+
+body.theme-dark .info-note .material-symbols-rounded {
+  color: #8ab4f8;
+}
+
+/* 深色主题下的同步模态框详细优化 */
+body.theme-dark .status-label {
+  color: #9aa0a6;
+}
+
+body.theme-dark .status-value {
+  color: #e8eaed;
+}
+
+body.theme-dark .setup-guide {
+  color: #e8eaed;
+}
+
+body.theme-dark .setup-guide ol {
+  color: #e8eaed;
+}
+
+body.theme-dark .setup-guide li {
+  color: #e8eaed;
+}
+
+body.theme-dark .setup-guide p {
+  color: #e8eaed;
+}
+
+body.theme-dark .setup-guide code {
+  background: #3c4043;
+  color: #8ab4f8;
+}
+
+body.theme-dark .setup-guide a {
+  color: #8ab4f8;
+}
+
+body.theme-dark .setup-guide a:hover {
+  color: #aecbfa;
+}
+
+body.theme-dark .link-btn {
+  color: #8ab4f8;
+}
+
+body.theme-dark .link-btn:hover {
+  color: #aecbfa;
+}
+
+body.theme-dark .sync-section h3 {
+  color: #e8eaed;
+}
+
+body.theme-dark .config-form small {
+  color: #9aa0a6;
+}
+
+/* 深色主题下的特殊文字颜色 */
+body.theme-dark small[style*="color: #e74c3c"] {
+  color: #f28b82 !important;
+}
+
+body.theme-dark span[style*="color: #e74c3c"] {
+  color: #f28b82 !important;
+}
+
+/* 深色主题下的SQL脚本区域 */
+body.theme-dark .sql-script {
+  background: #202124;
+  border: 1px solid #5f6368;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+body.theme-dark .sql-script pre {
+  color: #e8eaed;
+  background: transparent;
+}
+
+/* 深色主题下的模态框标题 */
+body.theme-dark .modal-header h2 {
+  color: #e8eaed;
+}
+
+/* 深色主题下的关闭按钮 */
+body.theme-dark .close-modal {
+  color: #9aa0a6;
+}
+
+body.theme-dark .close-modal:hover {
+  color: #e8eaed;
+}
+
+/* 深色主题下的输入框增强对比度 */
+body.theme-dark input[type="text"],
+body.theme-dark input[type="url"],
+body.theme-dark input[type="password"] {
+  background-color: #202124 !important;
+  border-color: #5f6368 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+body.theme-dark input[type="text"]:focus,
+body.theme-dark input[type="url"]:focus,
+body.theme-dark input[type="password"]:focus {
+  background-color: #1a1a1a !important;
+  border-color: #8ab4f8 !important;
+  color: #ffffff !important;
+}
+
+body.theme-dark input[type="text"]:hover,
+body.theme-dark input[type="url"]:hover,
+body.theme-dark input[type="password"]:hover {
+  background-color: #1a1a1a !important;
+  border-color: #80868b !important;
+}
+
+body.theme-dark input[type="text"]::placeholder,
+body.theme-dark input[type="url"]::placeholder,
+body.theme-dark input[type="password"]::placeholder {
+  color: #9aa0a6 !important;
+  opacity: 0.8 !important;
 }
 
 /* 背景容器 */
@@ -2196,6 +2419,37 @@ header {
   border: 1px solid #bee5eb;
 }
 
+/* 通用按钮样式 */
+.primary-btn {
+  padding: 12px 24px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.primary-btn:hover {
+  background-color: #3367d6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .secondary-btn {
   padding: 10px 20px;
   background-color: transparent;
@@ -2206,6 +2460,10 @@ header {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
 
 .secondary-btn:hover {
@@ -2216,6 +2474,34 @@ header {
 }
 
 .secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.danger-btn {
+  padding: 10px 20px;
+  background-color: transparent;
+  color: var(--danger-color);
+  border: 2px solid var(--danger-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.danger-btn:hover {
+  background-color: rgba(234, 67, 53, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(234, 67, 53, 0.2);
+}
+
+.danger-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;

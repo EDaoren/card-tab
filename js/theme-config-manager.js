@@ -398,14 +398,14 @@ class ThemeConfigManager {
             enabled: true
           };
 
-          // 重新初始化Supabase连接
+          // 重新初始化Supabase连接（验证连接）
           if (typeof supabaseClient !== 'undefined') {
             await supabaseClient.initialize({
               url: config.supabaseUrl,
               anonKey: config.supabaseKey,
               userId: config.userId
-            });
-            console.log('  - Supabase连接已重新初始化');
+            }, true); // shouldTest = true，验证配置切换后的连接
+            console.log('  - Supabase连接已重新初始化并验证');
           }
         }
 

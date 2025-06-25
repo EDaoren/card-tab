@@ -18,8 +18,9 @@ class SupabaseClient {
    * @param {string} config.url - Supabase项目URL
    * @param {string} config.anonKey - Supabase匿名密钥
    * @param {string} config.userId - 用户唯一标识
+   * @param {boolean} shouldTest - 是否测试连接（默认false，用于性能优化）
    */
-  async initialize(config) {
+  async initialize(config, shouldTest = false) {
     try {
       this.config = config;
       this.userId = config.userId;
@@ -32,10 +33,16 @@ class SupabaseClient {
       // 创建Supabase客户端
       this.client = window.supabase.createClient(config.url, config.anonKey);
 
-      // 延迟连接测试：不在初始化时测试，提升页面加载性能
-      // 连接验证将在真正使用时进行（saveData/loadData）
-      this.isConnected = true; // 乐观假设连接成功
-      console.log('Supabase客户端已初始化（延迟连接验证）');
+      if (shouldTest) {
+        // 需要验证连接（配置切换、用户手动测试等场景）
+        await this.testConnection();
+        console.log('Supabase客户端已初始化并验证连接成功');
+      } else {
+        // 快速初始化，延迟验证（页面加载等场景）
+        this.isConnected = true; // 乐观假设连接成功
+        console.log('Supabase客户端已初始化（延迟连接验证）');
+      }
+
       return true;
     } catch (error) {
       console.error('Supabase客户端初始化失败:', error);

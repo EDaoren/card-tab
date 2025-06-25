@@ -128,13 +128,14 @@
 ✅ 问题根源3：theme-config-ui.js初始化时会自动保存默认配置+重复保存同步配置
 ✅ 问题根源4：supabase-client.js初始化时会自动测试连接（SELECT查询）
 ✅ 解决方案：移除所有初始化时的自动保存和查询逻辑，只在用户真正操作时执行
+✅ 修复问题：添加shouldTest参数，区分页面初始化和配置切换场景
 
 修改文件：
 - js/storage.js: 移除init()方法中的自动保存默认数据逻辑
 - js/view.js: 修改setViewMode()和initView()，初始化时不保存设置
 - js/theme-config-manager.js: 移除默认配置的自动保存逻辑
 - js/theme-config-ui.js: 避免重复保存相同的同步管理器配置
-- js/supabase-client.js: 移除初始化时的连接测试，延迟到真正使用时验证
+- js/supabase-client.js: 添加shouldTest参数，页面初始化时不测试，配置切换时验证连接
 
 预期结果：
 - 新用户：显示所有默认设置，0次Supabase查询，用户操作时才保存
