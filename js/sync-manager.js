@@ -454,6 +454,9 @@ class SyncManager {
           lastModified: new Date().toISOString()
         });
         console.log('SyncManager: 复用现有云端配置', cloudConfig.displayName);
+
+        // 4a-2. 处理现有配置的数据同步
+        await this.handleExistingCloudConfig(config);
       } else {
         // 4b. 创建新的云端配置（确保不使用default作为ID）
         if (typeof themeConfigManager !== 'undefined') {
@@ -563,6 +566,134 @@ class SyncManager {
       }
     } catch (error) {
       console.error('禁用Supabase同步失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 处理现有云端配置的数据同步
+   */
+  async handleExistingCloudConfig(config) {
+    try {
+      console.log('SyncManager: 处理现有云端配置的数据同步');
+
+      // 检查云端是否有数据
+      const cloudData = await this.loadFromSupabase();
+      const localData = await this.loadFromChromeStorage();
+
+      console.log('SyncManager: 云端数据检查:', cloudData ? '有数据' : '无数据');
+      console.log('SyncManager: 本地数据检查:', localData ? '有数据' : '无数据');
+
+      if (cloudData && this.hasValidData(cloudData)) {
+        if (localData && this.hasValidData(localData)) {
+          // 场景1.3：本地和云端都有数据 - 智能合并
+          console.log('SyncManager: 本地和云端都有数据，执行智能合并');
+          const mergedData = await this.mergeData(localData, cloudData, true); // preferCloud = true
+
+          // 保存合并后的数据到两端
+          await this.saveToChromeStorage(mergedData);
+          await this.saveToSupabase(mergedData);
+          console.log('SyncManager: 数据合并完成');
+        } else {
+          // 场景1.2：只有云端有数据 - 下载云端数据
+          console.log('SyncManager: 只有云端有数据，下载并应用云端配置');
+          await this.applyCloudDataToLocal(cloudData);
+        }
+      } else {
+        // 云端无数据或数据无效，上传本地数据
+        console.log('SyncManager: 云端无有效数据，上传本地配置');
+        await this.migrateLocalDataToCloud();
+      }
+    } catch (error) {
+      console.error('SyncManager: 处理现有云端配置失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查数据是否有效
+   */
+  hasValidData(data) {
+    return data &&
+           typeof data === 'object' &&
+           Array.isArray(data.categories) &&
+           data.categories.length > 0;
+  }
+
+  /**
+   * 应用云端数据到本地
+   */
+  async applyCloudDataToLocal(cloudData) {
+    try {
+      console.log('SyncManager: 开始应用云端数据到本地');
+
+      // 验证和清理云端数据
+      const cleanData = this.validateAndCleanData(cloudData, 'supabase');
+
+      // 保存到本地缓存
+      await this.saveToChromeStorage(cleanData);
+
+      console.log('SyncManager: 云端数据已应用到本地', {
+        categories: cleanData.categories?.length || 0,
+        shortcuts: cleanData.categories?.reduce((total, cat) => total + (cat.shortcuts?.length || 0), 0) || 0,
+        themeSettings: cleanData.themeSettings ? '有主题设置' : '无主题设置'
+      });
+    } catch (error) {
+      console.error('SyncManager: 应用云端数据到本地失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 迁移本地数据到云端（简化版本，用于现有配置）
+   */
+  async migrateLocalDataToCloud() {
+    try {
+      console.log('SyncManager: 开始迁移本地数据到云端');
+
+      // 获取本地数据
+      const localData = await this.loadFromChromeStorage();
+
+      let finalData;
+      if (!localData || !this.hasValidData(localData)) {
+        // 如果本地没有有效数据，使用默认数据
+        console.log('SyncManager: 本地无有效数据，使用默认基础数据');
+        const defaultData = this.getDefaultData();
+        finalData = {
+          categories: defaultData.categories,
+          settings: defaultData.settings,
+          themeSettings: {
+            theme: 'default',
+            backgroundImageUrl: null,
+            backgroundImagePath: null,
+            backgroundOpacity: 30,
+            lastModified: new Date().toISOString()
+          }
+        };
+      } else {
+        // 使用本地数据
+        console.log('SyncManager: 使用本地数据');
+        finalData = { ...localData };
+      }
+
+      // 确保数据结构完整
+      if (!finalData.categories) finalData.categories = [];
+      if (!finalData.settings) finalData.settings = { viewMode: 'grid' };
+      if (!finalData.themeSettings) {
+        finalData.themeSettings = {
+          theme: 'default',
+          backgroundImageUrl: null,
+          backgroundImagePath: null,
+          backgroundOpacity: 30,
+          lastModified: new Date().toISOString()
+        };
+      }
+
+      // 保存到云端
+      await this.saveToSupabase(finalData);
+      console.log('SyncManager: 本地数据已迁移到云端');
+    } catch (error) {
+      console.error('SyncManager: 迁移本地数据到云端失败:', error);
       throw error;
     }
   }
