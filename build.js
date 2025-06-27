@@ -37,6 +37,7 @@ const filesToExclude = [
   'test-offline.html',
   'test-performance.html',
   'test-supabase-fix.html',
+  'test-drag-functionality.html',
   'build.js',
   'package.json',
   'package-lock.json',

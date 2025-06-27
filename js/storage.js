@@ -11,38 +11,43 @@ const DEFAULT_DATA = {
       name: '社交媒体',
       color: '#4285f4',
       collapsed: false,
+      order: 0, // 新增：分类排序字段
       shortcuts: [
-        { 
-          id: 'shortcut-1', 
-          name: '微博', 
+        {
+          id: 'shortcut-1',
+          name: '微博',
           url: 'https://weibo.com',
           iconType: 'letter',
           iconColor: '#ff8200',
-          iconUrl: ''
+          iconUrl: '',
+          order: 0 // 新增：快捷方式排序字段
         },
-        { 
-          id: 'shortcut-2', 
-          name: '知乎', 
+        {
+          id: 'shortcut-2',
+          name: '知乎',
           url: 'https://zhihu.com',
           iconType: 'letter',
           iconColor: '#0066ff',
-          iconUrl: ''
+          iconUrl: '',
+          order: 1
         },
-        { 
-          id: 'shortcut-3', 
-          name: '哔哩哔哩', 
+        {
+          id: 'shortcut-3',
+          name: '哔哩哔哩',
           url: 'https://bilibili.com',
           iconType: 'letter',
           iconColor: '#fb7299',
-          iconUrl: ''
+          iconUrl: '',
+          order: 2
         },
-        { 
-          id: 'shortcut-4', 
-          name: '微信', 
+        {
+          id: 'shortcut-4',
+          name: '微信',
           url: 'https://wx.qq.com',
           iconType: 'letter',
           iconColor: '#07c160',
-          iconUrl: ''
+          iconUrl: '',
+          order: 3
         }
       ]
     },
@@ -51,30 +56,34 @@ const DEFAULT_DATA = {
       name: '工作',
       color: '#0f9d58',
       collapsed: false,
+      order: 1,
       shortcuts: [
-        { 
-          id: 'shortcut-5', 
-          name: '邮箱', 
+        {
+          id: 'shortcut-5',
+          name: '邮箱',
           url: 'https://mail.163.com',
           iconType: 'letter',
           iconColor: '#0f9d58',
-          iconUrl: ''
+          iconUrl: '',
+          order: 0
         },
-        { 
-          id: 'shortcut-6', 
-          name: '百度网盘', 
+        {
+          id: 'shortcut-6',
+          name: '百度网盘',
           url: 'https://pan.baidu.com',
           iconType: 'letter',
           iconColor: '#06a7ff',
-          iconUrl: ''
+          iconUrl: '',
+          order: 1
         },
-        { 
-          id: 'shortcut-7', 
-          name: '语雀', 
+        {
+          id: 'shortcut-7',
+          name: '语雀',
           url: 'https://yuque.com',
           iconType: 'letter',
           iconColor: '#31cc79',
-          iconUrl: ''
+          iconUrl: '',
+          order: 2
         }
       ]
     },
@@ -83,30 +92,34 @@ const DEFAULT_DATA = {
       name: '购物',
       color: '#ea4335',
       collapsed: false,
+      order: 2,
       shortcuts: [
-        { 
-          id: 'shortcut-8', 
-          name: '淘宝', 
+        {
+          id: 'shortcut-8',
+          name: '淘宝',
           url: 'https://taobao.com',
           iconType: 'letter',
           iconColor: '#ff5000',
-          iconUrl: ''
+          iconUrl: '',
+          order: 0
         },
-        { 
-          id: 'shortcut-9', 
-          name: '京东', 
+        {
+          id: 'shortcut-9',
+          name: '京东',
           url: 'https://jd.com',
           iconType: 'letter',
           iconColor: '#e1251b',
-          iconUrl: ''
+          iconUrl: '',
+          order: 1
         },
-        { 
-          id: 'shortcut-10', 
-          name: '拼多多', 
+        {
+          id: 'shortcut-10',
+          name: '拼多多',
           url: 'https://pinduoduo.com',
           iconType: 'letter',
           iconColor: '#e22e1f',
-          iconUrl: ''
+          iconUrl: '',
+          order: 2
         }
       ]
     }
@@ -165,6 +178,9 @@ class StorageManager {
 
         // 保存完整数据的引用，用于saveToStorage时合并
         this.fullData = cleanData;
+
+        // 数据迁移：为现有数据添加order字段
+        this.migrateOrderFields();
       }
 
       return this.data;
@@ -279,11 +295,15 @@ class StorageManager {
    * @returns {Promise} Promise that resolves with the new category
    */
   async addCategory(categoryData) {
+    // 计算新分类的order值（最大值+1）
+    const maxOrder = Math.max(...this.data.categories.map(cat => cat.order || 0), -1);
+
     const newCategory = {
       id: generateId('cat'),
       name: categoryData.name,
       color: categoryData.color,
       collapsed: false,
+      order: maxOrder + 1,
       shortcuts: []
     };
 
@@ -381,13 +401,17 @@ class StorageManager {
       throw new Error(`Category with ID ${categoryId} not found`);
     }
 
+    // 计算新快捷方式的order值（最大值+1）
+    const maxOrder = Math.max(...category.shortcuts.map(shortcut => shortcut.order || 0), -1);
+
     const newShortcut = {
       id: generateId('shortcut'),
       name: shortcutData.name,
       url: shortcutData.url,
       iconType: shortcutData.iconType || 'letter',
       iconColor: shortcutData.iconColor || '#4285f4',
-      iconUrl: shortcutData.iconUrl || ''
+      iconUrl: shortcutData.iconUrl || '',
+      order: maxOrder + 1
     };
 
     category.shortcuts.push(newShortcut);
@@ -465,6 +489,122 @@ class StorageManager {
    */
   getSettings() {
     return this.data.settings;
+  }
+
+  /**
+   * 重新排序分类
+   * @param {Array} categoryIds - 按新顺序排列的分类ID数组
+   * @returns {Promise} Promise that resolves when categories are reordered
+   */
+  async reorderCategories(categoryIds) {
+    // 验证所有ID都存在
+    const existingIds = this.data.categories.map(cat => cat.id);
+    const missingIds = categoryIds.filter(id => !existingIds.includes(id));
+    if (missingIds.length > 0) {
+      throw new Error(`Categories not found: ${missingIds.join(', ')}`);
+    }
+
+    // 更新order字段
+    categoryIds.forEach((categoryId, index) => {
+      const category = this.data.categories.find(cat => cat.id === categoryId);
+      if (category) {
+        category.order = index;
+      }
+    });
+
+    // 按order字段排序
+    this.data.categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    await this.saveToStorage();
+    return this.data.categories;
+  }
+
+  /**
+   * 重新排序分类内的快捷方式
+   * @param {string} categoryId - 分类ID
+   * @param {Array} shortcutIds - 按新顺序排列的快捷方式ID数组
+   * @returns {Promise} Promise that resolves when shortcuts are reordered
+   */
+  async reorderShortcuts(categoryId, shortcutIds) {
+    const category = this.getCategory(categoryId);
+    if (!category) {
+      throw new Error(`Category with ID ${categoryId} not found`);
+    }
+
+    // 验证所有ID都存在
+    const existingIds = category.shortcuts.map(shortcut => shortcut.id);
+    const missingIds = shortcutIds.filter(id => !existingIds.includes(id));
+    if (missingIds.length > 0) {
+      throw new Error(`Shortcuts not found: ${missingIds.join(', ')}`);
+    }
+
+    // 更新order字段
+    shortcutIds.forEach((shortcutId, index) => {
+      const shortcut = category.shortcuts.find(s => s.id === shortcutId);
+      if (shortcut) {
+        shortcut.order = index;
+      }
+    });
+
+    // 按order字段排序
+    category.shortcuts.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    await this.saveToStorage();
+    return category.shortcuts;
+  }
+
+  /**
+   * 获取排序后的分类列表
+   * @returns {Array} 按order字段排序的分类数组
+   */
+  getSortedCategories() {
+    return [...this.data.categories].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  /**
+   * 获取排序后的快捷方式列表
+   * @param {string} categoryId - 分类ID
+   * @returns {Array} 按order字段排序的快捷方式数组
+   */
+  getSortedShortcuts(categoryId) {
+    const category = this.getCategory(categoryId);
+    if (!category) return [];
+
+    return [...category.shortcuts].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  /**
+   * 数据迁移：为现有数据添加order字段
+   */
+  migrateOrderFields() {
+    let needsSave = false;
+
+    // 为分类添加order字段
+    this.data.categories.forEach((category, index) => {
+      if (typeof category.order === 'undefined') {
+        category.order = index;
+        needsSave = true;
+      }
+
+      // 为快捷方式添加order字段
+      if (category.shortcuts) {
+        category.shortcuts.forEach((shortcut, shortcutIndex) => {
+          if (typeof shortcut.order === 'undefined') {
+            shortcut.order = shortcutIndex;
+            needsSave = true;
+          }
+        });
+      }
+    });
+
+    // 如果有数据需要迁移，保存到存储
+    if (needsSave) {
+      console.log('StorageManager: 数据迁移完成，已添加order字段');
+      // 异步保存，不阻塞初始化
+      this.saveToStorage().catch(error => {
+        console.warn('StorageManager: 数据迁移保存失败:', error);
+      });
+    }
   }
 
   /**

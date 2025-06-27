@@ -2178,6 +2178,87 @@ header {
   100% { transform: rotate(360deg); }
 }
 
+/* 拖拽相关样式 */
+.drag-handle {
+  opacity: 0.6;
+  margin-right: 8px;
+  cursor: grab;
+  transition: opacity 0.2s ease;
+  font-size: 16px !important;
+}
+
+.drag-handle:hover {
+  opacity: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.category-header:hover .drag-handle {
+  opacity: 0.8;
+}
+
+.draggable-shortcut {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.draggable-shortcut:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 拖拽基础样式 - 自然和谐版 */
+.dragging {
+  opacity: 0.5 !important;
+  transform: rotate(5deg);
+  z-index: 1000;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+/* 拖拽元素的自然过渡 */
+.category-card, .shortcut {
+  transition: opacity 0.3s ease, transform 0.3s ease,
+              border 0.2s ease, background-color 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+.drag-placeholder {
+  border: 2px dashed var(--primary-color);
+  border-radius: var(--border-radius);
+  background-color: rgba(66, 133, 244, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-height: 60px;
+}
+
+.placeholder-content {
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.drag-placeholder:hover {
+  background-color: rgba(66, 133, 244, 0.15);
+  border-color: var(--primary-color);
+}
+
+/* 拖拽时的分类卡片样式 */
+.category-card.dragging {
+  transform: rotate(3deg) scale(0.95);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* 拖拽时的快捷方式样式 */
+.shortcut-item.dragging {
+  transform: rotate(5deg) scale(0.9);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
 /* Animation for highlighting selected category */
 @keyframes highlight-pulse {
   0% {
@@ -3511,4 +3592,320 @@ header {
   background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+/* ========================================
+   拖拽动画增强样式
+   ======================================== */
+
+/* 拖拽目标高亮 */
+.drag-target {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drag-target.category-target {
+  border-top: 4px solid #ff4444 !important;
+  background: linear-gradient(to bottom,
+    rgba(255, 68, 68, 0.15),
+    rgba(255, 68, 68, 0.05)
+  ) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
+}
+
+.drag-target.shortcut-target {
+  border-left: 4px solid #4285f4 !important;
+  background: linear-gradient(to right,
+    rgba(66, 133, 244, 0.15),
+    rgba(66, 133, 244, 0.05)
+  ) !important;
+  transform: translateX(-2px);
+  box-shadow: 0 4px 20px rgba(66, 133, 244, 0.3);
+}
+
+/* 拖拽动画关键帧 */
+@keyframes placeholderPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes dragEnter {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dragLeave {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* 拖拽开始动画 */
+.drag-starting {
+  animation: dragStart 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dragStart {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(1deg);
+  }
+  100% {
+    transform: scale(0.95) rotate(3deg);
+  }
+}
+
+/* 拖拽结束动画 */
+.drag-ending {
+  animation: dragEnd 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dragEnd {
+  0% {
+    transform: scale(0.95) rotate(3deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.02) rotate(0deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* 拖拽预览增强 */
+.drag-preview-enhanced {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.85;
+  transform: rotate(5deg) scale(0.9);
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.8));
+  backdrop-filter: blur(15px);
+  border: 2px solid rgba(66, 133, 244, 0.6);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 占位符增强样式 */
+.drag-placeholder-enhanced {
+  border: 3px dashed #4285f4;
+  border-radius: 12px;
+  background: linear-gradient(45deg,
+    rgba(66, 133, 244, 0.1),
+    rgba(66, 133, 244, 0.2),
+    rgba(66, 133, 244, 0.1)
+  );
+  background-size: 200% 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  margin: 10px 0;
+  color: #4285f4;
+  font-size: 14px;
+  font-weight: 600;
+  animation: placeholderPulse 2s ease-in-out infinite, gradientShift 3s ease-in-out infinite;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drag-placeholder-enhanced.category {
+  min-height: 100px;
+  border-color: #ff4444;
+  background: linear-gradient(45deg,
+    rgba(255, 68, 68, 0.1),
+    rgba(255, 68, 68, 0.2),
+    rgba(255, 68, 68, 0.1)
+  );
+  color: #ff4444;
+  font-size: 16px;
+}
+
+.drag-placeholder-enhanced.shortcut {
+  min-height: 80px;
+  width: 120px;
+  margin: 5px;
+  border-color: #4285f4;
+}
+
+/* ========================================
+   自然和谐的拖拽动画优化
+   ======================================== */
+
+/* 拖拽目标的自然高亮效果 */
+.drag-target-natural {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.drag-target-natural.category {
+  border-top: 3px solid #ff4444;
+  background: linear-gradient(to bottom,
+    rgba(255, 68, 68, 0.08) 0%,
+    rgba(255, 68, 68, 0.04) 50%,
+    rgba(255, 68, 68, 0.02) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(255, 68, 68, 0.15);
+}
+
+.drag-target-natural.shortcut {
+  border-left: 3px solid #4285f4;
+  background: linear-gradient(to right,
+    rgba(66, 133, 244, 0.08) 0%,
+    rgba(66, 133, 244, 0.04) 50%,
+    rgba(66, 133, 244, 0.02) 100%
+  );
+  transform: translateX(-1px);
+  box-shadow: 0 2px 12px rgba(66, 133, 244, 0.15);
+}
+
+/* 拖拽时的自然反馈 */
+.dragging-natural {
+  opacity: 0.75 !important;
+  transform: rotate(1.5deg) scale(0.98);
+  z-index: 1000;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.05);
+}
+
+/* 拖拽结束的自然回弹 */
+.drag-ending-natural {
+  animation: naturalBounceBack 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes naturalBounceBack {
+  0% {
+    opacity: 0.75;
+    transform: rotate(1.5deg) scale(0.98);
+  }
+  60% {
+    opacity: 0.9;
+    transform: rotate(0deg) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+/* 自然的脉动效果 */
+@keyframes naturalPulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.005);
+  }
+}
+
+/* 拖拽开始的自然动画 */
+.drag-starting-natural {
+  animation: naturalDragStart 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes naturalDragStart {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.98) rotate(1.5deg);
+    opacity: 0.75;
+  }
+}
+
+/* 悬停时的自然预览 */
+.category-header:hover {
+  transition: all 0.2s ease;
+}
+
+.shortcut:hover {
+  transition: all 0.2s ease;
+}
+
+/* 拖拽区域的自然指示 */
+.drag-handle-natural {
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.category-header:hover .drag-handle-natural {
+  opacity: 0.7;
+}
+
+/* 自然的边框动画 */
+.border-animate-in {
+  animation: borderFadeIn 0.2s ease-out;
+}
+
+.border-animate-out {
+  animation: borderFadeOut 0.15s ease-in;
+}
+
+@keyframes borderFadeIn {
+  0% {
+    border-color: transparent;
+    background: transparent;
+    transform: translateY(0) translateX(0);
+    box-shadow: none;
+  }
+  100% {
+    border-color: currentColor;
+    background: currentColor;
+    transform: translateY(-1px) translateX(-1px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes borderFadeOut {
+  0% {
+    border-color: currentColor;
+    background: currentColor;
+    transform: translateY(-1px) translateX(-1px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+  100% {
+    border-color: transparent;
+    background: transparent;
+    transform: translateY(0) translateX(0);
+    box-shadow: none;
+  }
 }

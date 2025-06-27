@@ -67,6 +67,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       offlineManager.init();
     }
 
+    // Initialize drag manager for drag and drop functionality
+    if (typeof dragManager !== 'undefined') {
+      try {
+        dragManager.init();
+        // 延迟启用拖拽功能，确保DOM已完全渲染
+        setTimeout(() => {
+          dragManager.enableCategoryDrag();
+          dragManager.enableShortcutDrag();
+        }, 200);
+      } catch (error) {
+        console.warn('DragManager初始化失败:', error);
+      }
+    }
+
     // 完成加载
     await window.simpleLoadingManager?.completeLoading();
 

@@ -12,11 +12,8 @@ card-tab/
 ├── 📝 README_EN.md              # 英文文档
 ├── 📄 privacy-policy.html       # 隐私政策
 ├── 📄 supabase-init.sql         # 数据库初始化脚本
-├── 📄 OPTIMIZATION_SUMMARY.md   # 优化总结
 ├── 📄 PROJECT_STRUCTURE.md      # 项目结构说明
 ├── 📄 LICENSE                   # 开源许可证
-├── 🧪 test-local-font.html      # 字体测试页面
-├── 🧪 test-offline.html         # 离线测试页面
 ├── 📁 fonts/                    # 字体资源
 ├── 📁 styles/                   # 样式文件
 ├── 📁 js/                       # JavaScript模块
@@ -78,12 +75,16 @@ js/
 ```
 ├── category.js               # 分类管理 (300+ 行)
 │   ├── 分类CRUD操作
-│   ├── 拖拽排序
+│   ├── 渲染管理
 │   └── 数据验证
 ├── shortcut.js              # 快捷方式管理 (320+ 行)
 │   ├── 快捷方式CRUD
 │   ├── 图标获取
 │   └── URL验证
+├── drag-manager.js          # 拖拽排序 (600+ 行)
+│   ├── 完整虚影显示
+│   ├── 美观视觉反馈
+│   └── 分类/快捷方式排序
 ├── search.js                # 搜索功能 (200+ 行)
 │   ├── 实时搜索
 │   ├── 快捷键支持
@@ -127,10 +128,10 @@ js/
 │   ├── 配置存储
 │   ├── 数据清理
 │   └── 旁路缓存
-└── data-save-coordinator.js # 数据保存协调 (300+ 行)
-    ├── 一致性检查
-    ├── 数据合并
-    └── 冲突处理
+└── simple-loading-manager.js # 加载管理 (100+ 行)
+    ├── 页面加载优化
+    ├── 性能监控
+    └── 初始化协调
 ```
 
 ### 外部依赖

@@ -14,16 +14,15 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 
 ## Features
 
-- **📁 Categorized Bookmarks**: Organize your shortcuts into customizable categories
-- **🎨 Theme Customization**: 6 beautiful themes including dark mode
-- **🖼️ Custom Backgrounds**: Upload your own background images
-- **☁️ Cloud Sync**: Sync data across devices using Supabase (optional)
-- **🔍 Smart Search**: Quick search with "/" shortcut key
-- **📱 Responsive Design**: Grid and list view modes
-- **⚡ Fast & Lightweight**: Optimized performance with smooth animations
-- **🔒 Privacy First**: Your data stays in your own Supabase project
-- **🌐 Offline Support**: Fully functional offline with automatic graceful degradation
-- **🎯 Local Fonts**: Material Symbols fonts localized, no external dependencies
+- **📁 Category Management** - Create categories to organize shortcuts
+- **🎯 Drag & Drop** - Drag categories and shortcuts to reorder
+- **🔍 Quick Search** - Press `/` to search shortcuts
+- **🎨 Theme Options** - 6 themes available including dark mode
+- **🖼️ Custom Background** - Upload images as background
+- **📱 View Modes** - Grid view and list view
+- **☁️ Cloud Sync** - Optional Supabase data synchronization
+- **🌐 Offline Ready** - Works without internet connection
+- **⚡ Local Fonts** - Built-in icon fonts, no external loading
 
 ## Screenshots
 

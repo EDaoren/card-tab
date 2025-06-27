@@ -49,7 +49,7 @@ class CategoryManager {
    * Render all categories
    */
   async renderCategories() {
-    const categories = storageManager.getCategories();
+    const categories = storageManager.getSortedCategories();
     this.categoriesContainer.innerHTML = '';
 
     if (categories.length === 0) {
@@ -60,6 +60,18 @@ class CategoryManager {
     categories.forEach(category => {
       this.renderCategory(category);
     });
+
+    // 重新启用拖拽功能
+    if (typeof dragManager !== 'undefined') {
+      setTimeout(() => {
+        try {
+          dragManager.enableCategoryDrag();
+          dragManager.enableShortcutDrag();
+        } catch (error) {
+          console.warn('重新启用拖拽功能失败:', error);
+        }
+      }, 100);
+    }
   }
 
   /**
@@ -152,8 +164,8 @@ class CategoryManager {
     const shortcutsContainer = document.createElement('div');
     shortcutsContainer.className = this.currentViewMode === 'grid' ? 'shortcuts-grid' : 'shortcuts-list';
     
-    // Add shortcuts to the container
-    const shortcuts = category.shortcuts;
+    // Add shortcuts to the container (sorted by order)
+    const shortcuts = storageManager.getSortedShortcuts(category.id);
     if (shortcuts.length > 0) {
       shortcuts.forEach(shortcut => {
         const shortcutElement = this.createShortcutElement(shortcut, category.id);
