@@ -3,7 +3,18 @@
   "name": "Card Tab",
   "version": "1.0.0",
   "description": "现代化的新标签页，支持分类书签管理、主题定制和云端同步，提升您的浏览效率",
-  "permissions": ["storage"],
+  "permissions": ["storage", "activeTab", "contextMenus"],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["js/content-script.js"],
+      "run_at": "document_end"
+    }
+  ],
+
   "chrome_url_overrides": {
     "newtab": "index.html"
   },

@@ -119,3 +119,235 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 });
+
+// 监听来自内容脚本的消息（用于快速添加功能）
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "dataUpdated") {
+      // 数据更新通知，重新加载页面数据
+      console.log('Data updated notification received:', request);
+      handleDataUpdated(request);
+      sendResponse({ success: true });
+    } else if (request.action === "saveShortcutViaStorageManager") {
+      // 使用storageManager保存快捷方式
+      console.log('Save shortcut via storageManager:', request.shortcutData);
+      handleSaveShortcutViaStorageManager(request.shortcutData)
+        .then((result) => {
+          sendResponse({ success: true, shortcut: result });
+        })
+        .catch((error) => {
+          console.error('Error saving via storageManager:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // 保持消息通道开放
+    }
+  });
+}
+
+// 自动填充快速添加功能已移除，现在使用右键菜单的内容脚本方式
+
+// 处理数据更新通知
+function handleDataUpdated(updateInfo) {
+  console.log('Handling data update:', updateInfo);
+
+  // 重新加载存储数据
+  if (storageManager) {
+    storageManager.init().then(() => {
+      console.log('Storage data reloaded');
+
+      // 重新渲染视图
+      if (viewManager) {
+        viewManager.renderCategories();
+        console.log('Categories re-rendered');
+      }
+
+      // 显示成功提示
+      if (updateInfo.newShortcut) {
+        showQuickAddSuccessToast(updateInfo.newShortcut.name);
+      }
+    }).catch(error => {
+      console.error('Failed to reload data:', error);
+    });
+  }
+}
+
+// 显示快速添加成功提示
+function showQuickAddSuccessToast(shortcutName) {
+  // 创建提示元素
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    animation: slideInRight 0.3s ease-out;
+  `;
+
+  toast.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 16px;">✅</span>
+      <span>已添加"${shortcutName}"到 Card Tab</span>
+    </div>
+  `;
+
+  // 添加动画样式
+  if (!document.getElementById('quick-add-toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'quick-add-toast-styles';
+    style.textContent = `
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOutRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(toast);
+
+  // 3秒后自动移除
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.animation = 'slideOutRight 0.3s ease-out';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }
+  }, 3000);
+}
+
+// 使用storageManager保存快捷方式
+async function handleSaveShortcutViaStorageManager(shortcutData) {
+  try {
+    console.log('Using storageManager to save shortcut:', shortcutData);
+
+    // 确保storageManager已初始化
+    if (!storageManager) {
+      throw new Error('StorageManager not initialized');
+    }
+
+    // 获取分类
+    let categoryId = shortcutData.categoryId;
+
+    // 如果没有指定分类，使用第一个可用分类
+    if (!categoryId) {
+      const categories = storageManager.getSortedCategories();
+      if (categories.length === 0) {
+        // 如果没有分类，创建一个默认分类
+        const defaultCategory = await storageManager.addCategory({
+          name: '默认分类',
+          color: '#4285f4'
+        });
+        categoryId = defaultCategory.id;
+        console.log('Created default category:', defaultCategory);
+      } else {
+        categoryId = categories[0].id;
+        console.log('Using first available category:', categories[0].name);
+      }
+    }
+
+    // 验证分类存在
+    const category = storageManager.getCategory(categoryId);
+    if (!category) {
+      throw new Error(`Category with ID ${categoryId} not found`);
+    }
+
+    // 准备快捷方式数据
+    const finalShortcutData = {
+      name: shortcutData.name,
+      url: shortcutData.url,
+      iconType: shortcutData.iconType || 'favicon',
+      iconColor: shortcutData.iconColor || '#4285f4',
+      iconUrl: shortcutData.iconUrl || ''
+    };
+
+    // 使用storageManager添加快捷方式
+    const newShortcut = await storageManager.addShortcut(categoryId, finalShortcutData);
+    console.log('Shortcut added successfully:', newShortcut);
+
+    // 重新渲染分类（如果categoryManager可用）
+    if (categoryManager) {
+      categoryManager.renderCategories();
+      console.log('Categories re-rendered');
+    }
+
+    // 显示成功提示
+    showQuickAddSuccessToast(newShortcut.name);
+
+    return newShortcut;
+  } catch (error) {
+    console.error('Error in handleSaveShortcutViaStorageManager:', error);
+    throw error;
+  }
+}
+
+// 添加测试快速添加功能的按钮事件
+document.addEventListener('DOMContentLoaded', () => {
+  const testQuickAddBtn = document.getElementById('test-quick-add-btn');
+  if (testQuickAddBtn) {
+    testQuickAddBtn.addEventListener('click', () => {
+      testQuickAddFunction();
+    });
+  }
+});
+
+// 测试快速添加功能
+function testQuickAddFunction() {
+  console.log('Testing quick add function...');
+
+  // 检查扩展API是否可用
+  if (typeof chrome === 'undefined' || !chrome.runtime) {
+    alert('❌ Chrome 扩展 API 不可用\n\n这可能是因为：\n1. 扩展未正确加载\n2. 权限配置错误\n3. 在不支持的页面上运行');
+    return;
+  }
+
+  // 测试后台脚本通信
+  chrome.runtime.sendMessage({action: "test"}, (response) => {
+    if (chrome.runtime.lastError) {
+      alert('❌ 后台脚本通信失败:\n' + chrome.runtime.lastError.message);
+      console.error('Background script error:', chrome.runtime.lastError);
+    } else {
+      console.log('Background script response:', response);
+
+      // 测试快速添加功能
+      const testPageInfo = {
+        title: '测试网站',
+        url: 'https://example.com',
+        favIconUrl: null
+      };
+
+      // 模拟快速添加
+      if (shortcutManager && categoryManager) {
+        const categories = storageManager.getSortedCategories();
+        const firstCategoryId = categories.length > 0 ? categories[0].id : null;
+
+        shortcutManager.openAddShortcutModal(firstCategoryId);
+
+        setTimeout(() => {
+          const nameInput = document.getElementById('shortcut-name');
+          const urlInput = document.getElementById('shortcut-url');
+
+          if (nameInput) nameInput.value = testPageInfo.title;
+          if (urlInput) urlInput.value = testPageInfo.url;
+
+          alert('✅ 快速添加功能测试成功！\n\n已自动填充测试数据到表单中。');
+        }, 200);
+      } else {
+        alert('❌ 快捷方式管理器未初始化');
+      }
+    }
+  });
+}
