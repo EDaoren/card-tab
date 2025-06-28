@@ -596,7 +596,7 @@ ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
       
       const a = document.createElement('a');
       a.href = url;
-      a.download = `quick-nav-data-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `card-tab-data-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       
       URL.revokeObjectURL(url);
@@ -617,18 +617,152 @@ ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      
+
       if (!confirm('确定要导入数据吗？这将覆盖当前所有数据。')) {
         return;
       }
 
+      // 保存数据
       await syncManager.saveData(data, true);
-      await categoryManager.renderCategories();
-      
+
+      // 刷新所有相关UI
+      await this.refreshAllUIAfterDataImport();
+
       this.showMessage('数据导入成功！', 'success');
+
     } catch (error) {
       console.error('导入数据失败:', error);
       this.showMessage(`导入数据失败: ${error.message}`, 'error');
+    } finally {
+      // 清空文件输入，允许重复选择同一文件
+      event.target.value = '';
+    }
+  }
+
+
+
+  /**
+   * 刷新配置相关UI
+   */
+  async refreshConfigurationUI() {
+    try {
+      // 1. 刷新主题配置管理器
+      if (typeof themeConfigManager !== 'undefined') {
+        await themeConfigManager.loadConfigs();
+      }
+
+      // 2. 使用专门的配置导入处理方法
+      if (typeof themeConfigUIManager !== 'undefined' && themeConfigUIManager.handleConfigurationImported) {
+        await themeConfigUIManager.handleConfigurationImported();
+      } else if (typeof themeConfigUIManager !== 'undefined') {
+        // 降级方案：使用原有方法
+        await themeConfigUIManager.updateConfigSwitchDisplay();
+        await themeConfigUIManager.updateConfigSelector();
+
+        if (themeConfigUIManager.loadConfigList) {
+          await themeConfigUIManager.loadConfigList();
+        }
+      }
+
+      // 3. 更新同步状态显示
+      this.updateSyncStatus();
+    } catch (error) {
+      console.error('SyncUI: 刷新配置UI失败:', error);
+    }
+  }
+
+  /**
+   * 数据导入后刷新所有UI
+   */
+  async refreshAllUIAfterDataImport() {
+    try {
+      // 1. 重新初始化存储管理器（重新加载数据）
+      if (typeof storageManager !== 'undefined') {
+        await storageManager.init();
+      }
+
+      // 2. 重新渲染分类数据
+      if (typeof categoryManager !== 'undefined') {
+        await categoryManager.renderCategories();
+      }
+
+      // 3. 重新应用主题设置
+      if (typeof loadThemeSettings === 'function') {
+        await loadThemeSettings();
+      }
+
+      // 4. 刷新配置相关UI（重要：导入的数据可能包含新的配置信息）
+      await this.refreshConfigurationUIAfterDataImport();
+
+      // 5. 更新背景图片
+      if (typeof updateBackgroundImageUI === 'function') {
+        updateBackgroundImageUI();
+      }
+    } catch (error) {
+      console.error('SyncUI: 数据导入后刷新UI失败:', error);
+    }
+  }
+
+  /**
+   * 数据导入后刷新配置相关UI
+   */
+  async refreshConfigurationUIAfterDataImport() {
+    try {
+      // 1. 重新加载主题配置管理器（导入的数据可能包含themeConfigs）
+      if (typeof themeConfigManager !== 'undefined') {
+        await themeConfigManager.loadConfigs();
+      }
+
+      // 2. 刷新配置UI管理器
+      if (typeof themeConfigUIManager !== 'undefined') {
+        // 更新配置切换显示
+        await themeConfigUIManager.updateConfigSwitchDisplay();
+
+        // 更新配置选择器
+        await themeConfigUIManager.updateConfigSelector();
+
+        // 如果配置管理界面是打开的，强制刷新配置列表
+        if (themeConfigUIManager.forceRefreshConfigList) {
+          await themeConfigUIManager.forceRefreshConfigList();
+        }
+      }
+
+      // 3. 更新同步状态显示
+      this.updateSyncStatus();
+    } catch (error) {
+      console.error('SyncUI: 数据导入后刷新配置UI失败:', error);
+    }
+  }
+
+  /**
+   * 刷新所有UI（通用方法）
+   */
+  async refreshAllUI() {
+    try {
+      // 1. 重新初始化存储管理器
+      if (typeof storageManager !== 'undefined') {
+        await storageManager.init();
+      }
+
+      // 2. 重新渲染分类数据
+      if (typeof categoryManager !== 'undefined') {
+        await categoryManager.renderCategories();
+      }
+
+      // 3. 重新应用主题设置
+      if (typeof loadThemeSettings === 'function') {
+        await loadThemeSettings();
+      }
+
+      // 4. 刷新配置相关UI
+      await this.refreshConfigurationUI();
+
+      // 5. 更新背景图片
+      if (typeof updateBackgroundImageUI === 'function') {
+        updateBackgroundImageUI();
+      }
+    } catch (error) {
+      console.error('SyncUI: 刷新所有UI失败:', error);
     }
   }
 

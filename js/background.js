@@ -222,8 +222,6 @@ async function loadCategoriesForContentScript() {
 
     // 获取所有sync存储数据，找到包含categories的键
     const allSyncData = await chrome.storage.sync.get(null);
-    console.log('Background: All sync storage keys:', Object.keys(allSyncData));
-    console.log('Background: Full sync storage:', JSON.stringify(allSyncData, null, 2));
 
     let categories = null;
     let foundKey = null;
@@ -233,36 +231,22 @@ async function loadCategoriesForContentScript() {
       if (value && typeof value === 'object' && value.categories && Array.isArray(value.categories)) {
         categories = value.categories;
         foundKey = key;
-        console.log(`Background: Found categories in sync storage with key "${key}"`);
-        console.log(`Background: Found ${categories.length} categories`);
-        console.log('Background: Category names:', categories.map(c => c.name));
+        console.log(`Background: Found ${categories.length} categories in sync storage`);
         break;
       }
     }
 
-    if (!foundKey) {
-      console.log('Background: No categories found in any sync storage key');
-    }
-
     // 如果 sync 中没有找到，尝试 local 存储
     if (!categories) {
-      console.log('Background: No categories in sync, checking local storage...');
       const allLocalData = await chrome.storage.local.get(null);
-      console.log('Background: All local storage keys:', Object.keys(allLocalData));
-      console.log('Background: Full local storage:', JSON.stringify(allLocalData, null, 2));
 
       // 遍历所有local键，找到包含categories的数据
       for (const [key, value] of Object.entries(allLocalData)) {
         if (value && typeof value === 'object' && value.categories && Array.isArray(value.categories)) {
           categories = value.categories;
-          console.log(`Background: Found categories in local storage with key "${key}"`);
-          console.log(`Background: Found ${categories.length} categories in local`);
+          console.log(`Background: Found ${categories.length} categories in local storage`);
           break;
         }
-      }
-
-      if (!categories) {
-        console.log('Background: No valid categories found in local storage either');
       }
     }
 
@@ -279,7 +263,6 @@ async function loadCategoriesForContentScript() {
           color: cat.color || '#4285f4'
         }));
 
-      console.log('Background: Processed categories for transmission:', validCategories);
       return validCategories;
     }
 

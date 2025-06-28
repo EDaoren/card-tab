@@ -486,16 +486,9 @@ class ThemeConfigUIManager {
         console.warn('⚠️ categoryManager 和 renderCategories 函数都不存在');
       }
 
-      // 8. 更新页面标题和其他全局状态
-      if (typeof updatePageTitle === 'function') {
-        console.log('🔄 更新页面标题...');
-        updatePageTitle();
-        console.log('✅ 页面标题更新完成');
-      } else {
-        console.warn('⚠️ updatePageTitle 函数不存在');
-      }
 
-      // 9. 关闭可能打开的下拉菜单
+
+      // 8. 关闭可能打开的下拉菜单
       const dropdown = document.querySelector('.config-dropdown');
       if (dropdown) {
         dropdown.classList.remove('open');
@@ -797,6 +790,29 @@ class ThemeConfigUIManager {
       console.log('ThemeConfigUI: 配置列表强制刷新完成');
     } catch (error) {
       console.error('ThemeConfigUI: 强制刷新失败:', error);
+    }
+  }
+
+  /**
+   * 处理配置导入后的UI刷新
+   */
+  async handleConfigurationImported() {
+    try {
+      // 1. 重新加载配置管理器的配置
+      if (typeof themeConfigManager !== 'undefined') {
+        await themeConfigManager.loadConfigs();
+      }
+
+      // 2. 强制刷新配置列表
+      await this.forceRefreshConfigList();
+
+      // 3. 更新配置选择器
+      await this.updateConfigSelector();
+
+      // 4. 更新配置切换显示
+      await this.updateConfigSwitchDisplay();
+    } catch (error) {
+      console.error('ThemeConfigUI: 配置导入后UI刷新失败:', error);
     }
   }
 
@@ -1198,7 +1214,7 @@ class ThemeConfigUIManager {
 
       const link = document.createElement('a');
       link.href = URL.createObjectURL(dataBlob);
-      link.download = `config_${config.displayName}_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `card-tab-config-${config.displayName}-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
 
       this.showMessage('配置导出成功！', 'success');

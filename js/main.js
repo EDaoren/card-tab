@@ -314,40 +314,5 @@ function testQuickAddFunction() {
     return;
   }
 
-  // 测试后台脚本通信
-  chrome.runtime.sendMessage({action: "test"}, (response) => {
-    if (chrome.runtime.lastError) {
-      alert('❌ 后台脚本通信失败:\n' + chrome.runtime.lastError.message);
-      console.error('Background script error:', chrome.runtime.lastError);
-    } else {
-      console.log('Background script response:', response);
 
-      // 测试快速添加功能
-      const testPageInfo = {
-        title: '测试网站',
-        url: 'https://example.com',
-        favIconUrl: null
-      };
-
-      // 模拟快速添加
-      if (shortcutManager && categoryManager) {
-        const categories = storageManager.getSortedCategories();
-        const firstCategoryId = categories.length > 0 ? categories[0].id : null;
-
-        shortcutManager.openAddShortcutModal(firstCategoryId);
-
-        setTimeout(() => {
-          const nameInput = document.getElementById('shortcut-name');
-          const urlInput = document.getElementById('shortcut-url');
-
-          if (nameInput) nameInput.value = testPageInfo.title;
-          if (urlInput) urlInput.value = testPageInfo.url;
-
-          alert('✅ 快速添加功能测试成功！\n\n已自动填充测试数据到表单中。');
-        }, 200);
-      } else {
-        alert('❌ 快捷方式管理器未初始化');
-      }
-    }
-  });
 }

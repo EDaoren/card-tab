@@ -10,6 +10,22 @@ class SupabaseClient {
     this.config = null;
     this.tableName = 'card_tab_data';
     this.userId = null;
+    this.currentConfigHash = null; // 用于检测配置变化
+  }
+
+  /**
+   * 生成配置哈希值，用于检测配置是否变化
+   */
+  generateConfigHash(config) {
+    return `${config.url}|${config.anonKey}|${config.userId}`;
+  }
+
+  /**
+   * 检查是否需要重新初始化
+   */
+  needsReinitialization(config) {
+    const newHash = this.generateConfigHash(config);
+    return !this.client || this.currentConfigHash !== newHash;
   }
 
   /**
@@ -22,8 +38,31 @@ class SupabaseClient {
    */
   async initialize(config, shouldTest = false) {
     try {
+      // 检查是否需要重新初始化
+      if (!this.needsReinitialization(config)) {
+        console.log('Supabase客户端配置未变化，跳过重新初始化');
+        if (shouldTest && this.isConnected) {
+          // 如果需要测试连接且当前已连接，直接返回成功
+          console.log('Supabase客户端已连接，跳过连接测试');
+          return true;
+        } else if (shouldTest) {
+          // 需要测试但未连接，执行连接测试
+          await this.testConnection();
+          console.log('Supabase连接测试成功');
+          return true;
+        }
+        return true;
+      }
+
+      // 如果配置发生变化，先断开现有连接
+      if (this.client) {
+        console.log('Supabase配置已变化，断开现有连接');
+        this.disconnect();
+      }
+
       this.config = config;
       this.userId = config.userId;
+      this.currentConfigHash = this.generateConfigHash(config);
 
       // 检查Supabase SDK是否已加载
       if (!window.supabase) {
@@ -47,6 +86,7 @@ class SupabaseClient {
     } catch (error) {
       console.error('Supabase客户端初始化失败:', error);
       this.isConnected = false;
+      this.currentConfigHash = null;
       throw error;
     }
   }
@@ -287,14 +327,47 @@ class SupabaseClient {
   }
 
   /**
+   * 检查客户端状态
+   */
+  getClientStatus() {
+    return {
+      isConnected: this.isConnected,
+      hasClient: !!this.client,
+      currentConfig: this.config ? {
+        url: this.config.url,
+        userId: this.config.userId,
+        hasAnonKey: !!this.config.anonKey
+      } : null,
+      configHash: this.currentConfigHash
+    };
+  }
+
+  /**
    * 断开连接
    */
   disconnect() {
+    if (this.client) {
+      try {
+        // 尝试清理 GoTrueClient 实例
+        if (this.client.auth && typeof this.client.auth.stopAutoRefresh === 'function') {
+          this.client.auth.stopAutoRefresh();
+        }
+
+        // 清理实时订阅
+        if (this.client.removeAllChannels && typeof this.client.removeAllChannels === 'function') {
+          this.client.removeAllChannels();
+        }
+      } catch (error) {
+        console.warn('Supabase客户端清理时出现警告:', error);
+      }
+    }
+
     this.client = null;
     this.isConnected = false;
     this.config = null;
     this.userId = null;
-    console.log('Supabase连接已断开');
+    this.currentConfigHash = null;
+    console.log('Supabase连接已断开并清理');
   }
 
   /**

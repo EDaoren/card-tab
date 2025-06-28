@@ -204,20 +204,52 @@ class ThemeConfigManager {
   }
 
   /**
+   * 通知配置变化，触发UI更新
+   */
+  async notifyConfigurationChanged(action, config) {
+    try {
+      // 通知主题配置UI管理器
+      if (typeof themeConfigUIManager !== 'undefined') {
+        // 更新配置选择器
+        if (themeConfigUIManager.updateConfigSelector) {
+          await themeConfigUIManager.updateConfigSelector();
+        }
+
+        // 更新配置切换显示
+        if (themeConfigUIManager.updateConfigSwitchDisplay) {
+          await themeConfigUIManager.updateConfigSwitchDisplay();
+        }
+
+        // 如果配置管理界面是打开的，刷新配置列表
+        if (themeConfigUIManager.loadConfigList) {
+          await themeConfigUIManager.loadConfigList();
+        }
+      }
+
+      // 通知同步UI管理器
+      if (typeof syncUIManager !== 'undefined' && syncUIManager.updateSyncStatus) {
+        syncUIManager.updateSyncStatus();
+      }
+    } catch (error) {
+      console.error('ThemeConfigManager: 处理配置变化通知失败:', error);
+    }
+  }
+
+  /**
    * 添加新配置（使用当前Supabase连接）- 旁路缓存模式
    */
   async addConfig(config) {
     const configId = this.generateConfigId();
 
-    // 获取当前的Supabase连接配置
+    // 获取当前的Supabase连接配置，如果传入了配置则使用传入的
     const currentSupabaseConfig = await this.getCurrentSupabaseConfig();
 
     const newConfig = {
       id: configId,
       displayName: config.displayName || `配置 ${this.configs.length + 1}`,
       userId: config.userId,
-      supabaseUrl: currentSupabaseConfig.url,
-      supabaseKey: currentSupabaseConfig.anonKey,
+      supabaseUrl: config.supabaseUrl || currentSupabaseConfig.url,
+      supabaseKey: config.supabaseKey || currentSupabaseConfig.anonKey,
       createdAt: new Date().toISOString(),
       lastSync: null,
       shortcutCount: 0,
@@ -241,6 +273,10 @@ class ThemeConfigManager {
     // 旁路缓存模式：保存并清除缓存
     await this.saveConfigsWithCacheAside();
     console.log('ThemeConfigManager: 新配置已添加并同步', newConfig.displayName);
+
+    // 通知UI更新
+    await this.notifyConfigurationChanged('add', newConfig);
+
     return newConfig;
   }
 
@@ -453,9 +489,6 @@ class ThemeConfigManager {
    * 清理无效和重复的配置
    */
   async cleanupInvalidConfigs() {
-    console.log('ThemeConfigManager: 开始清理无效配置');
-    console.log('ThemeConfigManager: 清理前配置数量:', this.configs.length);
-
     // 1. 过滤掉无效配置
     const validConfigs = this.configs.filter(config => {
       // 保留默认配置
@@ -530,6 +563,9 @@ class ThemeConfigManager {
       // 旁路缓存模式：保存并清除缓存
       await this.saveConfigsWithCacheAside();
       console.log('ThemeConfigManager: 配置已更新并同步', config.displayName);
+
+      // 通知UI更新
+      await this.notifyConfigurationChanged('update', config);
     }
   }
 
@@ -592,6 +628,9 @@ class ThemeConfigManager {
     }
 
     console.log('ThemeConfigManager: 配置删除完成', configToDelete.displayName);
+
+    // 通知UI更新
+    await this.notifyConfigurationChanged('delete', configToDelete);
   }
 
   /**

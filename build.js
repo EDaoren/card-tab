@@ -33,11 +33,11 @@ const filesToInclude = [
 
 // Files to exclude (test files, development files, etc.)
 const filesToExclude = [
-  'test-local-font.html',
-  'test-offline.html',
-  'test-performance.html',
-  'test-supabase-fix.html',
-  'test-drag-functionality.html',
+  // Test files (已清理)
+  'test-*.html',
+  'test-*.json',
+
+  // Development files
   'build.js',
   'package.json',
   'package-lock.json',
@@ -45,8 +45,16 @@ const filesToExclude = [
   '.git',
   '.gitignore',
   'build',
+
+  // Temporary documentation files (已清理)
+  'CONFIG_IMPORT_UI_REFRESH_FIX.md',
+  'EXPORT_FILENAME_UPDATE.md',
+  'SUPABASE_OPTIMIZATION_SUMMARY.md',
+
+  // Development tools
   'verify-csp-compliance.js',
-  'csp-violations-report.json'
+  'csp-violations-report.json',
+  'init-github.bat'
 ];
 
 /**
