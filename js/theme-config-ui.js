@@ -720,6 +720,14 @@ class ThemeConfigUIManager {
         this.openNewConfigModal();
       });
     }
+
+    // 空状态下的创建配置按钮
+    const createConfigBtn = document.getElementById('create-config-btn');
+    if (createConfigBtn) {
+      createConfigBtn.addEventListener('click', () => {
+        this.openNewConfigModal();
+      });
+    }
   }
 
   /**
