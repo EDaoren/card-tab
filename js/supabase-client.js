@@ -278,6 +278,64 @@ class SupabaseClient {
   }
 
   /**
+   * 分页查询数据（用于配置管理）
+   * @param {number} page - 页码（从1开始）
+   * @param {number} pageSize - 每页数量
+   * @param {string} orderBy - 排序字段，默认为 'updated_at'
+   * @param {boolean} ascending - 是否升序，默认为false（降序）
+   */
+  async getDataWithPagination(page = 1, pageSize = 10, orderBy = 'updated_at', ascending = false) {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    try {
+      // 计算偏移量
+      const offset = (page - 1) * pageSize;
+
+      // 查询数据
+      const { data, error } = await this.client
+        .from(this.tableName)
+        .select('*')
+        .order(orderBy, { ascending })
+        .range(offset, offset + pageSize - 1);
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('SupabaseClient: 分页查询失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取数据总数（用于分页计算）
+   */
+  async getDataCount() {
+    if (!this.isConnected) {
+      throw new Error('Supabase未连接');
+    }
+
+    try {
+      const { count, error } = await this.client
+        .from(this.tableName)
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        throw error;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('SupabaseClient: 获取数据总数失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 查询特定用户的数据（用于调试）
    */
   async getUserData(userId) {

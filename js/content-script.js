@@ -49,7 +49,7 @@ function createQuickAddModal(pageInfo) {
     <div class="card-tab-modal-overlay">
       <div class="card-tab-modal-content">
         <div class="card-tab-modal-header">
-          <h3>快速添加到 Card Tab</h3>
+          <h3>Card Tab 卡片式导航</h3>
           <button class="card-tab-close-btn">&times;</button>
         </div>
         <div class="card-tab-modal-body">

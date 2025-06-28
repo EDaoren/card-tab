@@ -13,6 +13,16 @@ class ThemeConfigUIManager {
     this.filteredConfigs = [];
     this.currentEditingConfigId = null;
     this.configListClickHandler = null; // 存储事件处理器引用
+
+    // 分页相关属性
+    this.pagination = {
+      currentPage: 1,
+      pageSize: 10, // 恢复默认每页10条
+      totalCount: 0,
+      totalPages: 0
+    };
+    this.searchTerm = '';
+    this.sortBy = 'recent';
   }
 
   /**
@@ -20,6 +30,9 @@ class ThemeConfigUIManager {
    */
   async init() {
     if (this.isInitialized) return;
+
+    // 从存储中恢复用户的分页设置
+    await this.loadPaginationSettings();
 
     // 获取模态框元素
     this.newConfigModal = document.getElementById('new-config-modal');
@@ -686,7 +699,17 @@ class ThemeConfigUIManager {
     // 排序功能
     const sortSelect = document.getElementById('config-sort');
     if (sortSelect) {
+      // 设置默认排序值
+      sortSelect.value = this.sortBy;
       sortSelect.addEventListener('change', (e) => this.handleConfigSort(e.target.value));
+    }
+
+    // 每页数量选择
+    const pageSizeSelect = document.getElementById('page-size-select');
+    if (pageSizeSelect) {
+      // 设置默认每页数量
+      pageSizeSelect.value = this.pagination.pageSize.toString();
+      pageSizeSelect.addEventListener('change', (e) => this.handlePageSizeChange(parseInt(e.target.value)));
     }
 
     // 新建配置按钮
@@ -700,47 +723,75 @@ class ThemeConfigUIManager {
   }
 
   /**
-   * 加载配置列表 - 直接查询Supabase
+   * 加载配置列表 - 支持分页查询
    */
-  async loadConfigList() {
+  async loadConfigList(resetPage = false) {
     try {
-      if (typeof syncManager !== 'undefined' && syncManager.isSupabaseEnabled) {
-        // 启用Supabase：直接查询Supabase获取最新配置列表
-        await this.loadConfigListFromSupabase();
-      } else {
-        // 未启用Supabase：使用本地数据
-        this.currentConfigs = themeConfigManager.getAllConfigs();
+      if (resetPage) {
+        this.pagination.currentPage = 1;
       }
 
-      // 设置过滤后的配置列表并渲染
-      this.filteredConfigs = [...this.currentConfigs];
+      if (typeof syncManager !== 'undefined' && syncManager.isSupabaseEnabled) {
+        // 启用Supabase：使用分页查询
+        await this.loadConfigListFromSupabaseWithPagination();
+      } else {
+        // 未启用Supabase：使用本地数据（模拟分页）
+        await this.loadConfigListFromLocal();
+      }
+
       this.renderConfigList();
 
     } catch (error) {
       console.error('ThemeConfigUI: 加载配置列表失败:', error);
       // 降级：使用本地数据
-      this.currentConfigs = themeConfigManager.getAllConfigs();
-      this.filteredConfigs = [...this.currentConfigs];
+      await this.loadConfigListFromLocal();
       this.renderConfigList();
     }
   }
 
   /**
-   * 直接从Supabase加载配置列表
+   * 从Supabase分页加载配置列表
    */
-  async loadConfigListFromSupabase() {
+  async loadConfigListFromSupabaseWithPagination() {
     try {
-      console.log('ThemeConfigUI: 直接从Supabase查询所有用户的配置列表');
+      console.log('ThemeConfigUI: 分页查询Supabase配置列表', {
+        page: this.pagination.currentPage,
+        pageSize: this.pagination.pageSize,
+        sortBy: this.sortBy
+      });
 
-      // 查询所有用户的数据来构建配置列表
-      const allUserData = await supabaseClient.getAllData();
-      console.log('ThemeConfigUI: 所有用户数据:', allUserData);
+      // 获取总数
+      const totalCount = await supabaseClient.getDataCount();
+      this.pagination.totalCount = totalCount;
+      this.pagination.totalPages = Math.ceil(totalCount / this.pagination.pageSize);
+
+      // 确定排序字段
+      let orderBy = 'updated_at';
+      let ascending = false;
+
+      if (this.sortBy === 'name') {
+        orderBy = 'user_id';
+        ascending = true;
+      } else if (this.sortBy === 'created') {
+        orderBy = 'created_at';
+        ascending = false;
+      }
+
+      // 分页查询数据
+      const pageData = await supabaseClient.getDataWithPagination(
+        this.pagination.currentPage,
+        this.pagination.pageSize,
+        orderBy,
+        ascending
+      );
+
+      console.log('ThemeConfigUI: 分页数据:', pageData);
 
       this.currentConfigs = [];
 
-      // 遍历所有用户数据，提取配置信息
-      if (allUserData && Array.isArray(allUserData)) {
-        allUserData.forEach(userData => {
+      // 遍历分页数据，提取配置信息
+      if (pageData && Array.isArray(pageData)) {
+        pageData.forEach(userData => {
           if (userData && userData.data) {
             // 为每个用户创建一个配置项
             const config = {
@@ -762,14 +813,60 @@ class ThemeConfigUIManager {
           }
         });
 
-        console.log('ThemeConfigUI: 构建的配置列表数量:', this.currentConfigs.length);
-        console.log('ThemeConfigUI: 构建的配置列表:', this.currentConfigs);
-      } else {
-        console.log('ThemeConfigUI: 没有找到任何用户数据');
+        console.log('ThemeConfigUI: 分页配置列表构建完成', {
+          currentPage: this.pagination.currentPage,
+          pageSize: this.pagination.pageSize,
+          totalCount: this.pagination.totalCount,
+          totalPages: this.pagination.totalPages,
+          configsInPage: this.currentConfigs.length
+        });
       }
+
+      // 应用搜索过滤
+      this.applySearchFilter();
+
     } catch (error) {
-      console.warn('ThemeConfigUI: 从Supabase查询配置列表失败:', error);
+      console.error('ThemeConfigUI: 从Supabase分页加载配置列表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从本地加载配置列表（模拟分页）
+   */
+  async loadConfigListFromLocal() {
+    try {
+      console.log('ThemeConfigUI: 从本地加载配置列表');
+
+      const allConfigs = themeConfigManager.getAllConfigs();
+
+      // 应用排序
+      this.sortConfigs(allConfigs);
+
+      // 计算分页
+      this.pagination.totalCount = allConfigs.length;
+      this.pagination.totalPages = Math.ceil(allConfigs.length / this.pagination.pageSize);
+
+      // 获取当前页数据
+      const startIndex = (this.pagination.currentPage - 1) * this.pagination.pageSize;
+      const endIndex = startIndex + this.pagination.pageSize;
+      this.currentConfigs = allConfigs.slice(startIndex, endIndex);
+
+      console.log('ThemeConfigUI: 本地分页配置列表构建完成', {
+        currentPage: this.pagination.currentPage,
+        pageSize: this.pagination.pageSize,
+        totalCount: this.pagination.totalCount,
+        totalPages: this.pagination.totalPages,
+        configsInPage: this.currentConfigs.length
+      });
+
+      // 应用搜索过滤
+      this.applySearchFilter();
+
+    } catch (error) {
+      console.error('ThemeConfigUI: 从本地加载配置列表失败:', error);
       this.currentConfigs = [];
+      this.filteredConfigs = [];
     }
   }
 
@@ -828,6 +925,7 @@ class ThemeConfigUIManager {
     if (this.filteredConfigs.length === 0) {
       configList.style.display = 'none';
       configEmpty.style.display = 'block';
+      this.renderPagination();
       return;
     }
 
@@ -838,6 +936,9 @@ class ThemeConfigUIManager {
 
     // 绑定配置卡片事件
     this.bindConfigCardEvents();
+
+    // 渲染分页控件
+    this.renderPagination();
   }
 
   /**
@@ -893,44 +994,256 @@ class ThemeConfigUIManager {
 
 
   /**
-   * 处理配置搜索
+   * 应用搜索过滤
    */
-  handleConfigSearch(searchTerm) {
-    const term = searchTerm.toLowerCase().trim();
-
-    if (!term) {
+  applySearchFilter() {
+    if (this.searchTerm === '') {
       this.filteredConfigs = [...this.currentConfigs];
     } else {
+      const term = this.searchTerm.toLowerCase().trim();
       this.filteredConfigs = this.currentConfigs.filter(config =>
         config.displayName.toLowerCase().includes(term) ||
         config.userId.toLowerCase().includes(term)
       );
     }
+  }
 
-    this.renderConfigList();
+  /**
+   * 处理配置搜索
+   */
+  handleConfigSearch(searchTerm) {
+    this.searchTerm = searchTerm;
+
+    // 搜索时重置到第一页
+    this.pagination.currentPage = 1;
+
+    // 重新加载数据
+    this.loadConfigList();
+  }
+
+  /**
+   * 排序配置列表
+   */
+  sortConfigs(configs) {
+    switch (this.sortBy) {
+      case 'name':
+        configs.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        break;
+      case 'recent':
+        configs.sort((a, b) => {
+          const aTime = a.lastModified || a.lastSync || a.createdAt;
+          const bTime = b.lastModified || b.lastSync || b.createdAt;
+          return new Date(bTime) - new Date(aTime);
+        });
+        break;
+      case 'created':
+        configs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+    }
   }
 
   /**
    * 处理配置排序
    */
   handleConfigSort(sortType) {
-    switch (sortType) {
-      case 'name':
-        this.filteredConfigs.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        break;
-      case 'recent':
-        this.filteredConfigs.sort((a, b) => {
-          const aTime = a.lastSyncTime || a.createdAt;
-          const bTime = b.lastSyncTime || b.createdAt;
-          return new Date(bTime) - new Date(aTime);
-        });
-        break;
-      case 'created':
-        this.filteredConfigs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
+    this.sortBy = sortType;
+
+    // 排序时重置到第一页
+    this.pagination.currentPage = 1;
+
+    // 重新加载数据
+    this.loadConfigList();
+  }
+
+  /**
+   * 渲染分页控件
+   */
+  renderPagination() {
+    const paginationContainer = document.getElementById('config-pagination');
+    if (!paginationContainer) {
+      console.warn('ThemeConfigUI: 分页容器未找到');
+      return;
     }
 
-    this.renderConfigList();
+    // 分页状态日志（仅在开发模式下显示）
+    if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
+      console.log('ThemeConfigUI: 渲染分页控件', {
+        totalCount: this.pagination.totalCount,
+        totalPages: this.pagination.totalPages,
+        currentPage: this.pagination.currentPage,
+        pageSize: this.pagination.pageSize,
+        filteredConfigsLength: this.filteredConfigs.length
+      });
+    }
+
+    // 如果总页数小于等于1，隐藏分页控件
+    if (this.pagination.totalPages <= 1) {
+      paginationContainer.style.display = 'none';
+      return;
+    }
+
+    paginationContainer.style.display = 'flex';
+
+    const { currentPage, totalPages, totalCount } = this.pagination;
+
+    // 确保至少显示基本信息
+    const actualTotalPages = Math.max(1, totalPages);
+    const actualCurrentPage = Math.min(currentPage, actualTotalPages);
+
+    // 计算显示的页码范围
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    // 调整起始页，确保显示足够的页码
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // 计算当前页显示的记录范围
+    const startRecord = (actualCurrentPage - 1) * this.pagination.pageSize + 1;
+    const endRecord = Math.min(actualCurrentPage * this.pagination.pageSize, totalCount);
+
+    let paginationHTML = `
+      <div class="pagination-info">
+        显示第 ${startRecord}-${endRecord} 条，共 ${totalCount} 个配置
+      </div>
+      <div class="pagination-controls">
+    `;
+
+    // 上一页按钮
+    paginationHTML += `
+      <button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
+              data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>
+        上一页
+      </button>
+    `;
+
+    // 第一页
+    if (startPage > 1) {
+      paginationHTML += `<button class="pagination-btn" data-page="1">1</button>`;
+      if (startPage > 2) {
+        paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+      }
+    }
+
+    // 页码按钮
+    for (let i = startPage; i <= endPage; i++) {
+      paginationHTML += `
+        <button class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                data-page="${i}">${i}</button>
+      `;
+    }
+
+    // 最后一页
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        paginationHTML += `<span class="pagination-ellipsis">...</span>`;
+      }
+      paginationHTML += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
+    }
+
+    // 下一页按钮
+    paginationHTML += `
+      <button class="pagination-btn ${currentPage === totalPages ? 'disabled' : ''}"
+              data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>
+        下一页
+      </button>
+    `;
+
+    paginationHTML += `</div>`;
+
+    paginationContainer.innerHTML = paginationHTML;
+
+    // 绑定分页事件
+    this.bindPaginationEvents();
+  }
+
+  /**
+   * 绑定分页事件
+   */
+  bindPaginationEvents() {
+    const paginationContainer = document.getElementById('config-pagination');
+    if (!paginationContainer) return;
+
+    paginationContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('pagination-btn') && !e.target.disabled) {
+        const page = parseInt(e.target.dataset.page);
+        if (page && page !== this.pagination.currentPage) {
+          this.goToPage(page);
+        }
+      }
+    });
+  }
+
+  /**
+   * 跳转到指定页
+   */
+  goToPage(page) {
+    if (page < 1 || page > this.pagination.totalPages) return;
+
+    this.pagination.currentPage = page;
+    this.loadConfigList();
+  }
+
+  /**
+   * 处理每页数量变化
+   */
+  handlePageSizeChange(newPageSize) {
+    console.log('ThemeConfigUI: 每页数量变更为:', newPageSize);
+
+    // 计算当前显示的第一条记录的索引
+    const currentFirstIndex = (this.pagination.currentPage - 1) * this.pagination.pageSize;
+
+    // 更新每页数量
+    this.pagination.pageSize = newPageSize;
+
+    // 计算新的页码，尽量保持当前显示的内容
+    this.pagination.currentPage = Math.floor(currentFirstIndex / newPageSize) + 1;
+
+    // 保存用户的分页设置
+    this.savePaginationSettings();
+
+    // 重新加载数据
+    this.loadConfigList();
+  }
+
+  /**
+   * 加载分页设置
+   */
+  async loadPaginationSettings() {
+    try {
+      if (chrome && chrome.storage && chrome.storage.local) {
+        const result = await new Promise((resolve) => {
+          chrome.storage.local.get(['configPaginationSettings'], resolve);
+        });
+
+        if (result.configPaginationSettings) {
+          this.pagination.pageSize = result.configPaginationSettings.pageSize || 10;
+        }
+      }
+    } catch (error) {
+      console.warn('ThemeConfigUI: 加载分页设置失败:', error);
+    }
+  }
+
+  /**
+   * 保存分页设置
+   */
+  async savePaginationSettings() {
+    try {
+      if (chrome && chrome.storage && chrome.storage.local) {
+        await new Promise((resolve) => {
+          chrome.storage.local.set({
+            configPaginationSettings: {
+              pageSize: this.pagination.pageSize
+            }
+          }, resolve);
+        });
+      }
+    } catch (error) {
+      console.warn('ThemeConfigUI: 保存分页设置失败:', error);
+    }
   }
 
   /**

@@ -3155,6 +3155,82 @@ header {
   max-height: 85vh;
 }
 
+/* 分页控件样式 */
+.config-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  padding: 0 12px;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background: var(--hover-color);
+  border-color: var(--primary-color);
+}
+
+.pagination-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--hover-color);
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* 配置操作栏样式优化 */
+.config-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.config-actions .sort-select {
+  min-width: 120px;
+}
+
+#page-size-select {
+  min-width: 100px;
+  font-size: 14px;
+}
+
 .config-search-bar {
   display: flex;
   gap: 16px;

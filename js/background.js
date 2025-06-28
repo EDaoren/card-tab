@@ -10,7 +10,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // 创建主菜单项
   chrome.contextMenus.create({
     id: "add-to-card-tab",
-    title: "添加到 Card Tab",
+    title: "Card Tab 卡片式导航",
     contexts: ["page", "link"]
   }, () => {
     if (chrome.runtime.lastError) {
