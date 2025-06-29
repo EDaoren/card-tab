@@ -25,7 +25,8 @@ function createContextMenus() {
     chrome.contextMenus.create({
       id: "add-to-card-tab",
       title: "Card Tab 卡片式导航",
-      contexts: ["page", "link"]
+      contexts: ["page", "link"],
+      documentUrlPatterns: ["http://*/*", "https://*/*"]
     }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error creating main menu:', chrome.runtime.lastError);
@@ -39,7 +40,8 @@ function createContextMenus() {
       id: "add-current-page",
       parentId: "add-to-card-tab",
       title: "添加当前页面",
-      contexts: ["page"]
+      contexts: ["page"],
+      documentUrlPatterns: ["http://*/*", "https://*/*"]
     }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error creating page menu:', chrome.runtime.lastError);
@@ -53,7 +55,8 @@ function createContextMenus() {
       id: "add-link",
       parentId: "add-to-card-tab",
       title: "添加此链接",
-      contexts: ["link"]
+      contexts: ["link"],
+      documentUrlPatterns: ["http://*/*", "https://*/*"]
     }, () => {
       if (chrome.runtime.lastError) {
         console.error('Error creating link menu:', chrome.runtime.lastError);

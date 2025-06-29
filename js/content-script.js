@@ -3,6 +3,32 @@
  * Handles quick add modal display and interaction
  */
 
+/**
+ * 安全发送消息到 background script
+ * 处理连接错误和重试逻辑
+ */
+async function safeSendMessage(message, retries = 1) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      return response;
+    } catch (error) {
+      if (error.message.includes('Could not establish connection') ||
+          error.message.includes('Receiving end does not exist')) {
+
+        if (i < retries) {
+          console.log(`连接失败，${500}ms 后重试 (${i + 1}/${retries + 1})`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        } else {
+          throw new Error('扩展连接失败，请刷新页面后重试');
+        }
+      }
+      throw error;
+    }
+  }
+}
+
 let quickAddModal = null;
 let categories = [];
 
@@ -591,11 +617,11 @@ async function handleSave(pageInfo) {
 
     console.log('Saving shortcut data:', shortcutData);
 
-    // 发送到后台脚本保存
-    const response = await chrome.runtime.sendMessage({
+    // 发送到后台脚本保存，使用安全发送函数
+    const response = await safeSendMessage({
       action: "saveQuickAdd",
       data: shortcutData
-    });
+    }, 2); // 最多重试2次
 
     console.log('Save response:', response);
 
