@@ -33,32 +33,78 @@
     <p>Your privacy is important to us. This Privacy Policy explains how Card Tab ("we", "our", or "the extension") handles your data when you use our Chrome extension.</p>
     
     <h2>Information Collection and Use</h2>
-    <p>Quick Nav Tab is designed with privacy in mind. We do not collect, transmit, or store any personal information from our users.</p>
-    
-    <h3>Data Storage</h3>
-    <p>The extension uses Chrome's storage.sync API to store your categories and shortcuts data. This data is synchronized across your devices where you are signed into Chrome with the same account. This data is stored locally on your devices and in your Google account's synchronized storage. We do not have access to this data.</p>
-    
+    <p>Card Tab is designed with privacy in mind. We collect minimal data necessary for the extension's functionality.</p>
+
+    <h3>Data We Collect</h3>
+    <ul>
+      <li><strong>Website URLs and Titles:</strong> When you add shortcuts via right-click menu or manual input</li>
+      <li><strong>Website Icons:</strong> Automatically fetched from public favicon services to improve visual experience</li>
+      <li><strong>User Preferences:</strong> Theme settings, layout preferences, and category organization</li>
+      <li><strong>Bookmark Data:</strong> Categories and shortcuts you create for your personal use</li>
+    </ul>
+
+    <h3>Local Data Storage</h3>
+    <p>By default, all your data is stored locally using Chrome's storage APIs:</p>
+    <ul>
+      <li><strong>chrome.storage.local:</strong> Stores themes, layouts, and cached data</li>
+      <li><strong>chrome.storage.sync:</strong> Stores basic settings and default configuration (synced across your Chrome devices)</li>
+    </ul>
+
+    <h3>Optional Cloud Sync</h3>
+    <p>You may optionally enable cloud synchronization using your own Supabase project:</p>
+    <ul>
+      <li>Data is stored in <strong>your own</strong> Supabase database that you create and control</li>
+      <li>We do not have access to your Supabase project or data</li>
+      <li>You provide your own Supabase credentials (URL and API key)</li>
+      <li>Background images may be stored in your Supabase storage bucket</li>
+      <li>Cloud sync is completely optional and can be disabled at any time</li>
+    </ul>
+
     <h3>Information We Do Not Collect</h3>
     <ul>
-      <li>Personal information (name, email, etc.)</li>
-      <li>Browsing history</li>
-      <li>IP addresses</li>
-      <li>Cookies</li>
-      <li>Search queries</li>
-      <li>Website content</li>
+      <li>Personal identification information (name, email, etc.)</li>
+      <li>Complete browsing history</li>
+      <li>IP addresses for tracking purposes</li>
+      <li>Analytics or usage tracking data</li>
+      <li>Search queries outside the extension</li>
+      <li>Full website content (only titles and URLs you explicitly add)</li>
     </ul>
-    
+
     <h2>Third-Party Services</h2>
-    <p>The extension does not integrate with any third-party analytics or advertising services.</p>
+    <h3>Supabase (Optional)</h3>
+    <p>If you choose to enable cloud sync, the extension communicates with your personal Supabase project. Supabase's privacy policy applies to data stored in your project.</p>
+
+    <h3>Favicon Services</h3>
+    <p>The extension may fetch website icons from public favicon services (like Google's favicon API) to display attractive icons for your shortcuts. These requests only include the domain name of websites you've added.</p>
+
+    <h3>No Analytics or Advertising</h3>
+    <p>We do not use any analytics, advertising, or tracking services.</p>
     
-    <h2>Background Images</h2>
-    <p>When you upload a background image, it is stored locally using Chrome's storage API and is not transmitted to any external servers.</p>
-    
+    <h2>Data Security</h2>
+    <p>We implement appropriate security measures to protect your data:</p>
+    <ul>
+      <li>All data is stored locally by default</li>
+      <li>Cloud sync uses secure HTTPS connections</li>
+      <li>No data is transmitted to our servers</li>
+      <li>You maintain full control over your Supabase project and data</li>
+    </ul>
+
+    <h2>Your Rights and Choices</h2>
+    <ul>
+      <li><strong>Data Control:</strong> You can export, import, or delete all your data at any time</li>
+      <li><strong>Cloud Sync:</strong> You can enable or disable cloud synchronization</li>
+      <li><strong>Data Portability:</strong> Export your data in JSON format</li>
+      <li><strong>Data Deletion:</strong> Uninstalling the extension removes all local data</li>
+    </ul>
+
+    <h2>Children's Privacy</h2>
+    <p>Our extension does not knowingly collect personal information from children under 13. The extension is designed for general productivity use and does not target children specifically.</p>
+
     <h2>Changes to This Privacy Policy</h2>
-    <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "last updated" date.</p>
-    
+    <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "last updated" date. Continued use of the extension after changes constitutes acceptance of the updated policy.</p>
+
     <h2>Contact Us</h2>
-    <p>If you have any questions about this Privacy Policy, please contact us at: <a href="mailto:your-email@example.com">your-email@example.com</a></p>
+    <p>If you have any questions about this Privacy Policy or our data practices, please contact us at: <a href="mailto:edaorenchan@gmail.com">edaorenchan@gmail.com</a></p>
   </div>
 
   <script>
