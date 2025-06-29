@@ -372,8 +372,6 @@ function initFloatingButtons() {
   menuBtn.addEventListener('click', (e) => {
     toggleFloatingButtons(!isExpanded);
     e.stopPropagation();
-    // 移除焦点，避免显示光标
-    menuBtn.blur();
   });
 
   // 点击页面其他地方时收起菜单

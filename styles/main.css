@@ -1352,15 +1352,6 @@ header {
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 8px var(--shadow-color);
-  outline: none; /* 移除焦点轮廓 */
-}
-
-/* 为键盘导航用户保留可访问性 */
-.view-btn:focus-visible,
-.add-btn:focus-visible,
-.menu-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
 }
 
 /* 次要按钮样式 */
@@ -4105,26 +4096,3 @@ header {
   background: #3367d6;
 }
 
-/* 全局按钮焦点处理 */
-button {
-  outline: none; /* 移除默认焦点轮廓 */
-}
-
-/* 为键盘导航用户保留可访问性 */
-button:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* 特殊按钮的焦点样式 */
-.primary-btn:focus-visible {
-  outline-color: white;
-}
-
-.secondary-btn:focus-visible {
-  outline-color: var(--primary-color);
-}
-
-.danger-btn:focus-visible {
-  outline-color: var(--danger-color);
-}
