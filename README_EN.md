@@ -190,7 +190,6 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 card-tab/
 ├── index.html                 # Main page entry point
 ├── manifest.json             # Chrome extension configuration
-├── package.json              # Project dependencies and build scripts
 ├── build.js                  # Build and packaging script
 ├── fonts/                    # Local font files
 │   ├── material-symbols-rounded.css                    # Font style definitions
@@ -261,10 +260,12 @@ card-tab/
 
 ```bash
 # Package the extension
-npm run build
+node build.js
 ```
 
 The build script creates `card-tab.zip` ready for Chrome Web Store submission.
+
+> **Note**: This is a pure JavaScript Chrome extension with no npm dependencies. Simply run the build script with Node.js directly.
 
 ### Testing
 

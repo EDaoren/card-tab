@@ -190,7 +190,6 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 card-tab/
 ├── index.html                 # 主页面入口
 ├── manifest.json             # Chrome扩展配置文件
-├── package.json              # 项目依赖和构建脚本
 ├── build.js                  # 构建打包脚本
 ├── fonts/                    # 本地字体文件
 │   ├── material-symbols-rounded.css                    # 字体样式定义
@@ -261,10 +260,12 @@ card-tab/
 
 ```bash
 # 打包扩展
-npm run build
+node build.js
 ```
 
 构建脚本会创建可用于Chrome Web Store提交的`card-tab.zip`文件。
+
+> **注意**: 本项目是纯 JavaScript Chrome 扩展，无需 npm 依赖，直接使用 Node.js 运行构建脚本即可。
 
 ### 测试
 
