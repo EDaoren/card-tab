@@ -3,11 +3,28 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const totalSteps = 8;
+  const totalSteps = 10;
   let currentStep = 0;
 
   try {
     console.log('🚀 Initializing Card Tab...');
+
+    // 确保统一数据管理器已加载
+    if (typeof window.unifiedDataManager === 'undefined') {
+      throw new Error('UnifiedDataManager not loaded');
+    }
+
+    // 更新进度：数据迁移
+    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
+
+    // 首先进行数据迁移（如果需要）
+    await window.unifiedDataManager.migrateFromOldStructure();
+
+    // 更新进度：统一数据管理器初始化
+    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
+
+    // Initialize unified data manager (replaces storage, sync, theme config managers)
+    const initialData = await window.unifiedDataManager.init();
 
     // 更新进度：初始化管理器
     window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
@@ -18,10 +35,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     shortcutManager = new ShortcutManager();
     searchManager = new SearchManager();
 
-    // 更新进度：存储初始化
+    // 更新进度：存储适配器初始化
     window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
 
-    // Initialize storage (loads data from Chrome storage + Supabase)
+    // Initialize storage adapter
     await storageManager.init();
 
     // 更新进度：视图初始化
@@ -30,10 +47,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize view based on saved settings
     await viewManager.initView();
 
-    // 更新进度：同步UI初始化
+    // 更新进度：同步适配器初始化
     window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
 
-    // Initialize sync UI first
+    // Initialize sync adapter
+    await syncManager.init();
+
+    // Initialize sync UI
     await syncUIManager.init();
 
     // 更新进度：主题配置初始化
@@ -59,9 +79,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize icon system after everything is rendered
     iconManager.init();
 
-    // 更新进度：离线管理器初始化
-    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
-
     // Initialize offline manager for network status handling
     if (typeof offlineManager !== 'undefined') {
       offlineManager.init();
@@ -80,6 +97,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('DragManager初始化失败:', error);
       }
     }
+
+    // 更新进度：完成加载
+    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
 
     // 完成加载
     await window.simpleLoadingManager?.completeLoading();
@@ -100,10 +120,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!searchManager) searchManager = new SearchManager();
 
       // 尝试使用默认数据
-      if (!storageManager.data) {
-        storageManager.data = {
+      if (!window.unifiedDataManager.currentConfigData) {
+        window.unifiedDataManager.currentConfigData = {
           categories: [],
-          settings: { viewMode: 'grid' }
+          settings: { viewMode: 'grid' },
+          themeSettings: {
+            theme: 'default',
+            backgroundImageUrl: null,
+            backgroundImagePath: null,
+            backgroundOpacity: 30
+          }
         };
       }
 
@@ -150,14 +176,14 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 function handleDataUpdated(updateInfo) {
   console.log('Handling data update:', updateInfo);
 
-  // 重新加载存储数据
-  if (storageManager) {
-    storageManager.init().then(() => {
-      console.log('Storage data reloaded');
+  // 重新加载统一数据管理器数据
+  if (window.unifiedDataManager) {
+    window.unifiedDataManager.loadCurrentConfigData().then(() => {
+      console.log('Unified data manager data reloaded');
 
       // 重新渲染视图
-      if (viewManager) {
-        viewManager.renderCategories();
+      if (categoryManager) {
+        categoryManager.renderCategories();
         console.log('Categories re-rendered');
       }
 
@@ -229,28 +255,34 @@ function showQuickAddSuccessToast(shortcutName) {
   }, 3000);
 }
 
-// 使用storageManager保存快捷方式
+// 使用统一数据管理器保存快捷方式
 async function handleSaveShortcutViaStorageManager(shortcutData) {
   try {
-    console.log('Using storageManager to save shortcut:', shortcutData);
+    console.log('Using unified data manager to save shortcut:', shortcutData);
 
-    // 确保storageManager已初始化
-    if (!storageManager) {
-      throw new Error('StorageManager not initialized');
+    // 确保统一数据管理器已初始化
+    if (!window.unifiedDataManager || !window.unifiedDataManager.currentConfigData) {
+      throw new Error('Unified data manager not initialized');
     }
 
-    // 获取分类
+    // 获取当前数据
+    const currentData = window.unifiedDataManager.getCurrentConfigData();
     let categoryId = shortcutData.categoryId;
 
     // 如果没有指定分类，使用第一个可用分类
     if (!categoryId) {
-      const categories = storageManager.getSortedCategories();
+      const categories = currentData.categories || [];
       if (categories.length === 0) {
         // 如果没有分类，创建一个默认分类
-        const defaultCategory = await storageManager.addCategory({
+        const defaultCategory = {
+          id: `cat-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           name: '默认分类',
-          color: '#4285f4'
-        });
+          color: '#4285f4',
+          collapsed: false,
+          order: 0,
+          shortcuts: []
+        };
+        currentData.categories.push(defaultCategory);
         categoryId = defaultCategory.id;
         console.log('Created default category:', defaultCategory);
       } else {
@@ -260,22 +292,27 @@ async function handleSaveShortcutViaStorageManager(shortcutData) {
     }
 
     // 验证分类存在
-    const category = storageManager.getCategory(categoryId);
+    const category = currentData.categories.find(cat => cat.id === categoryId);
     if (!category) {
       throw new Error(`Category with ID ${categoryId} not found`);
     }
 
     // 准备快捷方式数据
-    const finalShortcutData = {
+    const newShortcut = {
+      id: `shortcut-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: shortcutData.name,
       url: shortcutData.url,
       iconType: shortcutData.iconType || 'favicon',
       iconColor: shortcutData.iconColor || '#4285f4',
-      iconUrl: shortcutData.iconUrl || ''
+      iconUrl: shortcutData.iconUrl || '',
+      order: Math.max(...category.shortcuts.map(s => s.order || 0), -1) + 1
     };
 
-    // 使用storageManager添加快捷方式
-    const newShortcut = await storageManager.addShortcut(categoryId, finalShortcutData);
+    // 添加快捷方式到分类
+    category.shortcuts.push(newShortcut);
+
+    // 保存数据
+    await window.unifiedDataManager.saveCurrentConfigData(currentData);
     console.log('Shortcut added successfully:', newShortcut);
 
     // 重新渲染分类（如果categoryManager可用）

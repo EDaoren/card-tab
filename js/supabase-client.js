@@ -440,6 +440,42 @@ class SupabaseClient {
   }
 
   /**
+   * 清理文件名，移除特殊字符和中文字符
+   * @param {string} fileName - 原始文件名
+   * @returns {string} 清理后的文件名
+   */
+  sanitizeFileName(fileName) {
+    // 获取文件扩展名
+    const lastDotIndex = fileName.lastIndexOf('.');
+    const name = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
+    const extension = lastDotIndex > 0 ? fileName.substring(lastDotIndex) : '';
+
+    // 清理文件名：
+    // 1. 移除或替换特殊字符
+    // 2. 中文字符转换为拼音或移除
+    // 3. 空格替换为下划线
+    // 4. 括号等特殊符号移除
+    let cleanName = name
+      .replace(/[\u4e00-\u9fff]/g, '') // 移除中文字符
+      .replace(/[^\w\-_.]/g, '_')      // 特殊字符替换为下划线
+      .replace(/_{2,}/g, '_')          // 多个下划线合并为一个
+      .replace(/^_+|_+$/g, '')         // 移除开头和结尾的下划线
+      .toLowerCase();                  // 转换为小写
+
+    // 如果清理后的名称为空，使用默认名称
+    if (!cleanName) {
+      cleanName = 'image';
+    }
+
+    // 限制文件名长度
+    if (cleanName.length > 50) {
+      cleanName = cleanName.substring(0, 50);
+    }
+
+    return cleanName + extension;
+  }
+
+  /**
    * 上传文件到Supabase Storage
    * @param {File} file - 要上传的文件
    * @param {string} bucket - 存储桶名称
@@ -452,8 +488,9 @@ class SupabaseClient {
     }
 
     try {
-      // 生成文件路径
-      const fileName = path || `${this.userId}/${Date.now()}_${file.name}`;
+      // 生成文件路径，使用清理后的文件名
+      const cleanFileName = this.sanitizeFileName(file.name);
+      const fileName = path || `${this.userId}/${Date.now()}_${cleanFileName}`;
 
       // 上传文件
       const { data, error } = await this.client.storage

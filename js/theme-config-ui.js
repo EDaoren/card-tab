@@ -26,6 +26,17 @@ class ThemeConfigUIManager {
   }
 
   /**
+   * 获取正确的 Supabase 客户端实例
+   */
+  getSupabaseClient() {
+    const supabaseClient = window.unifiedDataManager?.supabaseClient;
+    if (!supabaseClient) {
+      throw new Error('Supabase 客户端未初始化');
+    }
+    return supabaseClient;
+  }
+
+  /**
    * 初始化UI管理器
    */
   async init() {
@@ -48,9 +59,6 @@ class ThemeConfigUIManager {
       console.error('ThemeConfigUIManager: 配置管理模态框元素未找到');
       return;
     }
-
-    // 初始化主题配置管理器
-    await themeConfigManager.init();
 
     // 确保当前活跃配置被应用到同步管理器
     await this.applyActiveConfigToSyncManager();
@@ -270,17 +278,9 @@ class ThemeConfigUIManager {
         await this.switchToDynamicConfig(dynamicConfig);
         switchedConfig = dynamicConfig;
       } else {
-        // 使用传统的themeConfigManager切换配置
-        const config = await themeConfigManager.switchConfig(configId);
-        console.log('配置切换到:', config);
-
-        // 更新当前配置到同步管理器
-        await syncManager.saveSupabaseConfig({
-          url: config.supabaseUrl,
-          anonKey: config.supabaseKey,
-          userId: config.userId,
-          enabled: true
-        });
+        // 使用统一数据管理器切换配置
+        await window.unifiedDataManager.switchConfig(configId);
+        console.log('配置切换到:', configId);
 
         console.log('同步管理器配置已更新');
 
@@ -336,41 +336,26 @@ class ThemeConfigUIManager {
     try {
       console.log('切换到动态配置（旁路缓存模式）:', config.userId);
 
-      // 1. 更新Supabase配置（主存储）
-      await syncManager.saveSupabaseConfig({
-        url: supabaseClient.config?.url,
-        anonKey: supabaseClient.config?.anonKey,
-        userId: config.userId,
-        enabled: true
-      });
-      console.log('Supabase配置已更新到主存储');
+      // 使用 UnifiedDataManager 进行配置切换
+      await window.unifiedDataManager.switchConfig(config.userId);
+      console.log('配置切换完成');
 
-      // 2. 清除Chrome Storage缓存
-      await syncManager.clearChromeStorageCache();
-      console.log('Chrome Storage缓存已清除');
-
-      // 3. 重新初始化连接到新用户（验证连接）
-      await supabaseClient.initialize({
-        url: supabaseClient.config?.url,
-        anonKey: supabaseClient.config?.anonKey,
-        userId: config.userId
-      }, true); // shouldTest = true，验证新配置是否有效
-
-      // 4. 更新syncManager状态
+      // 更新 syncManager 状态（保持兼容性）
       if (typeof syncManager !== 'undefined') {
-        syncManager.isSupabaseEnabled = true;
-        syncManager.currentSupabaseConfig = {
-          url: supabaseClient.config?.url,
-          anonKey: supabaseClient.config?.anonKey,
-          userId: config.userId,
-          enabled: true
-        };
+        const currentConfig = window.unifiedDataManager.getCurrentConfig();
+        syncManager.isSupabaseEnabled = currentConfig.type === 'supabase';
+
+        if (currentConfig.type === 'supabase') {
+          // 从存储中获取 Supabase 配置
+          const result = await new Promise((resolve) => {
+            chrome.storage.sync.get(['supabase_config'], resolve);
+          });
+          syncManager.currentSupabaseConfig = result.supabase_config;
+        }
       }
 
-      // 5. 同步更新传统配置系统（确保两套系统一致）
-      console.log('同步更新传统配置系统...');
-      await this.syncDynamicConfigToTraditional(config);
-      console.log('传统配置系统已同步更新');
+      // 5. 刷新页面组件以应用新配置
+      await this.refreshPageAfterConfigSwitch();
 
       console.log('动态配置切换完成（旁路缓存模式），新用户ID:', config.userId);
     } catch (error) {
@@ -380,45 +365,61 @@ class ThemeConfigUIManager {
   }
 
   /**
+   * 配置切换后刷新页面组件
+   */
+  async refreshPageAfterConfigSwitch() {
+    try {
+      console.log('ThemeConfigUI: 配置切换后刷新页面组件');
+
+      // 1. 重新初始化存储管理器（重新加载数据）
+      if (typeof storageManager !== 'undefined') {
+        await storageManager.init();
+        console.log('ThemeConfigUI: 存储管理器已重新初始化');
+      }
+
+      // 2. 重新渲染分类数据
+      if (typeof categoryManager !== 'undefined') {
+        await categoryManager.renderCategories();
+        console.log('ThemeConfigUI: 分类数据已重新渲染');
+      }
+
+      // 3. 重新应用主题设置
+      if (typeof loadThemeSettings === 'function') {
+        await loadThemeSettings();
+        console.log('ThemeConfigUI: 主题设置已重新加载和应用');
+      }
+
+      // 4. 重新应用视图模式
+      if (typeof viewManager !== 'undefined') {
+        await viewManager.initView();
+        console.log('ThemeConfigUI: 视图模式已重新应用');
+      }
+
+      // 5. 更新背景图片
+      if (typeof updateBackgroundImageUI === 'function') {
+        updateBackgroundImageUI();
+        console.log('ThemeConfigUI: 背景图片UI已更新');
+      }
+
+      // 6. 更新配置切换显示
+      await this.updateConfigSwitchDisplay();
+      console.log('ThemeConfigUI: 配置切换显示已更新');
+
+      console.log('ThemeConfigUI: 页面组件刷新完成');
+    } catch (error) {
+      console.error('ThemeConfigUI: 刷新页面组件失败:', error);
+    }
+  }
+
+  /**
    * 同步动态配置到传统配置系统
    * 确保动态配置切换时，传统配置系统也能正确更新
    */
   async syncDynamicConfigToTraditional(dynamicConfig) {
-    try {
-      console.log('开始同步动态配置到传统配置系统:', dynamicConfig.userId);
-
-      // 1. 查找或创建对应的传统配置
-      let traditionalConfig = themeConfigManager.configs.find(c => c.userId === dynamicConfig.userId);
-
-      if (!traditionalConfig) {
-        // 如果不存在，创建新的传统配置
-        console.log('创建新的传统配置:', dynamicConfig.userId);
-        traditionalConfig = {
-          id: `theme_config_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          displayName: dynamicConfig.displayName || `配置_${dynamicConfig.userId}`,
-          userId: dynamicConfig.userId,
-          supabaseUrl: supabaseClient.config?.url || '',
-          supabaseKey: supabaseClient.config?.anonKey || '',
-          isActive: false,
-          isDefault: false,
-          createdAt: new Date().toISOString(),
-          lastModified: new Date().toISOString(),
-          lastSync: new Date().toISOString(),
-          shortcutCount: dynamicConfig.shortcutCount || 0
-        };
-
-        themeConfigManager.configs.push(traditionalConfig);
-      }
-
-      // 2. 切换到这个传统配置
-      console.log('切换传统配置系统到:', traditionalConfig.id);
-      await themeConfigManager.switchConfig(traditionalConfig.id);
-
-      console.log('动态配置已同步到传统配置系统');
-    } catch (error) {
-      console.error('同步动态配置到传统配置系统失败:', error);
-      // 不抛出错误，避免影响主流程
-    }
+    // 此方法已废弃，因为现在使用统一数据管理器
+    // 保留方法签名以避免调用错误，但不执行任何操作
+    console.log('syncDynamicConfigToTraditional: 方法已废弃，使用统一数据管理器');
+    console.log('配置切换已通过 UnifiedDataManager 完成:', dynamicConfig.userId);
   }
 
   /**
@@ -478,12 +479,10 @@ class ThemeConfigUIManager {
         console.log('🔄 重新加载快捷方式数据...');
         await storageManager.init();
         console.log('✅ 快捷方式数据加载完成');
-      } else if (typeof loadData === 'function') {
-        console.log('🔄 重新加载快捷方式数据（备选方案）...');
-        await loadData();
-        console.log('✅ 快捷方式数据加载完成');
       } else {
-        console.warn('⚠️ storageManager 和 loadData 函数都不存在');
+        console.log('🔄 重新加载快捷方式数据（统一数据管理器）...');
+        await window.unifiedDataManager.loadCurrentConfigData();
+        console.log('✅ 快捷方式数据加载完成');
       }
 
       // 7. 重新渲染快捷方式
@@ -769,6 +768,7 @@ class ThemeConfigUIManager {
       });
 
       // 获取总数
+      const supabaseClient = this.getSupabaseClient();
       const totalCount = await supabaseClient.getDataCount();
       this.pagination.totalCount = totalCount;
       this.pagination.totalPages = Math.ceil(totalCount / this.pagination.pageSize);
@@ -1453,16 +1453,9 @@ class ThemeConfigUIManager {
     }
 
     try {
-      // 检查是否是动态配置（从Supabase查询的用户配置）
-      const isDynamicConfig = !themeConfigManager.configs.find(c => c.id === configId);
-
-      if (isDynamicConfig) {
-        console.log('删除动态配置:', config);
-        await this.deleteDynamicConfig(config);
-      } else {
-        console.log('删除传统配置:', config);
-        await themeConfigManager.deleteConfig(configId);
-      }
+      // 使用统一数据管理器删除配置
+      console.log('删除配置:', config);
+      await window.unifiedDataManager.deleteConfig(configId);
 
       this.showMessage('配置删除成功！', 'success');
 
@@ -1484,13 +1477,23 @@ class ThemeConfigUIManager {
     try {
       console.log('开始删除动态配置的Supabase数据:', config.userId);
 
-      // 获取当前Supabase连接信息
-      const currentConnection = supabaseClient.getConnectionStatus();
+      // 获取正确的 Supabase 客户端和配置信息
+      const supabaseClient = this.getSupabaseClient();
+
+      // 从存储中获取当前 Supabase 配置
+      const result = await new Promise((resolve) => {
+        chrome.storage.sync.get(['supabase_config'], resolve);
+      });
+      const currentConfig = result.supabase_config;
+
+      if (!currentConfig || !currentConfig.url || !currentConfig.anonKey) {
+        throw new Error('无法获取 Supabase 配置信息');
+      }
 
       // 临时切换到目标用户进行删除操作
       await supabaseClient.initialize({
-        url: currentConnection.config.url,
-        anonKey: currentConnection.config.anonKey,
+        url: currentConfig.url,
+        anonKey: currentConfig.anonKey,
         userId: config.userId
       });
 
@@ -1499,11 +1502,12 @@ class ThemeConfigUIManager {
       console.log('动态配置的Supabase数据已删除');
 
       // 恢复到原来的连接
-      if (syncManager.currentSupabaseConfig) {
+      const currentUser = window.unifiedDataManager.getCurrentConfig();
+      if (currentUser && currentUser.type === 'supabase') {
         await supabaseClient.initialize({
-          url: syncManager.currentSupabaseConfig.url,
-          anonKey: syncManager.currentSupabaseConfig.anonKey,
-          userId: syncManager.currentSupabaseConfig.userId
+          url: currentConfig.url,
+          anonKey: currentConfig.anonKey,
+          userId: currentUser.userId
         });
         console.log('已恢复到原始Supabase连接');
       }

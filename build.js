@@ -46,15 +46,16 @@ const filesToExclude = [
   '.gitignore',
   'build',
 
-  // Temporary documentation files (已清理)
-  'CONFIG_IMPORT_UI_REFRESH_FIX.md',
-  'EXPORT_FILENAME_UPDATE.md',
-  'SUPABASE_OPTIMIZATION_SUMMARY.md',
-
   // Development tools
   'verify-csp-compliance.js',
   'csp-violations-report.json',
-  'init-github.bat'
+  'init-github.bat',
+  '数据库设计.txt',
+
+  // Stage-specific documentation (已清理)
+  'TROUBLESHOOTING.md',
+  'QUICK_ADD_GUIDE.md',
+  'store-listing.md'
 ];
 
 /**

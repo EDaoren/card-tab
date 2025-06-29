@@ -90,6 +90,8 @@ class SyncUIManager {
       testBtn.addEventListener('click', () => this.testConnection());
     }
 
+
+
     // 启用同步
     const enableBtn = document.getElementById('enable-sync');
     if (enableBtn) {
@@ -312,6 +314,8 @@ class SyncUIManager {
       console.error('加载配置失败:', error);
     }
   }
+
+
 
   /**
    * 测试连接

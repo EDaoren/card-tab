@@ -2,6 +2,17 @@
  * 主题和背景图片设置管理
  */
 
+/**
+ * 获取正确的 Supabase 客户端实例
+ */
+function getSupabaseClient() {
+  const supabaseClient = window.unifiedDataManager?.supabaseClient;
+  if (!supabaseClient) {
+    throw new Error('Supabase 客户端未初始化');
+  }
+  return supabaseClient;
+}
+
 // 主题设置相关元素
 const themeBtn = document.getElementById('theme-btn');
 const themeModal = document.getElementById('theme-modal');
@@ -324,6 +335,7 @@ async function applyBackgroundImage() {
     applyBgBtn.textContent = '上传中...';
 
     // 上传文件到Supabase Storage
+    const supabaseClient = getSupabaseClient();
     const uploadResult = await supabaseClient.uploadFile(tempBgImageFile);
 
     if (uploadResult.success) {
@@ -384,6 +396,7 @@ async function removeBackgroundImage() {
     // 删除Supabase Storage中的文件
     if (currentBgImagePath && isBackgroundImageAvailable()) {
       try {
+        const supabaseClient = getSupabaseClient();
         await supabaseClient.deleteFile('backgrounds', currentBgImagePath);
         console.log('背景图片文件已从云端删除');
       } catch (error) {
@@ -611,7 +624,6 @@ async function reloadThemeAfterConfigSwitch() {
 
     // 强制重新加载，跳过缓存
     if (window.syncManager) {
-      const preferCloud = syncManager.isSupabaseEnabled;
       await loadThemeSettings();
       console.log('🔄 Theme: 配置切换后主题设置重新加载完成');
     }

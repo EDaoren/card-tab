@@ -17,17 +17,15 @@ class SimpleLoadingManager {
    * 初始化加载管理器
    */
   init() {
-    console.log('🚀 Simple Loading Manager initialized');
-    
     // 移除no-js类，表示JavaScript已加载
     document.body.classList.remove('no-js');
-    
+
     // 预加载字体
     this.preloadFont();
-    
+
     // 设置加载超时
     this.setupLoadingTimeout();
-    
+
     // 监听字体加载
     this.monitorFontLoading();
   }
@@ -113,13 +111,11 @@ class SimpleLoadingManager {
   updateProgress(step, total) {
     this.currentStep = step;
     const percentage = Math.round((step / total) * 100);
-    
+
     const loadingText = document.querySelector('.loading-text');
     if (loadingText) {
       loadingText.textContent = `正在加载... ${percentage}%`;
     }
-    
-    console.log(`📊 Loading progress: ${step}/${total} (${percentage}%)`);
   }
 
   /**
@@ -127,18 +123,23 @@ class SimpleLoadingManager {
    */
   async completeLoading() {
     if (this.isLoaded) return;
-    
+
     const loadingTime = Date.now() - this.loadingStartTime;
-    console.log(`⏱️ Total loading time: ${loadingTime}ms`);
-    
+
+    // 在完成前显示100%
+    const loadingText = document.querySelector('.loading-text');
+    if (loadingText) {
+      loadingText.textContent = '正在加载... 100%';
+    }
+
     // 确保最小加载时间，避免闪烁
     const remainingTime = Math.max(0, this.minLoadingTime - loadingTime);
     if (remainingTime > 0) {
       await new Promise(resolve => setTimeout(resolve, remainingTime));
     }
-    
+
     this.isLoaded = true;
-    
+
     // 隐藏加载指示器
     const loadingIndicator = document.getElementById('loading-indicator');
     if (loadingIndicator) {
@@ -147,11 +148,9 @@ class SimpleLoadingManager {
         loadingIndicator.style.display = 'none';
       }, 300);
     }
-    
+
     // 显示主内容
     document.body.classList.add('loaded');
-    
-    console.log('✅ Loading completed successfully');
   }
 
   /**
