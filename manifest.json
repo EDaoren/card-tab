@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Card Tab",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "现代化的新标签页，支持分类书签管理、主题定制和云端同步，提升您的浏览效率",
   "permissions": ["storage", "activeTab", "contextMenus"],
   "background": {
