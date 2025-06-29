@@ -645,15 +645,24 @@ class ThemeConfigUIManager {
   async openConfigManagementModal() {
     if (!this.configManagementModal) return;
 
-    // 加载配置列表（包含渲染）
-    await this.loadConfigList();
-
+    // 立即显示模态框，提供即时响应
     this.configManagementModal.style.display = 'flex';
     this.configManagementModal.offsetHeight;
     this.configManagementModal.classList.add('show');
 
     // 绑定模态框事件
     this.bindConfigManagementEvents();
+
+    // 显示加载状态
+    this.showConfigListLoading();
+
+    // 异步加载配置列表
+    try {
+      await this.loadConfigList();
+    } catch (error) {
+      console.error('加载配置列表失败:', error);
+      this.showConfigListError();
+    }
   }
 
   /**
@@ -666,6 +675,46 @@ class ThemeConfigUIManager {
     setTimeout(() => {
       this.configManagementModal.style.display = 'none';
     }, 300);
+  }
+
+  /**
+   * 显示配置列表加载状态
+   */
+  showConfigListLoading() {
+    const configList = document.getElementById('config-list');
+    const configEmpty = document.getElementById('config-empty');
+
+    if (configList) {
+      configList.innerHTML = `
+        <div class="config-loading">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">正在加载配置列表...</div>
+        </div>
+      `;
+      configList.style.display = 'block';
+    }
+
+    if (configEmpty) {
+      configEmpty.style.display = 'none';
+    }
+  }
+
+  /**
+   * 显示配置列表错误状态
+   */
+  showConfigListError() {
+    const configList = document.getElementById('config-list');
+
+    if (configList) {
+      configList.innerHTML = `
+        <div class="config-error">
+          <div class="error-icon">⚠️</div>
+          <div class="error-text">加载配置列表失败</div>
+          <button class="retry-btn" onclick="themeConfigUIManager.loadConfigList()">重试</button>
+        </div>
+      `;
+      configList.style.display = 'block';
+    }
   }
 
   /**
