@@ -131,21 +131,26 @@
       <!-- Categories will be dynamically inserted here -->
     </main>
 
-    <div class="floating-buttons">
-      <button id="sync-btn" class="view-btn" title="云端同步">
-        <span class="material-symbols-rounded">sync</span>
-      </button>
-      <button id="theme-btn" class="view-btn" title="切换主题">
-        <span class="material-symbols-rounded">palette</span>
-      </button>
-      <button id="grid-view-btn" class="view-btn active" title="网格视图">
-        <span class="material-symbols-rounded">grid_view</span>
-      </button>
-      <button id="list-view-btn" class="view-btn" title="列表视图">
-        <span class="material-symbols-rounded">view_list</span>
-      </button>
-      <button id="add-category-btn" class="add-btn" title="添加分类">
-        <span class="material-symbols-rounded">add</span>
+    <div class="floating-buttons" id="floating-buttons">
+      <div class="floating-buttons-group collapsed" id="floating-buttons-group">
+        <button id="sync-btn" class="view-btn secondary-btn" title="云端同步">
+          <span class="material-symbols-rounded">sync</span>
+        </button>
+        <button id="theme-btn" class="view-btn secondary-btn" title="切换主题">
+          <span class="material-symbols-rounded">palette</span>
+        </button>
+        <button id="grid-view-btn" class="view-btn secondary-btn active" title="网格视图">
+          <span class="material-symbols-rounded">grid_view</span>
+        </button>
+        <button id="list-view-btn" class="view-btn secondary-btn" title="列表视图">
+          <span class="material-symbols-rounded">view_list</span>
+        </button>
+        <button id="add-category-btn" class="add-btn secondary-btn" title="添加分类">
+          <span class="material-symbols-rounded">add</span>
+        </button>
+      </div>
+      <button id="menu-toggle-btn" class="menu-btn primary-btn" title="菜单">
+        <span class="material-symbols-rounded">menu</span>
       </button>
     </div>
   </div>

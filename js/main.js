@@ -101,6 +101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 更新进度：完成加载
     window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
 
+    // 初始化悬浮按钮
+    initFloatingButtons();
+
     // 完成加载
     await window.simpleLoadingManager?.completeLoading();
 
@@ -350,6 +353,50 @@ function testQuickAddFunction() {
     alert('❌ Chrome 扩展 API 不可用\n\n这可能是因为：\n1. 扩展未正确加载\n2. 权限配置错误\n3. 在不支持的页面上运行');
     return;
   }
+}
 
+/**
+ * 初始化悬浮按钮的展开/收起功能
+ */
+function initFloatingButtons() {
+  const menuBtn = document.getElementById('menu-toggle-btn');
+  const buttonsGroup = document.getElementById('floating-buttons-group');
+  let isExpanded = false;
 
+  if (!menuBtn || !buttonsGroup) {
+    console.warn('悬浮按钮元素未找到');
+    return;
+  }
+
+  // 点击菜单按钮切换展开/收起状态
+  menuBtn.addEventListener('click', (e) => {
+    toggleFloatingButtons(!isExpanded);
+    e.stopPropagation();
+    // 移除焦点，避免显示光标
+    menuBtn.blur();
+  });
+
+  // 点击页面其他地方时收起菜单
+  document.addEventListener('click', (e) => {
+    if (isExpanded && !e.target.closest('.floating-buttons')) {
+      toggleFloatingButtons(false);
+    }
+  });
+
+  // 切换展开/收起状态
+  function toggleFloatingButtons(expand) {
+    isExpanded = expand;
+
+    if (expand) {
+      buttonsGroup.classList.remove('collapsed');
+      buttonsGroup.classList.add('expanded');
+      menuBtn.title = '收起菜单';
+    } else {
+      buttonsGroup.classList.remove('expanded');
+      buttonsGroup.classList.add('collapsed');
+      menuBtn.title = '展开菜单';
+    }
+  }
+
+  console.log('✅ 悬浮按钮初始化完成');
 }

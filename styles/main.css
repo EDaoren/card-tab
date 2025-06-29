@@ -1310,16 +1310,38 @@ header {
 /* 浮动按钮 */
 .floating-buttons {
   position: fixed;
-  right: 30px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 24px;
+  bottom: 24px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 12px;
   z-index: 10;
 }
 
-.view-btn, .add-btn {
+.floating-buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: bottom right;
+}
+
+.floating-buttons-group.collapsed {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.8) translateY(20px);
+  pointer-events: none;
+}
+
+.floating-buttons-group.expanded {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1) translateY(0);
+  pointer-events: all;
+}
+
+.view-btn, .add-btn, .menu-btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -1330,26 +1352,61 @@ header {
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 8px var(--shadow-color);
+  outline: none; /* 移除焦点轮廓 */
 }
 
-.view-btn {
+/* 为键盘导航用户保留可访问性 */
+.view-btn:focus-visible,
+.add-btn:focus-visible,
+.menu-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* 次要按钮样式 */
+.secondary-btn {
   background-color: var(--card-bg-color);
   color: var(--text-secondary);
 }
 
-.view-btn.active, .view-btn:hover {
+.secondary-btn.active, .secondary-btn:hover {
   background-color: var(--primary-color);
   color: white;
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.add-btn {
+/* 主要按钮样式 */
+.primary-btn {
   background-color: var(--primary-color);
   color: white;
+  position: relative;
+  overflow: hidden;
 }
 
-.add-btn:hover {
+.primary-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 菜单按钮的展开/收起指示 */
+.menu-btn .material-symbols-rounded {
+  transition: transform 0.3s ease;
+}
+
+.floating-buttons-group.expanded + .menu-btn .material-symbols-rounded {
+  transform: rotate(90deg);
+}
+
+/* 菜单按钮特殊样式 */
+.menu-btn {
+  background-color: var(--primary-color);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -2154,7 +2211,8 @@ header {
   }
   
   .floating-buttons {
-    right: 15px;
+    right: 16px;
+    bottom: 16px;
   }
   
   .view-btn, .add-btn {
@@ -4045,4 +4103,28 @@ header {
 
 .retry-btn:hover {
   background: #3367d6;
+}
+
+/* 全局按钮焦点处理 */
+button {
+  outline: none; /* 移除默认焦点轮廓 */
+}
+
+/* 为键盘导航用户保留可访问性 */
+button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* 特殊按钮的焦点样式 */
+.primary-btn:focus-visible {
+  outline-color: white;
+}
+
+.secondary-btn:focus-visible {
+  outline-color: var(--primary-color);
+}
+
+.danger-btn:focus-visible {
+  outline-color: var(--danger-color);
 }
