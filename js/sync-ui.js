@@ -650,10 +650,8 @@ ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
    */
   async refreshConfigurationUI() {
     try {
-      // 1. 刷新主题配置管理器
-      if (typeof themeConfigManager !== 'undefined') {
-        await themeConfigManager.loadConfigs();
-      }
+      // 1. 刷新配置数据
+      await window.unifiedDataManager.loadCurrentConfigData();
 
       // 2. 使用专门的配置导入处理方法
       if (typeof themeConfigUIManager !== 'undefined' && themeConfigUIManager.handleConfigurationImported) {
@@ -712,10 +710,8 @@ ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
    */
   async refreshConfigurationUIAfterDataImport() {
     try {
-      // 1. 重新加载主题配置管理器（导入的数据可能包含themeConfigs）
-      if (typeof themeConfigManager !== 'undefined') {
-        await themeConfigManager.loadConfigs();
-      }
+      // 1. 重新加载配置数据
+      await window.unifiedDataManager.loadCurrentConfigData();
 
       // 2. 刷新配置UI管理器
       if (typeof themeConfigUIManager !== 'undefined') {

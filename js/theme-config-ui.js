@@ -846,7 +846,7 @@ class ThemeConfigUIManager {
     try {
       console.log('ThemeConfigUI: 从本地加载配置列表');
 
-      const allConfigs = themeConfigManager.getAllConfigs();
+      const allConfigs = window.unifiedDataManager.getAllConfigs();
 
       // 应用排序
       this.sortConfigs(allConfigs);
@@ -903,10 +903,8 @@ class ThemeConfigUIManager {
    */
   async handleConfigurationImported() {
     try {
-      // 1. 重新加载配置管理器的配置
-      if (typeof themeConfigManager !== 'undefined') {
-        await themeConfigManager.loadConfigs();
-      }
+      // 1. 重新加载配置数据
+      await window.unifiedDataManager.loadCurrentConfigData();
 
       // 2. 强制刷新配置列表
       await this.forceRefreshConfigList();

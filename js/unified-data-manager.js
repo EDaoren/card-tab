@@ -456,6 +456,32 @@ class UnifiedDataManager {
   }
 
   /**
+   * 获取所有配置（兼容旧的 themeConfigManager.getAllConfigs）
+   */
+  getAllConfigs() {
+    const configs = [];
+
+    for (const [configId, config] of Object.entries(this.appData.userConfigs)) {
+      // 跳过默认配置，因为它不应该出现在云端配置管理中
+      if (configId === this.DEFAULT_CONFIG_ID) {
+        continue;
+      }
+
+      configs.push({
+        id: configId,
+        displayName: config.displayName,
+        userId: configId,
+        type: config.type,
+        isActive: config.isActive,
+        createdAt: new Date().toISOString(), // 临时值，实际应该从数据中获取
+        lastModified: new Date().toISOString() // 临时值，实际应该从数据中获取
+      });
+    }
+
+    return configs;
+  }
+
+  /**
    * Chrome Storage Local 操作
    */
   async getFromChromeStorageLocal(keys) {
