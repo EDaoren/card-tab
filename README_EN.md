@@ -23,6 +23,8 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 - **☁️ Cloud Sync** - Optional Supabase data synchronization
 - **🌐 Offline Ready** - Works without internet connection
 - **⚡ Local Fonts** - Built-in icon fonts, no external loading
+- **🖱️ Right-click Add** - Quick add shortcuts from any webpage
+- **⚙️ Multi-config** - Support multiple cloud configurations
 
 ## Screenshots
 
