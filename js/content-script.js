@@ -381,7 +381,7 @@ function addQuickAddStyles() {
       width: 0;
       background: linear-gradient(90deg, #10b981, #059669);
       border-radius: 2px;
-      transition: width 2s linear;
+      transition: width 1.5s linear;
     }
 
     .card-tab-timer-active::before {
@@ -609,7 +609,7 @@ async function handleSave(pageInfo) {
           quickAddModal.remove();
           quickAddModal = null;
         }
-      }, 2000);
+      }, 1500);
     } else {
       throw new Error(response?.error || '保存失败');
     }
@@ -639,7 +639,7 @@ function showInlineSuccessMessage() {
       <p class="card-tab-success-message">快捷方式已保存到 Card Tab</p>
       <div class="card-tab-success-timer">
         <div class="card-tab-timer-bar"></div>
-        <span class="card-tab-timer-text">2秒后自动关闭</span>
+        <span class="card-tab-timer-text">1.5秒后自动关闭</span>
       </div>
     </div>
   `;
@@ -658,7 +658,7 @@ function startTimerAnimation() {
 
   if (!timerBar || !timerText) return;
 
-  let timeLeft = 2;
+  let timeLeft = 1.5;
 
   // 启动进度条动画
   setTimeout(() => {
@@ -667,14 +667,14 @@ function startTimerAnimation() {
 
   // 更新倒计时文字
   const countdown = setInterval(() => {
-    timeLeft--;
+    timeLeft -= 0.5;
     if (timeLeft > 0) {
       timerText.textContent = `${timeLeft}秒后自动关闭`;
     } else {
       timerText.textContent = '正在关闭...';
       clearInterval(countdown);
     }
-  }, 1000);
+  }, 500);
 }
 
 // 表单验证辅助函数

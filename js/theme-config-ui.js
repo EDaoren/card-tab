@@ -1444,7 +1444,18 @@ class ThemeConfigUIManager {
    */
   async deleteConfig(configId) {
     const config = this.currentConfigs.find(c => c.id === configId);
-    if (!config) return;
+    if (!config) {
+      console.error('配置不存在:', configId);
+      this.showMessage('配置不存在', 'error');
+      return;
+    }
+
+    // 检查是否是当前配置
+    const currentConfig = window.unifiedDataManager.getCurrentConfig();
+    if (currentConfig.configId === configId) {
+      this.showMessage('不能删除当前正在使用的配置，请先切换到其他配置', 'error');
+      return;
+    }
 
     if (!confirm(`确定要删除配置 "${config.displayName}" 吗？此操作不可撤销。`)) {
       return;
@@ -1453,6 +1464,7 @@ class ThemeConfigUIManager {
     try {
       // 使用统一数据管理器删除配置
       console.log('删除配置:', config);
+      console.log('配置ID:', configId);
       await window.unifiedDataManager.deleteConfig(configId);
 
       this.showMessage('配置删除成功！', 'success');

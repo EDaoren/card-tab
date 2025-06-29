@@ -980,30 +980,81 @@ class UnifiedDataManager {
   async deleteConfig(configId) {
     try {
       console.log(`UnifiedDataManager: 删除配置 ${configId}`);
+      console.log('当前所有配置:', Object.keys(this.appData.userConfigs));
 
       // 1. 不能删除默认配置
       if (configId === this.DEFAULT_CONFIG_ID) {
         throw new Error('不能删除默认配置');
       }
 
-      // 2. 如果是当前配置，先切换到默认配置
+      // 2. 不能删除当前配置
       if (this.appData.currentUser.configId === configId) {
-        await this.switchConfig(this.DEFAULT_CONFIG_ID);
+        throw new Error('不能删除当前正在使用的配置，请先切换到其他配置');
       }
 
-      // 3. 清除缓存
+      // 3. 获取要删除的配置信息（如果存在）
+      const configToDelete = this.appData.userConfigs[configId];
+
+      // 4. 删除云端数据（不管本地是否有配置，都尝试删除云端数据）
+      if (this.supabaseClient) {
+        await this.deleteCloudConfigData(configId);
+      }
+
+      // 5. 清除缓存
       await this.clearCache(configId);
 
-      // 4. 删除配置
-      delete this.appData.userConfigs[configId];
-
-      // 5. 保存 app_data
-      await this.saveAppData();
+      // 6. 删除配置（如果本地存在）
+      if (configToDelete) {
+        delete this.appData.userConfigs[configId];
+        // 保存 app_data
+        await this.saveAppData();
+        console.log(`UnifiedDataManager: 本地配置 ${configId} 已删除`);
+      } else {
+        console.log(`UnifiedDataManager: 本地配置 ${configId} 不存在，跳过本地删除`);
+      }
 
       console.log(`UnifiedDataManager: 配置 ${configId} 删除成功`);
     } catch (error) {
       console.error(`UnifiedDataManager: 删除配置失败:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * 删除云端配置数据
+   */
+  async deleteCloudConfigData(configId) {
+    try {
+      console.log(`UnifiedDataManager: 删除云端配置数据 ${configId}`);
+
+      // 获取当前 Supabase 配置
+      const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
+      const currentConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
+
+      if (!currentConfig || !currentConfig.url || !currentConfig.anonKey) {
+        console.warn('UnifiedDataManager: 无法获取 Supabase 配置，跳过云端数据删除');
+        return;
+      }
+
+      // 临时切换到目标用户进行删除操作
+      const originalConfig = this.supabaseClient.config;
+      await this.supabaseClient.initialize({
+        url: currentConfig.url,
+        anonKey: currentConfig.anonKey,
+        userId: configId
+      });
+
+      // 删除 Supabase 中的用户数据
+      await this.supabaseClient.deleteData();
+      console.log(`UnifiedDataManager: 云端配置数据 ${configId} 已删除`);
+
+      // 恢复原来的配置
+      if (originalConfig) {
+        await this.supabaseClient.initialize(originalConfig);
+      }
+    } catch (error) {
+      console.warn(`UnifiedDataManager: 删除云端配置数据失败:`, error);
+      // 不抛出错误，因为本地删除仍然可以继续
     }
   }
 
