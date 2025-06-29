@@ -811,10 +811,12 @@ class UnifiedDataManager {
           [this.STORAGE_KEYS.SUPABASE_CONFIG]: updatedConfig
         });
 
-        // 重新初始化 Supabase 客户端以使用新的 userId
+        // 更新 Supabase 客户端的 userId（避免重新创建客户端实例）
         if (this.supabaseClient) {
-          await this.supabaseClient.initialize(updatedConfig);
-          console.log(`UnifiedDataManager: Supabase 客户端已切换到用户 ${newUserId}`);
+          this.supabaseClient.config = updatedConfig;
+          this.supabaseClient.userId = newUserId;
+          this.supabaseClient.currentConfigHash = this.supabaseClient.generateConfigHash(updatedConfig);
+          console.log(`UnifiedDataManager: Supabase 客户端 userId 已更新为 ${newUserId}`);
         }
 
         console.log(`UnifiedDataManager: Supabase 配置 userId 更新完成`);
