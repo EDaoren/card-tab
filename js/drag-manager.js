@@ -237,39 +237,96 @@ class DragManager {
     category.removeEventListener('dragleave', category._dragLeave);
     category.removeEventListener('drop', category._drop);
 
-    // dragover - 美观版（去掉粗虚线）
+    // dragover - 支持分类拖拽和快捷方式跨分类拖拽
     category._dragOver = (e) => {
       e.preventDefault();
+
       if (this.draggedType === 'category' && this.draggedElement !== category) {
+        // 分类拖拽 - 红色提示
         category.style.borderTop = '2px solid rgba(255, 68, 68, 0.6)';
         category.style.backgroundColor = 'rgba(255, 68, 68, 0.05)';
         category.style.transform = 'scale(1.01)';
         category.style.transition = 'all 0.2s ease';
         category.style.boxShadow = '0 2px 8px rgba(255, 68, 68, 0.15)';
+      } else if (this.draggedType === 'shortcut' && this.draggedElement) {
+        // 快捷方式跨分类拖拽 - 绿色提示
+        const draggedCategory = this.draggedElement.closest('.category-card');
+        if (draggedCategory && draggedCategory.dataset.id !== categoryId) {
+          category.style.border = '2px solid rgba(52, 168, 83, 0.6)';
+          category.style.backgroundColor = 'rgba(52, 168, 83, 0.05)';
+          category.style.transform = 'scale(1.02)';
+          category.style.transition = 'all 0.2s ease';
+          category.style.boxShadow = '0 4px 12px rgba(52, 168, 83, 0.2)';
+
+          // 在分类标题上显示提示
+          const header = category.querySelector('.category-header');
+          if (header && !header.querySelector('.drop-hint')) {
+            const hint = document.createElement('div');
+            hint.className = 'drop-hint';
+            hint.textContent = '移动到此分类';
+            hint.style.cssText = `
+              position: absolute;
+              top: -25px;
+              right: 10px;
+              background: rgba(52, 168, 83, 0.9);
+              color: white;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 12px;
+              pointer-events: none;
+              z-index: 1000;
+            `;
+            header.style.position = 'relative';
+            header.appendChild(hint);
+          }
+        }
       }
     };
 
-    // dragleave - 美观版
+    // dragleave - 清理样式和提示
     category._dragLeave = (e) => {
       if (!category.contains(e.relatedTarget)) {
+        // 清理所有拖拽样式
         category.style.borderTop = '';
+        category.style.border = '';
         category.style.backgroundColor = this.draggedElement !== category ? 'rgba(255, 68, 68, 0.02)' : '';
         category.style.transform = this.draggedElement !== category ? 'scale(1.005)' : '';
         category.style.boxShadow = '';
+
+        // 移除提示文字
+        const hint = category.querySelector('.drop-hint');
+        if (hint) {
+          hint.remove();
+        }
       }
     };
 
-    // drop - 美观版
+    // drop - 处理分类拖拽和快捷方式跨分类拖拽
     category._drop = async (e) => {
       e.preventDefault();
+
+      // 清理所有样式
       category.style.borderTop = '';
+      category.style.border = '';
       category.style.backgroundColor = '';
       category.style.transform = '';
       category.style.boxShadow = '';
 
-      if (this.draggedType === 'category' && this.draggedElement !== category) {
+      // 移除提示文字
+      const hint = category.querySelector('.drop-hint');
+      if (hint) {
+        hint.remove();
+      }
 
+      if (this.draggedType === 'category' && this.draggedElement !== category) {
+        // 分类拖拽
         await this.handleCategoryDrop(categoryId);
+      } else if (this.draggedType === 'shortcut' && this.draggedElement) {
+        // 快捷方式跨分类拖拽
+        const draggedCategory = this.draggedElement.closest('.category-card');
+        if (draggedCategory && draggedCategory.dataset.id !== categoryId) {
+          await this.handleShortcutDropToCategory(categoryId);
+        }
       }
     };
 
@@ -289,21 +346,30 @@ class DragManager {
     shortcut.removeEventListener('dragleave', shortcut._dragLeave);
     shortcut.removeEventListener('drop', shortcut._drop);
 
-    // dragover - 美观版（去掉粗虚线）
+    // dragover - 支持跨分类拖拽
     shortcut._dragOver = (e) => {
       e.preventDefault();
       if (this.draggedType === 'shortcut' && this.draggedElement !== shortcut) {
-        // 检查是否在同一分类
         const draggedCategory = this.draggedElement.closest('.category-card');
         const targetCategory = shortcut.closest('.category-card');
 
-        if (draggedCategory && targetCategory &&
-            draggedCategory.dataset.id === targetCategory.dataset.id) {
-          shortcut.style.borderLeft = '2px solid rgba(66, 133, 244, 0.6)';
-          shortcut.style.backgroundColor = 'rgba(66, 133, 244, 0.05)';
+        if (draggedCategory && targetCategory) {
+          const isSameCategory = draggedCategory.dataset.id === targetCategory.dataset.id;
+
+          if (isSameCategory) {
+            // 同分类内排序 - 蓝色提示
+            shortcut.style.borderLeft = '2px solid rgba(66, 133, 244, 0.6)';
+            shortcut.style.backgroundColor = 'rgba(66, 133, 244, 0.05)';
+            shortcut.style.boxShadow = '0 2px 6px rgba(66, 133, 244, 0.15)';
+          } else {
+            // 跨分类移动 - 绿色提示
+            shortcut.style.borderLeft = '2px solid rgba(52, 168, 83, 0.6)';
+            shortcut.style.backgroundColor = 'rgba(52, 168, 83, 0.05)';
+            shortcut.style.boxShadow = '0 2px 6px rgba(52, 168, 83, 0.15)';
+          }
+
           shortcut.style.transform = 'scale(1.03)';
           shortcut.style.transition = 'all 0.2s ease';
-          shortcut.style.boxShadow = '0 2px 6px rgba(66, 133, 244, 0.15)';
         }
       }
     };
@@ -353,8 +419,6 @@ class DragManager {
    */
   async handleCategoryDrop(targetId) {
     try {
-      console.log('🔄 处理分类放置:', this.draggedId, '->', targetId);
-
       const categories = storageManager.getSortedCategories();
       const categoryIds = categories.map(cat => cat.id);
 
@@ -369,8 +433,6 @@ class DragManager {
       categoryIds.splice(draggedIndex, 1);
       categoryIds.splice(targetIndex, 0, this.draggedId);
 
-      console.log('新的分类顺序:', categoryIds);
-
       // 保存新顺序
       await storageManager.reorderCategories(categoryIds);
 
@@ -380,7 +442,6 @@ class DragManager {
       // 延迟重新初始化
       setTimeout(() => {
         this.init();
-        console.log('✅ 分类重排序完成，拖拽功能已重新初始化');
       }, 300);
 
     } catch (error) {
@@ -397,33 +458,39 @@ class DragManager {
       const targetShortcut = document.querySelector(`[data-id="${targetId}"]`);
       const targetCategory = targetShortcut.closest('.category-card');
 
-      if (!draggedCategory || !targetCategory ||
-          draggedCategory.dataset.id !== targetCategory.dataset.id) {
-        console.log('❌ 只能在同一分类内重排序快捷方式');
+      if (!draggedCategory || !targetCategory) {
+        console.log('❌ 找不到源分类或目标分类');
         return;
       }
 
-      const categoryId = draggedCategory.dataset.id;
-      console.log('🔄 处理快捷方式放置:', this.draggedId, '->', targetId, '在分类', categoryId);
+      const fromCategoryId = draggedCategory.dataset.id;
+      const toCategoryId = targetCategory.dataset.id;
+      const isSameCategory = fromCategoryId === toCategoryId;
 
-      const shortcuts = storageManager.getSortedShortcuts(categoryId);
-      const shortcutIds = shortcuts.map(s => s.id);
+      if (isSameCategory) {
+        // 同分类内重排序
+        const shortcuts = storageManager.getSortedShortcuts(fromCategoryId);
+        const shortcutIds = shortcuts.map(s => s.id);
 
-      const draggedIndex = shortcutIds.indexOf(this.draggedId);
-      const targetIndex = shortcutIds.indexOf(targetId);
+        const draggedIndex = shortcutIds.indexOf(this.draggedId);
+        const targetIndex = shortcutIds.indexOf(targetId);
 
-      if (draggedIndex === -1 || targetIndex === -1) {
-        throw new Error('找不到快捷方式');
+        if (draggedIndex === -1 || targetIndex === -1) {
+          throw new Error('找不到快捷方式');
+        }
+
+        // 重排序
+        shortcutIds.splice(draggedIndex, 1);
+        shortcutIds.splice(targetIndex, 0, this.draggedId);
+
+        await storageManager.reorderShortcuts(fromCategoryId, shortcutIds);
+      } else {
+        // 跨分类移动
+        const targetShortcuts = storageManager.getSortedShortcuts(toCategoryId);
+        const targetIndex = targetShortcuts.findIndex(s => s.id === targetId);
+
+        await storageManager.moveShortcutToCategory(this.draggedId, fromCategoryId, toCategoryId, targetIndex);
       }
-
-      // 重排序
-      shortcutIds.splice(draggedIndex, 1);
-      shortcutIds.splice(targetIndex, 0, this.draggedId);
-
-      console.log('新的快捷方式顺序:', shortcutIds);
-
-      // 保存新顺序
-      await storageManager.reorderShortcuts(categoryId, shortcutIds);
 
       // 重新渲染
       await categoryManager.renderCategories();
@@ -431,11 +498,44 @@ class DragManager {
       // 延迟重新初始化
       setTimeout(() => {
         this.init();
-        console.log('✅ 快捷方式重排序完成，拖拽功能已重新初始化');
       }, 300);
 
     } catch (error) {
       console.error('❌ 快捷方式放置处理失败:', error);
+    }
+  }
+
+  /**
+   * 处理快捷方式拖拽到分类
+   */
+  async handleShortcutDropToCategory(targetCategoryId) {
+    try {
+      const draggedCategory = this.draggedElement.closest('.category-card');
+      if (!draggedCategory) {
+        console.log('❌ 找不到源分类');
+        return;
+      }
+
+      const fromCategoryId = draggedCategory.dataset.id;
+
+      if (fromCategoryId === targetCategoryId) {
+        console.log('❌ 不能拖拽到同一分类');
+        return;
+      }
+
+      // 移动到目标分类的末尾
+      await storageManager.moveShortcutToCategory(this.draggedId, fromCategoryId, targetCategoryId, -1);
+
+      // 重新渲染
+      await categoryManager.renderCategories();
+
+      // 延迟重新初始化
+      setTimeout(() => {
+        this.init();
+      }, 300);
+
+    } catch (error) {
+      console.error('❌ 快捷方式跨分类拖拽处理失败:', error);
     }
   }
 
@@ -513,7 +613,7 @@ class DragManager {
   }
 
   /**
-   * 高亮所有可放置目标 - 去掉虚线框版本
+   * 高亮所有可放置目标 - 支持跨分类拖拽
    */
   highlightAllDropTargets(type) {
     if (type === 'category') {
@@ -527,19 +627,41 @@ class DragManager {
         }
       });
     } else if (type === 'shortcut') {
-      // 只高亮同一分类内的快捷方式
-      const draggedCategory = this.draggedElement.closest('.category-card');
-      if (draggedCategory) {
-        const shortcuts = draggedCategory.querySelectorAll('.shortcut');
-        shortcuts.forEach(shortcut => {
-          if (shortcut !== this.draggedElement) {
-            shortcut.style.backgroundColor = 'rgba(66, 133, 244, 0.02)';
+      // 高亮所有分类作为跨分类拖拽目标
+      document.querySelectorAll('.category-card').forEach(cat => {
+        const draggedCategory = this.draggedElement.closest('.category-card');
+        if (draggedCategory && cat.dataset.id !== draggedCategory.dataset.id) {
+          // 其他分类 - 绿色提示（跨分类移动）
+          cat.style.backgroundColor = 'rgba(52, 168, 83, 0.02)';
+          cat.style.transform = 'scale(1.005)';
+          cat.style.transition = 'all 0.3s ease';
+          cat.classList.add('drop-target-subtle');
+        }
+      });
+
+      // 高亮所有快捷方式作为排序目标
+      document.querySelectorAll('.shortcut').forEach(shortcut => {
+        if (shortcut !== this.draggedElement) {
+          const draggedCategory = this.draggedElement.closest('.category-card');
+          const targetCategory = shortcut.closest('.category-card');
+
+          if (draggedCategory && targetCategory) {
+            const isSameCategory = draggedCategory.dataset.id === targetCategory.dataset.id;
+
+            if (isSameCategory) {
+              // 同分类 - 蓝色提示（排序）
+              shortcut.style.backgroundColor = 'rgba(66, 133, 244, 0.02)';
+            } else {
+              // 跨分类 - 绿色提示（移动）
+              shortcut.style.backgroundColor = 'rgba(52, 168, 83, 0.02)';
+            }
+
             shortcut.style.transform = 'scale(1.01)';
             shortcut.style.transition = 'all 0.3s ease';
             shortcut.classList.add('drop-target-subtle');
           }
-        });
-      }
+        }
+      });
     }
   }
 
@@ -594,7 +716,6 @@ class DragManager {
    */
   setEnabled(enabled) {
     this.isEnabled = enabled;
-    console.log('DragManager: 拖拽功能', enabled ? '已启用' : '已禁用');
   }
 
   /**
@@ -615,20 +736,6 @@ class DragManager {
    * 启用快捷方式拖拽功能（兼容性方法）
    */
   enableShortcutDrag() {
-    this.init();
-  }
-
-  /**
-   * 启用/禁用拖拽功能
-   */
-  setEnabled(enabled) {
-    this.isEnabled = enabled;
-  }
-
-  /**
-   * 重新初始化拖拽功能（在重新渲染后调用）
-   */
-  reinitialize() {
     this.init();
   }
 }

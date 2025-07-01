@@ -317,6 +317,57 @@ class StorageAdapter {
   }
 
   /**
+   * 移动快捷方式到其他分类
+   */
+  async moveShortcutToCategory(shortcutId, fromCategoryId, toCategoryId, targetIndex = -1) {
+    try {
+      console.log('StorageAdapter: 移动快捷方式到其他分类', shortcutId, fromCategoryId, '->', toCategoryId);
+
+      const fromCategory = this.getCategory(fromCategoryId);
+      const toCategory = this.getCategory(toCategoryId);
+
+      if (!fromCategory) {
+        throw new Error(`Source category with ID ${fromCategoryId} not found`);
+      }
+      if (!toCategory) {
+        throw new Error(`Target category with ID ${toCategoryId} not found`);
+      }
+
+      // 找到要移动的快捷方式
+      const shortcutIndex = fromCategory.shortcuts.findIndex(s => s.id === shortcutId);
+      if (shortcutIndex === -1) {
+        throw new Error(`Shortcut with ID ${shortcutId} not found in category ${fromCategoryId}`);
+      }
+
+      // 从源分类中移除快捷方式
+      const shortcut = fromCategory.shortcuts.splice(shortcutIndex, 1)[0];
+
+      // 计算目标位置的order值
+      if (targetIndex === -1 || targetIndex >= toCategory.shortcuts.length) {
+        // 添加到末尾
+        const maxOrder = Math.max(...toCategory.shortcuts.map(s => s.order || 0), -1);
+        shortcut.order = maxOrder + 1;
+        toCategory.shortcuts.push(shortcut);
+      } else {
+        // 插入到指定位置
+        shortcut.order = targetIndex;
+        toCategory.shortcuts.splice(targetIndex, 0, shortcut);
+
+        // 重新排序目标分类中的所有快捷方式
+        toCategory.shortcuts.forEach((s, index) => {
+          s.order = index;
+        });
+      }
+
+      await this.saveToStorage();
+      console.log('StorageAdapter: 快捷方式跨分类移动完成');
+    } catch (error) {
+      console.error('StorageAdapter: 快捷方式跨分类移动失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 更新设置
    */
   async updateSettings(newSettings) {
