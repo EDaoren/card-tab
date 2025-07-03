@@ -27,7 +27,7 @@
 <body>
   <div class="container">
     <h1>Privacy Policy for Card Tab</h1>
-    <p>Last updated: <span id="last-updated">July 1, 2023</span></p>
+    <p>Last updated: <span id="last-updated">January 2, 2025</span></p>
 
     <h2>Introduction</h2>
     <p>Your privacy is important to us. This Privacy Policy explains how Card Tab ("we", "our", or "the extension") handles your data when you use our Chrome extension.</p>
@@ -41,6 +41,7 @@
       <li><strong>Website Icons:</strong> Automatically fetched from public favicon services to improve visual experience</li>
       <li><strong>User Preferences:</strong> Theme settings, layout preferences, and category organization</li>
       <li><strong>Bookmark Data:</strong> Categories and shortcuts you create for your personal use</li>
+      <li><strong>Search Queries:</strong> Only for local bookmark search functionality - queries are not transmitted externally</li>
     </ul>
 
     <h3>Local Data Storage</h3>
@@ -66,9 +67,19 @@
       <li>Complete browsing history</li>
       <li>IP addresses for tracking purposes</li>
       <li>Analytics or usage tracking data</li>
-      <li>Search queries outside the extension</li>
+      <li>External search queries (when using Chrome's default search engine)</li>
       <li>Full website content (only titles and URLs you explicitly add)</li>
     </ul>
+
+    <h2>Search Functionality</h2>
+    <h3>Local Bookmark Search</h3>
+    <p>The extension provides real-time search functionality for your saved bookmarks and categories. All search operations are performed locally within the extension and do not transmit data externally.</p>
+
+    <h3>Default Search Engine Integration</h3>
+    <p>When you select "Default (由浏览器决定)" as your search option, the extension uses Chrome's Search API to respect your browser's default search engine settings. This ensures we do not modify or override your preferred search experience.</p>
+
+    <h3>Alternative Search Engines</h3>
+    <p>When you select specific search engines (Google, Bing, 百度, DuckDuckGo), search queries are opened in new tabs using the respective search engine's public search URL. We do not intercept or modify these search queries.</p>
 
     <h2>Third-Party Services</h2>
     <h3>Supabase (Optional)</h3>
@@ -77,9 +88,34 @@
     <h3>Favicon Services</h3>
     <p>The extension may fetch website icons from public favicon services (like Google's favicon API) to display attractive icons for your shortcuts. These requests only include the domain name of websites you've added.</p>
 
+    <h3>Chrome Search API</h3>
+    <p>When using the "Default" search option, the extension utilizes Chrome's built-in Search API to respect your browser's default search engine. No search data is processed or stored by our extension.</p>
+
     <h3>No Analytics or Advertising</h3>
     <p>We do not use any analytics, advertising, or tracking services.</p>
     
+    <h2>Extension Permissions</h2>
+    <p>Our extension requests the following permissions and here's how we use them:</p>
+    <ul>
+      <li><strong>storage:</strong> To save your bookmarks, categories, and preferences locally</li>
+      <li><strong>activeTab:</strong> To capture page information when you add bookmarks via right-click menu</li>
+      <li><strong>contextMenus:</strong> To provide the right-click "Add to Card Tab" functionality</li>
+      <li><strong>search:</strong> To access Chrome's Search API for respecting your default search engine when using "Default" search option</li>
+    </ul>
+
+    <h3>Content Script and Host Permissions</h3>
+    <p>Card Tab injects a minimal script on all web pages (http://*/* and https://*/*) to enable the right-click menu functionality. This script:</p>
+    <ul>
+      <li><strong>Only activates when you use the right-click menu</strong> - The script remains dormant until you actively choose "Add to Card Tab"</li>
+      <li><strong>Reads only basic page information</strong> - When activated, it captures the current page title, URL, and favicon URL</li>
+      <li><strong>Creates a temporary modal dialog</strong> - Displays a form overlay for you to edit bookmark details before saving</li>
+      <li><strong>Does not access web page content</strong> - No form data, user inputs, or sensitive page content is accessed</li>
+      <li><strong>Does not run background tracking</strong> - The script does not monitor your browsing activity or send analytics</li>
+      <li><strong>Operates only on explicit user action</strong> - Data collection only occurs when you actively choose to add a bookmark</li>
+      <li><strong>Temporary operation</strong> - The modal and associated data are removed immediately after use</li>
+    </ul>
+    <p>This content script is essential for providing the convenient right-click bookmark functionality while maintaining strict privacy standards. The script only accesses publicly available page metadata (title, URL, favicon) and does not read any private or sensitive content from web pages.</p>
+
     <h2>Data Security</h2>
     <p>We implement appropriate security measures to protect your data:</p>
     <ul>
@@ -87,6 +123,7 @@
       <li>Cloud sync uses secure HTTPS connections</li>
       <li>No data is transmitted to our servers</li>
       <li>You maintain full control over your Supabase project and data</li>
+      <li>Search functionality respects Chrome's built-in security measures</li>
     </ul>
 
     <h2>Your Rights and Choices</h2>
@@ -108,12 +145,8 @@
   </div>
 
   <script>
-    // Update the date automatically
-    document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // Set the current date
+    document.getElementById('last-updated').textContent = 'January 2, 2025';
   </script>
 </body>
 </html> 

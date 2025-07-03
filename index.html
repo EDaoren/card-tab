@@ -91,32 +91,36 @@
         <div class="search-box">
           <div class="search-input-row">
             <div class="search-engine-selector">
-              <img src="https://www.google.com/favicon.ico" alt="Google" class="search-engine-icon">
+              <span class="material-symbols-rounded search-engine-icon" style="color: #9aa0a6; font-size: 20px;">language</span>
               <span class="search-engine-dropdown">
                 <span class="material-symbols-rounded">expand_more</span>
               </span>
               <!-- 下拉菜单 -->
               <div class="search-engine-dropdown-menu">
-                <div class="search-engine-option" data-engine="0">
+                <div class="search-engine-option" data-engine="default">
+                  <span class="material-symbols-rounded" style="color: #9aa0a6; font-size: 20px;">language</span>
+                  <span>默认搜索</span>
+                </div>
+                <div class="search-engine-option" data-engine="google">
                   <img src="https://www.google.com/favicon.ico" alt="Google">
                   <span>Google</span>
                 </div>
-                <div class="search-engine-option" data-engine="1">
+                <div class="search-engine-option" data-engine="bing">
                   <img src="https://www.bing.com/favicon.ico" alt="Bing">
                   <span>Bing</span>
                 </div>
-                <div class="search-engine-option" data-engine="2">
+                <div class="search-engine-option" data-engine="baidu">
                   <img src="https://www.baidu.com/favicon.ico" alt="Baidu">
                   <span>百度</span>
                 </div>
-                <div class="search-engine-option" data-engine="3">
+                <div class="search-engine-option" data-engine="ddg">
                   <img src="https://duckduckgo.com/favicon.ico" alt="DuckDuckGo">
                   <span>DuckDuckGo</span>
                 </div>
               </div>
             </div>
             <div class="search-input-container">
-              <input type="text" id="search-input" placeholder="搜索快捷方式和分类..." autocomplete="off" spellcheck="false">
+              <input type="text" id="search-input"  autocomplete="off" spellcheck="false">
             </div>
             <button class="search-button" type="button">
               <span class="material-symbols-rounded">search</span>
@@ -602,6 +606,7 @@
   <script src="js/sync-adapter.js"></script>
 
   <!-- UI管理器 -->
+  <script src="js/notification.js"></script>
   <script src="js/sync-ui.js"></script>
   <script src="js/theme-config-ui.js"></script>
 

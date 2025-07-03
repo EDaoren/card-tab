@@ -387,7 +387,8 @@ class SyncUIManager {
 
         // 显示详细的修复指导
         setTimeout(() => {
-          alert(`数据表权限问题修复方案：
+          if (window.showNotification) {
+            window.showNotification(`数据表权限问题修复方案：
 
 1. 打开 Supabase Dashboard
 2. 进入 SQL Editor
@@ -396,7 +397,8 @@ class SyncUIManager {
 ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
 
 这将禁用行级安全策略，允许数据访问。
-详细说明请查看项目中的 SUPABASE_FIX_RLS.md 文件。`);
+详细说明请查看项目中的 SUPABASE_FIX_RLS.md 文件。`, 'warning', { duration: 10000 });
+          }
         }, 100);
       } else {
         this.showMessage(`启用同步失败: ${error.message}`, 'error');

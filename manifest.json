@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Card Tab",
-  "version": "1.0.3",
-  "description": "现代化的新标签页，支持分类书签管理、主题定制和云端同步，提升您的浏览效率",
-  "permissions": ["storage", "activeTab", "contextMenus"],
+  "name": "Card Tab - 卡片式书签管理",
+  "version": "1.0.5",
+  "description": "专注于书签管理的新标签页扩展，提供卡片式分类整理、本地搜索、个性化主题定制和可选云端同步功能",
+  "permissions": ["storage", "activeTab", "contextMenus", "search"],
   "background": {
     "service_worker": "js/background.js"
   },

@@ -899,6 +899,16 @@ header {
   height: 24px;
   margin-right: 10px;
   border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-engine-icon img {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  object-fit: cover;
 }
 
 .search-engine-dropdown {
@@ -965,7 +975,18 @@ header {
   border-radius: 2px;
 }
 
-.search-engine-option span {
+.search-engine-option .material-symbols-rounded {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  font-size: 20px !important;
+  color: #9aa0a6 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-engine-option span:not(.material-symbols-rounded) {
   font-size: 14px;
   font-weight: 500;
 }
@@ -1215,9 +1236,13 @@ header {
   color: #8ab4f8;
 }
 
-.theme-dark .search-engine-option span {
+.theme-dark .search-engine-option span:not(.material-symbols-rounded) {
   color: inherit;
   font-weight: 500;
+}
+
+.theme-dark .search-engine-option .material-symbols-rounded {
+  color: #9aa0a6 !important;
 }
 
 .theme-dark .search-input-container input {
@@ -4094,5 +4119,119 @@ header {
 
 .retry-btn:hover {
   background: #3367d6;
+}
+
+/* 全局通知系统样式 */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  max-width: 400px;
+  min-width: 300px;
+  background: var(--card-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification-hide {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+.notification-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.notification-message {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-color);
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.notification-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-color);
+}
+
+.notification-close .material-symbols-rounded {
+  font-size: 18px;
+}
+
+/* 不同类型的通知颜色 */
+.notification-success .notification-icon {
+  color: #10b981;
+}
+
+.notification-error .notification-icon {
+  color: #ef4444;
+}
+
+.notification-warning .notification-icon {
+  color: #f59e0b;
+}
+
+.notification-info .notification-icon {
+  color: #3b82f6;
+}
+
+/* 深色主题下的通知样式 */
+.theme-dark .notification {
+  background: #2d3748;
+  border-color: #4a5568;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark .notification-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 多个通知的堆叠效果 */
+.notification:nth-child(n+2) {
+  top: calc(20px + (80px * var(--notification-index, 0)));
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
+  }
+
+  .notification:nth-child(n+2) {
+    top: calc(10px + (70px * var(--notification-index, 0)));
+  }
 }
 

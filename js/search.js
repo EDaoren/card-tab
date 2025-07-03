@@ -19,35 +19,49 @@ class SearchManager {
     // 创建搜索结果下拉框
     this.createSearchDropdown();
 
-    // 搜索引擎配置
+    // 搜索引擎配置 - 符合Chrome Web Store政策
     this.searchEngines = [
       {
+        id: 'default',
+        name: '默认搜索',
+        icon: 'language', // Material Icons
+        iconType: 'material',
+        useDefault: true
+      },
+      {
+        id: 'google',
         name: 'Google',
         icon: 'https://www.google.com/favicon.ico',
         url: 'https://www.google.com/search?q='
       },
       {
+        id: 'bing',
         name: 'Bing',
         icon: 'https://www.bing.com/favicon.ico',
         url: 'https://www.bing.com/search?q='
       },
       {
-        name: 'Baidu',
+        id: 'baidu',
+        name: '百度',
         icon: 'https://www.baidu.com/favicon.ico',
         url: 'https://www.baidu.com/s?wd='
       },
       {
+        id: 'ddg',
         name: 'DuckDuckGo',
         icon: 'https://duckduckgo.com/favicon.ico',
         url: 'https://duckduckgo.com/?q='
       }
     ];
 
-    this.currentSearchEngine = 0;
+    this.currentSearchEngine = 0; // 默认使用第一个（Default）
     this.isSearching = false;
     this.loadPreferredSearchEngine();
     this.bindEvents();
     this.updateSearchEngineIcon();
+
+    // 检查Chrome Search API可用性
+    this.checkSearchAPIAvailability();
   }
 
   /**
@@ -114,7 +128,8 @@ class SearchManager {
     engineOptions.forEach(option => {
       option.addEventListener('click', (e) => {
         e.stopPropagation();
-        const engineIndex = parseInt(option.dataset.engine);
+        const engineId = option.dataset.engine;
+        const engineIndex = this.searchEngines.findIndex(engine => engine.id === engineId);
         this.selectSearchEngine(engineIndex);
       });
     });
@@ -401,13 +416,55 @@ class SearchManager {
 
   /**
    * Perform search using current search engine
+   * Compliant with Chrome Web Store policies:
+   * - Default option uses chrome.search API (respects user's browser settings)
+   * - Other options open in new tab (doesn't modify default settings)
    * @param {string} query - The search query
    */
   performSearch(query) {
     const currentEngine = this.searchEngines[this.currentSearchEngine];
-    const searchUrl = currentEngine.url + encodeURIComponent(query);
-    window.location.href = searchUrl;
+
+    if (currentEngine.useDefault) {
+      // Use Chrome Search API to respect user's default search engine
+      console.log('Checking Chrome Search API availability...');
+      console.log('chrome:', typeof chrome);
+      console.log('chrome.search:', typeof chrome?.search);
+      console.log('chrome.search.query:', typeof chrome?.search?.query);
+
+      if (chrome && chrome.search && typeof chrome.search.query === 'function') {
+        try {
+          console.log('Calling Chrome Search API with query:', query);
+          // 使用Chrome Search API，让浏览器决定行为
+          chrome.search.query({
+            text: query,
+            disposition: 'CURRENT_TAB'
+          });
+          console.log('Chrome Search API called successfully');
+        } catch (error) {
+          console.error('Chrome Search API call failed:', error);
+          window.showNotification('默认搜索功能暂时不可用，请尝试其他搜索引擎', 'warning');
+          return;
+        }
+      } else {
+        // Chrome Search API不可用时的处理
+        const debugInfo = {
+          chrome: typeof chrome,
+          search: typeof chrome?.search,
+          query: typeof chrome?.search?.query,
+          permissions: chrome?.runtime?.getManifest?.()?.permissions
+        };
+        console.error('Chrome Search API not available:', debugInfo);
+        window.showNotification('默认搜索功能不可用，请使用其他搜索引擎或重新加载扩展', 'warning');
+        return;
+      }
+    } else {
+      // For specific search engines, open in new tab
+      const searchUrl = currentEngine.url + encodeURIComponent(query);
+      window.open(searchUrl, '_blank');
+    }
   }
+
+
 
   /**
    * Toggle dropdown menu
@@ -455,8 +512,9 @@ class SearchManager {
    */
   updateActiveOption() {
     const options = document.querySelectorAll('.search-engine-option');
-    options.forEach((option, index) => {
-      option.classList.toggle('active', index === this.currentSearchEngine);
+    const currentEngineId = this.searchEngines[this.currentSearchEngine].id;
+    options.forEach((option) => {
+      option.classList.toggle('active', option.dataset.engine === currentEngineId);
     });
   }
 
@@ -464,11 +522,22 @@ class SearchManager {
    * Update search engine icon
    */
   updateSearchEngineIcon() {
-    if (this.searchEngineIcon) {
+    const iconElement = document.querySelector('.search-engine-selector .search-engine-icon');
+    if (iconElement) {
       const currentEngine = this.searchEngines[this.currentSearchEngine];
-      this.searchEngineIcon.src = currentEngine.icon;
-      this.searchEngineIcon.alt = currentEngine.name;
-      this.searchEngineIcon.title = `当前搜索引擎: ${currentEngine.name}`;
+
+      if (currentEngine.iconType === 'material') {
+        // 使用Material Icons
+        iconElement.innerHTML = '';
+        iconElement.className = 'material-symbols-rounded search-engine-icon';
+        iconElement.textContent = currentEngine.icon;
+        iconElement.style.color = '#9aa0a6';
+        iconElement.style.fontSize = '20px';
+        iconElement.title = `当前搜索引擎: ${currentEngine.name}`;
+      } else {
+        // 使用传统的img标签
+        iconElement.innerHTML = `<img src="${currentEngine.icon}" alt="${currentEngine.name}" title="当前搜索引擎: ${currentEngine.name}">`;
+      }
     }
     this.updateActiveOption();
   }
@@ -479,9 +548,63 @@ class SearchManager {
   loadPreferredSearchEngine() {
     const saved = localStorage.getItem('preferredSearchEngine');
     if (saved !== null) {
-      this.currentSearchEngine = parseInt(saved);
+      const savedIndex = parseInt(saved);
+      // 确保索引在有效范围内
+      if (savedIndex >= 0 && savedIndex < this.searchEngines.length) {
+        this.currentSearchEngine = savedIndex;
+      } else {
+        // 如果保存的索引无效，重置为默认
+        this.currentSearchEngine = 0;
+        localStorage.setItem('preferredSearchEngine', '0');
+      }
       this.updateSearchEngineIcon();
     }
+  }
+
+  /**
+   * 检查Chrome Search API可用性
+   */
+  checkSearchAPIAvailability() {
+    console.log('=== Chrome Search API 可用性检查 ===');
+
+    // 检查基本环境
+    console.log('1. 基本环境检查:');
+    console.log('   - chrome对象:', typeof chrome);
+    console.log('   - chrome.search:', typeof chrome?.search);
+    console.log('   - chrome.search.query:', typeof chrome?.search?.query);
+
+    // 检查权限
+    if (chrome && chrome.runtime && chrome.runtime.getManifest) {
+      const manifest = chrome.runtime.getManifest();
+      console.log('2. 权限检查:');
+      console.log('   - manifest权限:', manifest.permissions);
+      console.log('   - 包含search权限:', manifest.permissions?.includes('search'));
+    }
+
+    // 检查扩展环境
+    console.log('3. 扩展环境:');
+    console.log('   - 扩展ID:', chrome?.runtime?.id);
+    console.log('   - 当前URL:', window.location.href);
+
+    // 尝试权限检查API
+    if (chrome && chrome.permissions && chrome.permissions.contains) {
+      chrome.permissions.contains({permissions: ['search']}, (result) => {
+        console.log('4. 动态权限检查 - search:', result);
+        if (!result) {
+          console.warn('⚠️ Search权限未授予，可能需要重新加载扩展');
+        }
+      });
+    }
+
+    // 如果chrome.search.query不可用，给出具体建议
+    if (chrome?.search && typeof chrome.search.query !== 'function') {
+      console.warn('⚠️ chrome.search.query不可用，建议:');
+      console.warn('   1. 重新加载扩展 (chrome://extensions/)');
+      console.warn('   2. 检查Chrome版本是否支持');
+      console.warn('   3. 确认扩展权限已正确授予');
+    }
+
+    console.log('=== 检查完成 ===');
   }
 }
 
