@@ -172,6 +172,17 @@ try {
     console.log(`📦 The zip file is ready: ${zipPath}`);
   }
 
+  // Create debug version (unzipped)
+  const debugDir = path.join(buildDir, 'debug');
+  if (fs.existsSync(debugDir)) {
+    fs.rmSync(debugDir, { recursive: true, force: true });
+  }
+
+  // Copy temp to debug directory
+  copyDirectory(tempDir, debugDir);
+  console.log(`🔧 Debug version created: ${debugDir}`);
+  console.log('💡 You can load this directory directly in Chrome for debugging');
+
   // Clean up temp directory
   console.log('🧹 Cleaning up...');
   fs.rmSync(tempDir, { recursive: true, force: true });

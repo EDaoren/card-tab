@@ -778,6 +778,21 @@ body.theme-dark input[type="password"]::placeholder {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
+/* 全局滚动条隐藏 */
+html, body {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+}
+
+/* 隐藏所有 Webkit 滚动条 */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
@@ -788,6 +803,7 @@ body {
   min-height: 100vh;
   /* 防止字体加载时的闪烁 */
   font-display: swap;
+  overflow-y: auto;
 }
 
 /* 加载状态样式 */
@@ -1430,7 +1446,7 @@ header {
 /* Categories Container */
 #categories-container {
   display: grid;
-  gap: 20px;
+  gap: 8px;
   transition: all var(--transition-speed);
   margin-top: 20px;
 }
@@ -1448,7 +1464,6 @@ header {
   background-color: var(--card-bg-color);
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--shadow-color);
-  margin-bottom: 20px;
   overflow: hidden;
   transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, box-shadow;
@@ -2359,7 +2374,9 @@ header {
 .shortcuts-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+  justify-content: flex-start;
+  padding: 0 16px;
 }
 
 .shortcut {
@@ -2381,12 +2398,17 @@ header {
   transform: translate3d(0, -2px, 0);
 }
 
+.list-view .shortcuts-list {
+  justify-content: flex-start;
+  padding: 0 calc((100% - 12 * 80px - 11 * 8px) / 2);
+}
+
 .list-view .shortcut {
   flex-direction: column;
   align-items: center;
-  padding: 12px;
-  min-width: 100px;
-  max-width: 120px;
+  padding: 10px 4px;
+  width: 80px;
+  flex: 0 0 80px;
 }
 
 .shortcut-icon {
@@ -2409,12 +2431,12 @@ header {
 }
 
 .list-view .shortcut-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   margin-bottom: 8px;
   margin-right: 0;
-  font-size: 16px;
-  border-radius: 10px;
+  font-size: 20px;
+  border-radius: 12px;
   background-color: #4285f4; /* 默认背景色 */
   text-align: center;
   line-height: 1;
