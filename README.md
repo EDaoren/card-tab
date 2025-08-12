@@ -4,7 +4,7 @@
   <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
   <br>
   <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
-  <img src="https://img.shields.io/badge/Version-1.0.3-blue" alt="Version 1.0.3">
+  <img src="https://img.shields.io/badge/Version-1.0.5-blue" alt="Version 1.0.5">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License MIT">
 </div>
 
