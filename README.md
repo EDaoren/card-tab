@@ -21,55 +21,14 @@
 - **🖼️ 自定义背景** - 上传图片作为背景
 - **📱 视图切换** - 网格视图和列表视图
 - **☁️ 云端同步** - 可选择使用Supabase同步数据
-- **🌐 离线使用** - 无网络时仍可正常使用
-- **⚡ 本地字体** - 内置图标字体，无需联网加载
 - **🖱️ 右键添加** - 在任意网页右键快速添加快捷方式
 - **⚙️ 多配置管理** - 支持多个云端配置切换
-
-## 截图
-
-### 主界面展示
-<div align="center">
-  <img src="store-assets/screenshots/main-interface0.png" alt="主界面 - 默认主题" width="600">
-  <p><i>主界面 - 默认主题</i></p>
-</div>
-
-<div align="center">
-  <img src="store-assets/screenshots/main-interface1.png" alt="主界面 - 深色主题" width="600">
-  <p><i>主界面 - 深色主题</i></p>
-</div>
-
-<div align="center">
-  <img src="store-assets/screenshots/main-interface3.png" alt="主界面 - 彩色主题" width="600">
-  <p><i>主界面 - 彩色主题</i></p>
-</div>
-
-### 功能特性
-<div align="center">
-  <img src="store-assets/screenshots/category-management.png" alt="分类管理" width="600">
-  <p><i>分类管理 - 添加和编辑分类</i></p>
-</div>
-
-<div align="center">
-  <img src="store-assets/screenshots/theme-customization.png" alt="主题定制" width="600">
-  <p><i>主题定制 - 多种主题选择</i></p>
-</div>
-
-<div align="center">
-  <img src="store-assets/screenshots/search-feature.png" alt="搜索功能" width="600">
-  <p><i>智能搜索 - 快速查找书签</i></p>
-</div>
-
-<div align="center">
-  <img src="store-assets/screenshots/cloud-sync.png" alt="云端同步" width="600">
-  <p><i>云端同步 - Supabase配置</i></p>
-</div>
 
 ## 安装方法
 
 ### 从Chrome Web Store安装
 
-1. 访问[Chrome Web Store链接](#)（即将上线）
+1. 访问 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jaofegmijnalgabmjficlpfmmebepmbd?label=Chrome%20Web%20Store)](https://chrome.google.com/webstore/detail/jaofegmijnalgabmjficlpfmmebepmbd)
 2. 点击"添加到Chrome"按钮
 
 ### 手动安装
@@ -113,55 +72,7 @@
 
 1. 在Supabase项目中进入 **SQL Editor**
 2. 创建新查询
-3. 复制并执行以下脚本：
-
-```sql
--- =====================================================
--- Card Tab Chrome扩展 - Supabase初始化脚本
--- =====================================================
--- 请在Supabase项目的SQL编辑器中执行以下脚本
-
--- 1. 创建数据表
--- =====================================================
-CREATE TABLE IF NOT EXISTS card_tab_data (
-  id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE,
-  data JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 创建索引提升查询性能
-CREATE INDEX IF NOT EXISTS idx_card_tab_data_user_id ON card_tab_data(user_id);
-CREATE INDEX IF NOT EXISTS idx_card_tab_data_updated_at ON card_tab_data(updated_at);
-
--- 禁用行级安全策略（简化配置，适合个人使用）
-ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
-
--- 2. 创建Storage存储桶
--- =====================================================
--- 创建backgrounds桶（用于存储背景图片）
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'backgrounds',
-  'backgrounds',
-  true,
-  52428800,  -- 50MB限制
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-) ON CONFLICT (id) DO NOTHING;
-
--- Storage桶已创建，使用默认权限设置
-
--- 3. 验证配置
--- =====================================================
--- 检查数据表是否创建成功
-SELECT 'Data table created successfully' as status
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_tab_data');
-
--- 检查存储桶是否创建成功
-SELECT 'Storage bucket created successfully' as status
-WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
-```
+3. 复制并执行以下脚本：[supabase-init.sql](supabase-init.sql)
 
 #### 步骤4：配置扩展
 
@@ -187,55 +98,6 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 - **401 Unauthorized**: API密钥错误或凭据过期
 - **403 Forbidden**: 权限被拒绝 - 检查数据库策略
 
-## 项目结构
-
-```
-card-tab/
-├── index.html                 # 主页面入口
-├── manifest.json             # Chrome扩展配置文件
-├── build.js                  # 构建打包脚本
-├── fonts/                    # 本地字体文件
-│   ├── material-symbols-rounded.css                    # 字体样式定义
-│   └── material-symbols-rounded-v255-latin-regular.woff2  # 字体文件
-├── styles/                   # 样式文件
-│   ├── main.css              # 主样式文件
-│   └── offline-icons.css     # 离线图标样式
-├── js/                       # JavaScript模块
-│   ├── main.js               # 主入口文件
-│   ├── unified-data-manager.js # 统一数据管理器
-│   ├── storage-adapter.js    # 存储适配器
-│   ├── sync-adapter.js       # 同步适配器
-│   ├── offline-manager.js    # 离线功能管理
-│   ├── simple-loading-manager.js # 加载管理器
-│   ├── category.js           # 分类管理
-│   ├── shortcut.js           # 快捷方式管理
-│   ├── search.js             # 搜索功能
-│   ├── view.js               # 视图管理
-│   ├── theme.js              # 主题切换
-│   ├── icons.js              # 图标管理
-│   ├── drag-manager.js       # 拖拽管理
-│   ├── supabase-client.js    # Supabase客户端
-│   ├── sync-ui.js            # 同步界面管理
-│   ├── theme-config-ui.js    # 主题配置界面
-│   ├── content-script.js     # 内容脚本（右键添加）
-│   ├── background.js         # 后台脚本
-│   └── supabase.min.js       # Supabase SDK
-├── icons/                    # 扩展图标
-│   ├── icon16.png            # 16x16 图标
-│   ├── icon32.png            # 32x32 图标
-│   ├── icon48.png            # 48x48 图标
-│   ├── icon128.png           # 128x128 图标
-│   └── icon512.png           # 512x512 图标
-├── store-assets/             # 商店资源
-│   ├── screenshots/          # 应用截图
-│   └── promotional/          # 宣传素材
-├── supabase-init.sql         # Supabase初始化脚本
-├── privacy-policy.html       # 隐私政策
-├── README.md                 # 中文说明文档
-├── README_EN.md              # 英文说明文档
-└── LICENSE                   # 开源许可证
-```
-
 ## 技术栈
 
 ### 前端技术
@@ -255,12 +117,6 @@ card-tab/
 - **Supabase**: PostgreSQL数据库
 - **Supabase Storage**: 背景图片文件存储
 
-### 性能优化
-- **本地字体**: Material Symbols字体完全本地化
-- **离线支持**: 智能网络状态检测和功能降级
-- **缓存策略**: 旁路缓存模式提升数据同步性能
-- **统一数据管理**: 重构后的统一数据管理架构
-- **快速加载**: 优化的页面加载和初始化流程
 
 ## 开发
 
@@ -275,14 +131,6 @@ node build.js
 
 > **注意**: 本项目是纯 JavaScript Chrome 扩展，无需 npm 依赖，直接使用 Node.js 运行构建脚本即可。
 
-### 测试
-
-**测试步骤：**
-1. **功能测试**: 在Chrome扩展环境中测试所有核心功能
-2. **离线测试**: 使用浏览器开发者工具模拟离线状态
-3. **同步测试**: 测试云端同步和数据一致性
-4. **右键菜单**: 在网页上测试右键快速添加功能
-5. **配置管理**: 测试多配置切换和删除功能
 
 ## 隐私与安全
 
