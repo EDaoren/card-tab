@@ -1,0 +1,2254 @@
+{
+  "categories": [
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-0eccbb06-ff35-439f-a26d-4adb746e357c",
+      "name": "AI 创新工具",
+      "order": 0,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=chatgpt.com&sz=64",
+          "id": "shortcut-d3c5ce7b-c093-42ba-8670-6c5c97e70836",
+          "name": "ChatGPT",
+          "order": 0,
+          "url": "https://chatgpt.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.perplexity.ai&sz=64",
+          "id": "shortcut-a519f4d6-77ab-44a6-89b5-c7d671c9e0af",
+          "name": "Perplexity",
+          "order": 1,
+          "url": "https://www.perplexity.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=gemini.google.com&sz=64",
+          "id": "shortcut-4723eb26-b401-40ad-b21b-2c6f2ecc6f72",
+          "name": "Gemini",
+          "order": 2,
+          "url": "https://gemini.google.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=claude.ai&sz=64",
+          "id": "shortcut-191b4837-9547-4f1d-86fa-05f840f30ec2",
+          "name": "Claude",
+          "order": 3,
+          "url": "https://claude.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=grok.com&sz=64",
+          "id": "shortcut-f0668e09-f0cd-4860-aafc-e591ae6630a6",
+          "name": "Grok",
+          "order": 4,
+          "url": "https://grok.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.midjourney.com&sz=64",
+          "id": "shortcut-a455965a-8218-4410-9949-93db7f36ebd2",
+          "name": "Midjourney",
+          "order": 5,
+          "url": "https://www.midjourney.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=labs.openai.com&sz=64",
+          "id": "shortcut-f971c813-0ddd-4bf4-a183-d3edeccf79ff",
+          "name": "DALL·E",
+          "order": 6,
+          "url": "https://labs.openai.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=stability.ai&sz=64",
+          "id": "shortcut-69583547-2095-401a-b305-56734fcbf73f",
+          "name": "Stable Diffusion",
+          "order": 7,
+          "url": "https://stability.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=sora.openai.com&sz=64",
+          "id": "shortcut-f5baaa36-17ad-4fd7-bc3f-7edf39ae4338",
+          "name": "Sora",
+          "order": 8,
+          "url": "https://sora.openai.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=suno.ai&sz=64",
+          "id": "shortcut-7ebe10b9-07e6-4a66-a739-1088faf1d676",
+          "name": "Suno",
+          "order": 9,
+          "url": "https://suno.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=pika.art&sz=64",
+          "id": "shortcut-df18eb17-72df-4f1e-a4f7-08d56eb3f21c",
+          "name": "Pika",
+          "order": 10,
+          "url": "https://pika.art"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=luma.ai&sz=64",
+          "id": "shortcut-525f867b-deac-4975-94cb-3e1600b70516",
+          "name": "Luma AI",
+          "order": 11,
+          "url": "https://luma.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=ideogram.ai&sz=64",
+          "id": "shortcut-0b5100d6-21d0-411d-9e1d-70acf6ce479f",
+          "name": "Ideogram",
+          "order": 12,
+          "url": "https://ideogram.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=runwayml.com&sz=64",
+          "id": "shortcut-e245a6fa-e6ea-4d64-acfd-7f8b92d498b7",
+          "name": "Runway",
+          "order": 13,
+          "url": "https://runwayml.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=elevenlabs.io&sz=64",
+          "id": "shortcut-c47b4bfc-4772-4e7c-933e-435a3f9918ef",
+          "name": "ElevenLabs",
+          "order": 14,
+          "url": "https://elevenlabs.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=replit.com&sz=64",
+          "id": "shortcut-dfc0f386-d91a-4ed3-9ebc-a9c41b3bfc5e",
+          "name": "Replit AI",
+          "order": 15,
+          "url": "https://replit.com/ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=github.com&sz=64",
+          "id": "shortcut-051c37b9-ceff-46d6-9a26-98106571665a",
+          "name": "GitHub Copilot",
+          "order": 16,
+          "url": "https://github.com/features/copilot"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.notion.so&sz=64",
+          "id": "shortcut-3b7871aa-cbe7-4e50-91d2-c9e049c3ac2f",
+          "name": "Notion AI",
+          "order": 17,
+          "url": "https://www.notion.so/product/ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.jasper.ai&sz=64",
+          "id": "shortcut-9bf91126-b833-4119-ac7c-fd115ee5e268",
+          "name": "Jasper",
+          "order": 18,
+          "url": "https://www.jasper.ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=tome.app&sz=64",
+          "id": "shortcut-1473cf2c-be19-49ff-b928-a6b3f73b420a",
+          "name": "Tome",
+          "order": 19,
+          "url": "https://tome.app"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.canva.com&sz=64",
+          "id": "shortcut-f9d2ad3a-0684-419d-bdd7-9e0ec926987b",
+          "name": "Canva Magic",
+          "order": 20,
+          "url": "https://www.canva.com/magic"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=clickup.com&sz=64",
+          "id": "shortcut-98f112e5-7fa8-4891-926f-6891bed64f4f",
+          "name": "ClickUp AI",
+          "order": 21,
+          "url": "https://clickup.com/ai"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=copilot.microsoft.com&sz=64",
+          "id": "shortcut-1461e5a8-50dd-4752-9c24-91780b348c3b",
+          "name": "Microsoft Copilot",
+          "order": 22,
+          "url": "https://copilot.microsoft.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=firefly.adobe.com&sz=64",
+          "id": "shortcut-bb6769eb-0bf0-4c72-8a4a-7db73e6231e6",
+          "name": "Adobe Firefly",
+          "order": 23,
+          "url": "https://firefly.adobe.com"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-cd8f6554-6030-4302-92e3-3cf41be82f83",
+      "name": "社交媒体",
+      "order": 1,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=x.com&sz=64",
+          "id": "shortcut-1925b4e9-d256-4213-9c5c-2b7c5dbe767d",
+          "name": "X",
+          "order": 0,
+          "url": "https://x.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.instagram.com&sz=64",
+          "id": "shortcut-b147b47b-4f47-42df-a10b-16b7051c1007",
+          "name": "Instagram",
+          "order": 1,
+          "url": "https://www.instagram.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.facebook.com&sz=64",
+          "id": "shortcut-88f089ec-1449-4261-bf76-05cbcb7302ed",
+          "name": "Facebook",
+          "order": 2,
+          "url": "https://www.facebook.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.reddit.com&sz=64",
+          "id": "shortcut-7e17a4bc-0b62-43a5-9217-4e9f38452a21",
+          "name": "Reddit",
+          "order": 3,
+          "url": "https://www.reddit.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.threads.net&sz=64",
+          "id": "shortcut-31052d7c-1024-4a53-a262-7152e1026599",
+          "name": "Threads",
+          "order": 4,
+          "url": "https://www.threads.net"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.linkedin.com&sz=64",
+          "id": "shortcut-5ffb4de1-3120-4b7f-9734-3fc3e8d0c0f3",
+          "name": "LinkedIn",
+          "order": 5,
+          "url": "https://www.linkedin.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.snapchat.com&sz=64",
+          "id": "shortcut-f83645a2-5c12-401b-8d96-bd0988b3c534",
+          "name": "Snapchat",
+          "order": 6,
+          "url": "https://www.snapchat.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.pinterest.com&sz=64",
+          "id": "shortcut-8b6687d6-8daf-460b-a83d-a9896fb4f11a",
+          "name": "Pinterest",
+          "order": 7,
+          "url": "https://www.pinterest.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=discord.com&sz=64",
+          "id": "shortcut-3d0e5b5b-31be-415e-a8ab-03fb0c9a26a5",
+          "name": "Discord",
+          "order": 8,
+          "url": "https://discord.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=telegram.org&sz=64",
+          "id": "shortcut-0f8212b1-937a-4ef7-bee6-510c1e807e7f",
+          "name": "Telegram",
+          "order": 9,
+          "url": "https://telegram.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=web.whatsapp.com&sz=64",
+          "id": "shortcut-43109ce2-7db0-4c06-88f8-94f938853c22",
+          "name": "WhatsApp Web",
+          "order": 10,
+          "url": "https://web.whatsapp.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=mastodon.social&sz=64",
+          "id": "shortcut-154c6e38-882e-4c12-b773-6be5b8682b39",
+          "name": "Mastodon",
+          "order": 11,
+          "url": "https://mastodon.social"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=bsky.app&sz=64",
+          "id": "shortcut-c19f1bd1-2791-4aca-84c9-4c73d34fb609",
+          "name": "Bluesky",
+          "order": 12,
+          "url": "https://bsky.app"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=weibo.com&sz=64",
+          "id": "shortcut-bd607fca-0d15-4220-9fcc-a5b57dc858fe",
+          "name": "Weibo",
+          "order": 13,
+          "url": "https://weibo.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.zhihu.com&sz=64",
+          "id": "shortcut-dc356cc2-603e-4a98-a1e0-e629c817430e",
+          "name": "Zhihu",
+          "order": 14,
+          "url": "https://www.zhihu.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.xiaohongshu.com&sz=64",
+          "id": "shortcut-598deb18-90cc-44e4-8815-3c26c38676c0",
+          "name": "Xiaohongshu",
+          "order": 15,
+          "url": "https://www.xiaohongshu.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.bilibili.com&sz=64",
+          "id": "shortcut-8c9dacb4-7366-45ae-8311-f13341540e30",
+          "name": "Bilibili",
+          "order": 16,
+          "url": "https://www.bilibili.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.douban.com&sz=64",
+          "id": "shortcut-c2b30673-8b61-4b6c-9499-1c66416aa957",
+          "name": "Douban",
+          "order": 17,
+          "url": "https://www.douban.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.quora.com&sz=64",
+          "id": "shortcut-d4887ea9-aa78-44bc-8ebe-3881d0c1389a",
+          "name": "Quora",
+          "order": 18,
+          "url": "https://www.quora.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=medium.com&sz=64",
+          "id": "shortcut-2fdb8521-7ee6-48b6-9c44-6fd655875335",
+          "name": "Medium",
+          "order": 19,
+          "url": "https://medium.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=news.ycombinator.com&sz=64",
+          "id": "shortcut-75fc4636-8b27-4270-a71f-0cdaf1b392d5",
+          "name": "Hacker News",
+          "order": 20,
+          "url": "https://news.ycombinator.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.producthunt.com&sz=64",
+          "id": "shortcut-02a7ca34-11cf-4531-a061-967eb6beadd2",
+          "name": "Product Hunt",
+          "order": 21,
+          "url": "https://www.producthunt.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.clubhouse.com&sz=64",
+          "id": "shortcut-0b18ed86-ef71-458e-a5fd-358ecd2cba1b",
+          "name": "Clubhouse",
+          "order": 22,
+          "url": "https://www.clubhouse.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.tiktok.com&sz=64",
+          "id": "shortcut-c1c9afe6-018c-40b1-8060-bd03e36d36cc",
+          "name": "TikTok",
+          "order": 23,
+          "url": "https://www.tiktok.com"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-f4a2fd28-b768-4841-9a5a-2748637dd658",
+      "name": "短视频与直播",
+      "order": 2,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.douyin.com&sz=64",
+          "id": "shortcut-3e35fb59-f0cb-48d2-8c0d-857eb316a7e1",
+          "name": "Douyin",
+          "order": 0,
+          "url": "https://www.douyin.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.kuaishou.com&sz=64",
+          "id": "shortcut-11310850-fc02-471d-b9e5-cb48b67ed155",
+          "name": "Kuaishou",
+          "order": 1,
+          "url": "https://www.kuaishou.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=live.tiktok.com&sz=64",
+          "id": "shortcut-688ebee6-99dc-4cc0-9ef1-d5617117b7ab",
+          "name": "TikTok Live",
+          "order": 2,
+          "url": "https://live.tiktok.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.youtube.com&sz=64",
+          "id": "shortcut-5a963891-95d0-4f3e-b0e8-3e9e5fb6e21b",
+          "name": "YouTube Shorts",
+          "order": 3,
+          "url": "https://www.youtube.com/shorts"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.instagram.com&sz=64",
+          "id": "shortcut-86f7b583-e3cb-4d79-a045-c11f7cb758c9",
+          "name": "Instagram Reels",
+          "order": 4,
+          "url": "https://www.instagram.com/reels"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=live.bilibili.com&sz=64",
+          "id": "shortcut-297394b3-2ae3-46af-b922-9999717166c2",
+          "name": "Bilibili Live",
+          "order": 5,
+          "url": "https://live.bilibili.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.twitch.tv&sz=64",
+          "id": "shortcut-53442cd8-6e33-4f94-aa12-26f4681677e1",
+          "name": "Twitch",
+          "order": 6,
+          "url": "https://www.twitch.tv"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=kick.com&sz=64",
+          "id": "shortcut-4aa178cf-fb64-4964-8395-2f5b1e584e7f",
+          "name": "Kick",
+          "order": 7,
+          "url": "https://kick.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.huya.com&sz=64",
+          "id": "shortcut-8a478426-a213-40e9-b376-6a2e0e00e372",
+          "name": "Huya",
+          "order": 8,
+          "url": "https://www.huya.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.douyu.com&sz=64",
+          "id": "shortcut-86475d34-fa26-48f6-88ec-30665048e4c4",
+          "name": "Douyu",
+          "order": 9,
+          "url": "https://www.douyu.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=trovo.live&sz=64",
+          "id": "shortcut-9240add7-1007-4ac1-b69d-5d5d0eff5651",
+          "name": "Trovo",
+          "order": 10,
+          "url": "https://trovo.live"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.facebook.com&sz=64",
+          "id": "shortcut-c7f9a0b4-52e4-4d50-99d8-265dcbcf59f4",
+          "name": "Facebook Live",
+          "order": 11,
+          "url": "https://www.facebook.com/live"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.linkedin.com&sz=64",
+          "id": "shortcut-89ead754-eb61-4199-8d26-0552c217944e",
+          "name": "LinkedIn Live",
+          "order": 12,
+          "url": "https://www.linkedin.com/video"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=x.com&sz=64",
+          "id": "shortcut-6a9247f1-c75a-40e1-b041-b9e5051a8859",
+          "name": "X Live",
+          "order": 13,
+          "url": "https://x.com/i/live"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.nicovideo.jp&sz=64",
+          "id": "shortcut-4c475359-af63-414e-a2c3-41c70050bf81",
+          "name": "Niconico",
+          "order": 14,
+          "url": "https://www.nicovideo.jp"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.snapchat.com&sz=64",
+          "id": "shortcut-1547ecbf-d267-4dc1-bc90-19dee0f3cd6e",
+          "name": "Snapchat Spotlight",
+          "order": 15,
+          "url": "https://www.snapchat.com/spotlight"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.kwai.com&sz=64",
+          "id": "shortcut-d21caa0e-c1b1-45b9-be5e-1b2d159a4977",
+          "name": "Kwai",
+          "order": 16,
+          "url": "https://www.kwai.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=likee.com&sz=64",
+          "id": "shortcut-07646121-a749-42fa-a41a-9dde05ab29eb",
+          "name": "Likee",
+          "order": 17,
+          "url": "https://likee.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=triller.co&sz=64",
+          "id": "shortcut-e3b0178b-56f4-4cfe-aa40-4d3bdc8e6e8d",
+          "name": "Triller",
+          "order": 18,
+          "url": "https://triller.co"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=weishi.qq.com&sz=64",
+          "id": "shortcut-cd22535b-de90-4deb-9880-a92c74c6f0bc",
+          "name": "Weishi",
+          "order": 19,
+          "url": "https://weishi.qq.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.yy.com&sz=64",
+          "id": "shortcut-8773447b-01f0-4e9c-aba6-aabccb391c6b",
+          "name": "YY Live",
+          "order": 20,
+          "url": "https://www.yy.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.inke.cn&sz=64",
+          "id": "shortcut-4a392c51-ec6e-4683-bcea-c6a5dd0ef818",
+          "name": "Inke",
+          "order": 21,
+          "url": "https://www.inke.cn"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=rumble.com&sz=64",
+          "id": "shortcut-5c5b3547-4cc4-492d-97b2-f7b6b6e53ee6",
+          "name": "Rumble",
+          "order": 22,
+          "url": "https://rumble.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.vigovideo.net&sz=64",
+          "id": "shortcut-f20249f6-bd31-40d3-ae05-feb2676996a6",
+          "name": "Vigo Video",
+          "order": 23,
+          "url": "https://www.vigovideo.net"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-c152f85b-2fbf-45ed-9548-e15710699fff",
+      "name": "流媒体影音",
+      "order": 3,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.netflix.com&sz=64",
+          "id": "shortcut-f8e01d1a-b025-45cf-b0a7-e1094480d61c",
+          "name": "Netflix",
+          "order": 0,
+          "url": "https://www.netflix.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.disneyplus.com&sz=64",
+          "id": "shortcut-06bb5396-e120-4288-b59a-c5d3b8b6f30b",
+          "name": "Disney+",
+          "order": 1,
+          "url": "https://www.disneyplus.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.hulu.com&sz=64",
+          "id": "shortcut-a1e80213-3ec4-49f0-9cc3-42c9321ecfd2",
+          "name": "Hulu",
+          "order": 2,
+          "url": "https://www.hulu.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.primevideo.com&sz=64",
+          "id": "shortcut-595c636a-c52a-4fad-b903-55ae4ef04d4a",
+          "name": "Amazon Prime Video",
+          "order": 3,
+          "url": "https://www.primevideo.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=tv.apple.com&sz=64",
+          "id": "shortcut-3a87cb15-ec7b-4862-bd89-777868548b85",
+          "name": "Apple TV+",
+          "order": 4,
+          "url": "https://tv.apple.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.max.com&sz=64",
+          "id": "shortcut-b013f450-0652-4b1b-aee7-4d6349aff9e8",
+          "name": "Max",
+          "order": 5,
+          "url": "https://www.max.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.peacocktv.com&sz=64",
+          "id": "shortcut-5cfb3c22-0397-4aed-a96a-86ff21da747d",
+          "name": "Peacock",
+          "order": 6,
+          "url": "https://www.peacocktv.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.paramountplus.com&sz=64",
+          "id": "shortcut-b90a83a8-ae54-482e-840e-abcc9b6850b4",
+          "name": "Paramount+",
+          "order": 7,
+          "url": "https://www.paramountplus.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.crunchyroll.com&sz=64",
+          "id": "shortcut-ce3da087-3c80-4d8a-90d7-5b045853e25d",
+          "name": "Crunchyroll",
+          "order": 8,
+          "url": "https://www.crunchyroll.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.spotify.com&sz=64",
+          "id": "shortcut-f562a99c-54bd-43ff-8ae2-94af8b8be6fd",
+          "name": "Spotify",
+          "order": 9,
+          "url": "https://www.spotify.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=music.apple.com&sz=64",
+          "id": "shortcut-88505bcf-9310-4b34-9507-b0032130a447",
+          "name": "Apple Music",
+          "order": 10,
+          "url": "https://music.apple.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=music.youtube.com&sz=64",
+          "id": "shortcut-c7b9b4b7-cfb9-48d1-a72e-c5ab7b8441f8",
+          "name": "YouTube Music",
+          "order": 11,
+          "url": "https://music.youtube.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.deezer.com&sz=64",
+          "id": "shortcut-741828e0-b6bb-4b4b-a9d9-63fee3086a3b",
+          "name": "Deezer",
+          "order": 12,
+          "url": "https://www.deezer.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=tidal.com&sz=64",
+          "id": "shortcut-7acc0b1a-071e-4b24-8edf-a10921b9daf7",
+          "name": "Tidal",
+          "order": 13,
+          "url": "https://tidal.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=v.qq.com&sz=64",
+          "id": "shortcut-5dacdd90-d841-424d-9f55-442618bc4a07",
+          "name": "Tencent Video",
+          "order": 14,
+          "url": "https://v.qq.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.iqiyi.com&sz=64",
+          "id": "shortcut-1129395a-3d96-4c5c-8451-a774f8b46172",
+          "name": "iQIYI",
+          "order": 15,
+          "url": "https://www.iqiyi.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.youku.com&sz=64",
+          "id": "shortcut-c5e543a5-2e81-49cd-8561-3226fd3ec047",
+          "name": "Youku",
+          "order": 16,
+          "url": "https://www.youku.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.bilibili.com&sz=64",
+          "id": "shortcut-51160562-b515-4c6d-bafb-9c0bd730d974",
+          "name": "Bilibili",
+          "order": 17,
+          "url": "https://www.bilibili.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.bbc.co.uk&sz=64",
+          "id": "shortcut-6818a6ca-2ee6-4e57-abfe-490099311ce4",
+          "name": "BBC iPlayer",
+          "order": 18,
+          "url": "https://www.bbc.co.uk/iplayer"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.sling.com&sz=64",
+          "id": "shortcut-91c69b3f-1ee1-4016-b462-54584161c762",
+          "name": "Sling TV",
+          "order": 19,
+          "url": "https://www.sling.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.plex.tv&sz=64",
+          "id": "shortcut-8e00a568-a168-4156-ab6e-5db46e5884dd",
+          "name": "Plex",
+          "order": 20,
+          "url": "https://www.plex.tv"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.funimation.com&sz=64",
+          "id": "shortcut-660e4db2-f35f-4f66-9c15-22c0c0b2ddb9",
+          "name": "Funimation",
+          "order": 21,
+          "url": "https://www.funimation.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.audible.com&sz=64",
+          "id": "shortcut-df0d3a8b-a702-43ac-939d-5fb7c511f257",
+          "name": "Audible",
+          "order": 22,
+          "url": "https://www.audible.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.pandora.com&sz=64",
+          "id": "shortcut-a79fc46d-df47-4ecf-957b-a46076878b07",
+          "name": "Pandora",
+          "order": 23,
+          "url": "https://www.pandora.com"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-2cbff460-578c-47b6-b1c9-ac93f7d74f05",
+      "name": "购物电商",
+      "order": 4,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.amazon.com&sz=64",
+          "id": "shortcut-b210adab-4280-4e16-acd3-d070c8f73117",
+          "name": "Amazon",
+          "order": 0,
+          "url": "https://www.amazon.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.taobao.com&sz=64",
+          "id": "shortcut-20b8183b-163f-4c0f-b7af-1601248a12b1",
+          "name": "Taobao",
+          "order": 1,
+          "url": "https://www.taobao.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.tmall.com&sz=64",
+          "id": "shortcut-29cfd0e2-a68e-4271-9fef-6f9e2a2cef3c",
+          "name": "Tmall",
+          "order": 2,
+          "url": "https://www.tmall.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.jd.com&sz=64",
+          "id": "shortcut-a320192b-a7f7-4dd2-82fb-2ff2a70a90d9",
+          "name": "JD",
+          "order": 3,
+          "url": "https://www.jd.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.pinduoduo.com&sz=64",
+          "id": "shortcut-ac875045-0b57-4419-83b6-6e8c6b7eb93e",
+          "name": "Pinduoduo",
+          "order": 4,
+          "url": "https://www.pinduoduo.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.ebay.com&sz=64",
+          "id": "shortcut-a9198868-c996-4b00-b20b-0a7c61bd73af",
+          "name": "eBay",
+          "order": 5,
+          "url": "https://www.ebay.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.walmart.com&sz=64",
+          "id": "shortcut-5ad2a5c2-57dc-4bc3-b888-164e3da9f77b",
+          "name": "Walmart",
+          "order": 6,
+          "url": "https://www.walmart.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.aliexpress.com&sz=64",
+          "id": "shortcut-ef37098d-978c-448d-824d-3e09f3183458",
+          "name": "AliExpress",
+          "order": 7,
+          "url": "https://www.aliexpress.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=shopee.com&sz=64",
+          "id": "shortcut-841bb25c-cd87-45e5-8551-64770a44dd4e",
+          "name": "Shopee",
+          "order": 8,
+          "url": "https://shopee.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.lazada.com&sz=64",
+          "id": "shortcut-46fde651-5910-41f8-bab0-cec3a75ea2ec",
+          "name": "Lazada",
+          "order": 9,
+          "url": "https://www.lazada.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.costco.com&sz=64",
+          "id": "shortcut-6971acc2-88c7-430b-b9ad-20b41ee14888",
+          "name": "Costco",
+          "order": 10,
+          "url": "https://www.costco.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.target.com&sz=64",
+          "id": "shortcut-05b56606-c0d9-47fe-80ee-585bd6957548",
+          "name": "Target",
+          "order": 11,
+          "url": "https://www.target.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.bestbuy.com&sz=64",
+          "id": "shortcut-a20b08f1-3b25-462a-bd53-7626da9c2b4c",
+          "name": "Best Buy",
+          "order": 12,
+          "url": "https://www.bestbuy.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.etsy.com&sz=64",
+          "id": "shortcut-4491ca4d-6db0-43e3-8ab5-170db9e383fc",
+          "name": "Etsy",
+          "order": 13,
+          "url": "https://www.etsy.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.rakuten.co.jp&sz=64",
+          "id": "shortcut-ed85e6cb-bbf2-4560-ad26-3c4c93636571",
+          "name": "Rakuten",
+          "order": 14,
+          "url": "https://www.rakuten.co.jp"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.flipkart.com&sz=64",
+          "id": "shortcut-241ffe9b-59c3-44b5-8ff6-7ee5c5deb05f",
+          "name": "Flipkart",
+          "order": 15,
+          "url": "https://www.flipkart.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.mercadolibre.com&sz=64",
+          "id": "shortcut-608df599-196f-49bf-a9ab-bff7ee6b559b",
+          "name": "MercadoLibre",
+          "order": 16,
+          "url": "https://www.mercadolibre.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.zalando.com&sz=64",
+          "id": "shortcut-59131784-3dda-492e-a2bc-e96be5440a31",
+          "name": "Zalando",
+          "order": 17,
+          "url": "https://www.zalando.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.asos.com&sz=64",
+          "id": "shortcut-f6fd6c7a-17c9-4415-8467-a6727db7cc04",
+          "name": "ASOS",
+          "order": 18,
+          "url": "https://www.asos.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.shein.com&sz=64",
+          "id": "shortcut-ba7c6c49-22ff-4bd2-a675-6da4086920bc",
+          "name": "Shein",
+          "order": 19,
+          "url": "https://www.shein.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.nike.com&sz=64",
+          "id": "shortcut-378aff9a-9203-47eb-a104-f4802ddf93dc",
+          "name": "Nike",
+          "order": 20,
+          "url": "https://www.nike.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.adidas.com&sz=64",
+          "id": "shortcut-593418fe-053f-4613-9d4f-02d19d2dde28",
+          "name": "Adidas",
+          "order": 21,
+          "url": "https://www.adidas.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.apple.com&sz=64",
+          "id": "shortcut-046303a9-cc9e-496e-9dd6-89a6c57996cf",
+          "name": "Apple Store",
+          "order": 22,
+          "url": "https://www.apple.com/store"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.suning.com&sz=64",
+          "id": "shortcut-e3e90faa-5535-4699-b1ca-1d0220a1ee83",
+          "name": "Suning",
+          "order": 23,
+          "url": "https://www.suning.com"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-de2b93a5-432b-4cad-887e-f2bd9cdb8228",
+      "name": "学习与知识",
+      "order": 5,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.coursera.org&sz=64",
+          "id": "shortcut-bc711029-22b6-4dca-9237-fa84f4053550",
+          "name": "Coursera",
+          "order": 0,
+          "url": "https://www.coursera.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.udemy.com&sz=64",
+          "id": "shortcut-dea67112-332c-4063-8476-7c1345d69f39",
+          "name": "Udemy",
+          "order": 1,
+          "url": "https://www.udemy.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.edx.org&sz=64",
+          "id": "shortcut-b8d9cbf8-c046-407d-807c-df16fb6acb0e",
+          "name": "edX",
+          "order": 2,
+          "url": "https://www.edx.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.khanacademy.org&sz=64",
+          "id": "shortcut-e4fc4ae9-7abd-4026-9066-74f4a687a22c",
+          "name": "Khan Academy",
+          "order": 3,
+          "url": "https://www.khanacademy.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.duolingo.com&sz=64",
+          "id": "shortcut-9b4e3743-9513-47b7-9ec7-8a9336734d99",
+          "name": "Duolingo",
+          "order": 4,
+          "url": "https://www.duolingo.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=quizlet.com&sz=64",
+          "id": "shortcut-d3af6397-3cf5-476b-8227-314edec9a20f",
+          "name": "Quizlet",
+          "order": 5,
+          "url": "https://quizlet.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.ted.com&sz=64",
+          "id": "shortcut-ce589452-5af4-4c98-952b-3ef77724b61c",
+          "name": "TED",
+          "order": 6,
+          "url": "https://www.ted.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=ocw.mit.edu&sz=64",
+          "id": "shortcut-3ac7c590-d900-436f-897c-656de0fbffbc",
+          "name": "MIT OpenCourseWare",
+          "order": 7,
+          "url": "https://ocw.mit.edu"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=online.stanford.edu&sz=64",
+          "id": "shortcut-5441d290-1691-4866-8e87-394dd66ab37f",
+          "name": "Stanford Online",
+          "order": 8,
+          "url": "https://online.stanford.edu"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.futurelearn.com&sz=64",
+          "id": "shortcut-27cc67ab-c47c-4d2d-b26d-c771d38b093a",
+          "name": "FutureLearn",
+          "order": 9,
+          "url": "https://www.futurelearn.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.skillshare.com&sz=64",
+          "id": "shortcut-fc2bef89-8986-4a8c-9d86-57fd5980364b",
+          "name": "Skillshare",
+          "order": 10,
+          "url": "https://www.skillshare.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.pluralsight.com&sz=64",
+          "id": "shortcut-5a0e3591-5ba7-4eb3-8963-6ee9bf7d5af0",
+          "name": "Pluralsight",
+          "order": 11,
+          "url": "https://www.pluralsight.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.codecademy.com&sz=64",
+          "id": "shortcut-49afe901-9e0d-4d22-9824-039c30b349ad",
+          "name": "Codecademy",
+          "order": 12,
+          "url": "https://www.codecademy.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.freecodecamp.org&sz=64",
+          "id": "shortcut-a6930c0b-59bc-4219-9732-fc52be9250a8",
+          "name": "freeCodeCamp",
+          "order": 13,
+          "url": "https://www.freecodecamp.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=leetcode.com&sz=64",
+          "id": "shortcut-0f708330-b94f-44e5-825c-83cecb75c43a",
+          "name": "LeetCode",
+          "order": 14,
+          "url": "https://leetcode.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.geeksforgeeks.org&sz=64",
+          "id": "shortcut-8f890a8e-f57d-425f-abd7-af7f5b7fb7df",
+          "name": "GeeksforGeeks",
+          "order": 15,
+          "url": "https://www.geeksforgeeks.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=stackoverflow.com&sz=64",
+          "id": "shortcut-2e195250-67dd-4456-9a2c-6d069500fc2b",
+          "name": "Stack Overflow",
+          "order": 16,
+          "url": "https://stackoverflow.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.w3schools.com&sz=64",
+          "id": "shortcut-6b23d782-0f56-44f5-a8f2-085fc2b49008",
+          "name": "W3Schools",
+          "order": 17,
+          "url": "https://www.w3schools.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.wikipedia.org&sz=64",
+          "id": "shortcut-d0b1c4b1-7e0e-4440-a25b-9671d52c0923",
+          "name": "Wikipedia",
+          "order": 18,
+          "url": "https://www.wikipedia.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.britannica.com&sz=64",
+          "id": "shortcut-0a8a9eb5-171e-46a6-b18a-f04c747bb53f",
+          "name": "Britannica",
+          "order": 19,
+          "url": "https://www.britannica.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=zhuanlan.zhihu.com&sz=64",
+          "id": "shortcut-ec6dc2bb-bb53-4a0a-b8ba-2aa35224b526",
+          "name": "Zhihu Column",
+          "order": 20,
+          "url": "https://zhuanlan.zhihu.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=segmentfault.com&sz=64",
+          "id": "shortcut-81951ed6-42d2-4338-9d46-9372568035a6",
+          "name": "SegmentFault",
+          "order": 21,
+          "url": "https://segmentfault.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.infoq.com&sz=64",
+          "id": "shortcut-a90a806a-9238-4db0-890d-0a2b27ceaef6",
+          "name": "InfoQ",
+          "order": 22,
+          "url": "https://www.infoq.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.icourse163.org&sz=64",
+          "id": "shortcut-1dd9f2ca-ea72-4053-a1cb-530a0d53ee88",
+          "name": "中国大学MOOC",
+          "order": 23,
+          "url": "https://www.icourse163.org"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-d32d0d3e-fc46-45fa-92b2-e9e212ba50b6",
+      "name": "开发者与设计",
+      "order": 6,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=github.com&sz=64",
+          "id": "shortcut-f5f0fa12-300f-451c-ae0c-2f6ea8209824",
+          "name": "GitHub",
+          "order": 0,
+          "url": "https://github.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=gitlab.com&sz=64",
+          "id": "shortcut-a867e933-5961-4dd3-b29c-3897e843d9e0",
+          "name": "GitLab",
+          "order": 1,
+          "url": "https://gitlab.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=bitbucket.org&sz=64",
+          "id": "shortcut-3ce8f3e2-17dd-4146-b52f-c223f4922f4a",
+          "name": "Bitbucket",
+          "order": 2,
+          "url": "https://bitbucket.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=hub.docker.com&sz=64",
+          "id": "shortcut-cf2073a7-bc20-421b-a00f-34ac23374e1e",
+          "name": "Docker Hub",
+          "order": 3,
+          "url": "https://hub.docker.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.npmjs.com&sz=64",
+          "id": "shortcut-646ceb76-44ac-4509-aae1-f00713067b01",
+          "name": "npm",
+          "order": 4,
+          "url": "https://www.npmjs.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=pypi.org&sz=64",
+          "id": "shortcut-b7ff747c-bd35-43ed-a041-c84c8de88334",
+          "name": "PyPI",
+          "order": 5,
+          "url": "https://pypi.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=replit.com&sz=64",
+          "id": "shortcut-a918797a-2a20-4cdb-968e-93f72b50bbf8",
+          "name": "Replit",
+          "order": 6,
+          "url": "https://replit.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=code.visualstudio.com&sz=64",
+          "id": "shortcut-792d2846-175c-497f-b780-f7535066646e",
+          "name": "VS Code",
+          "order": 7,
+          "url": "https://code.visualstudio.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.figma.com&sz=64",
+          "id": "shortcut-8e1d3cb0-d57f-43a6-8c6e-61a79b912bf4",
+          "name": "Figma",
+          "order": 8,
+          "url": "https://www.figma.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.sketch.com&sz=64",
+          "id": "shortcut-9ebdff4b-844b-4b73-ab2d-94e9cb78fade",
+          "name": "Sketch",
+          "order": 9,
+          "url": "https://www.sketch.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.adobe.com&sz=64",
+          "id": "shortcut-aacc9a31-d330-4c0f-af45-43e2c1ca20db",
+          "name": "Adobe XD",
+          "order": 10,
+          "url": "https://www.adobe.com/products/xd.html"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.canva.com&sz=64",
+          "id": "shortcut-5e29d347-c414-4d46-940a-eb54c4b540af",
+          "name": "Canva",
+          "order": 11,
+          "url": "https://www.canva.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=dribbble.com&sz=64",
+          "id": "shortcut-0c0568c2-6c53-4e3f-96d9-0d901b765803",
+          "name": "Dribbble",
+          "order": 12,
+          "url": "https://dribbble.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.behance.net&sz=64",
+          "id": "shortcut-d181714e-af38-49a7-a768-008fb001e630",
+          "name": "Behance",
+          "order": 13,
+          "url": "https://www.behance.net"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=codepen.io&sz=64",
+          "id": "shortcut-5e399048-b981-4b04-b5b4-35554ce1bbee",
+          "name": "CodePen",
+          "order": 14,
+          "url": "https://codepen.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.hackerrank.com&sz=64",
+          "id": "shortcut-49679273-4ba5-4a49-abe9-ea27213610f5",
+          "name": "HackerRank",
+          "order": 15,
+          "url": "https://www.hackerrank.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=codesandbox.io&sz=64",
+          "id": "shortcut-bc665678-3fa6-4ac4-b2f2-76f0ffd53e10",
+          "name": "CodeSandbox",
+          "order": 16,
+          "url": "https://codesandbox.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=glitch.com&sz=64",
+          "id": "shortcut-f6627dae-60c6-45b9-9408-4302d734031f",
+          "name": "Glitch",
+          "order": 17,
+          "url": "https://glitch.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.postman.com&sz=64",
+          "id": "shortcut-1224b81a-b07f-4bf3-99c2-3a95acd46268",
+          "name": "Postman",
+          "order": 18,
+          "url": "https://www.postman.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=swagger.io&sz=64",
+          "id": "shortcut-88ec96d9-4127-4c8b-a9dc-313f5fbbee01",
+          "name": "Swagger",
+          "order": 19,
+          "url": "https://swagger.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=supabase.com&sz=64",
+          "id": "shortcut-4ececa5c-88e0-491f-8fc4-f14cd52a32d7",
+          "name": "Supabase",
+          "order": 20,
+          "url": "https://supabase.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=vercel.com&sz=64",
+          "id": "shortcut-a20d36e3-f36e-400b-8a9c-9f6c5c5dbd02",
+          "name": "Vercel",
+          "order": 21,
+          "url": "https://vercel.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.netlify.com&sz=64",
+          "id": "shortcut-16602fe7-e7c8-4ae1-b3fd-65354d42d56e",
+          "name": "Netlify",
+          "order": 22,
+          "url": "https://www.netlify.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.notion.so&sz=64",
+          "id": "shortcut-5bbda46d-379e-42ca-b833-37f319a9f151",
+          "name": "Notion AI",
+          "order": 23,
+          "url": "https://www.notion.so/product/ai"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-cec152b4-d624-4476-bd52-43b721491adc",
+      "name": "生产力与协同",
+      "order": 7,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.notion.so&sz=64",
+          "id": "shortcut-9cc4a1ec-575f-4ab8-a143-10594ed249b7",
+          "name": "Notion",
+          "order": 0,
+          "url": "https://www.notion.so"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=asana.com&sz=64",
+          "id": "shortcut-ec7f1248-53d3-4589-ab32-0c77ac120865",
+          "name": "Asana",
+          "order": 1,
+          "url": "https://asana.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=trello.com&sz=64",
+          "id": "shortcut-4b2271e7-68fd-4613-9c1d-fb8728fc55c1",
+          "name": "Trello",
+          "order": 2,
+          "url": "https://trello.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=slack.com&sz=64",
+          "id": "shortcut-c267b3ee-746b-4586-a1de-362a28bda3db",
+          "name": "Slack",
+          "order": 3,
+          "url": "https://slack.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=teams.microsoft.com&sz=64",
+          "id": "shortcut-6f3acd0a-767f-42b1-ad0d-14a7789665db",
+          "name": "Microsoft Teams",
+          "order": 4,
+          "url": "https://teams.microsoft.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=workspace.google.com&sz=64",
+          "id": "shortcut-574ac17b-a86b-41f0-9e13-c3467903c841",
+          "name": "Google Workspace",
+          "order": 5,
+          "url": "https://workspace.google.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=zoom.us&sz=64",
+          "id": "shortcut-286ddb9f-a261-4cfe-8d9d-253fec43d803",
+          "name": "Zoom",
+          "order": 6,
+          "url": "https://zoom.us"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=clickup.com&sz=64",
+          "id": "shortcut-408be09f-b0a2-4b08-90b2-8834397bb725",
+          "name": "ClickUp",
+          "order": 7,
+          "url": "https://clickup.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=monday.com&sz=64",
+          "id": "shortcut-fa856860-4fc7-45f6-bb33-8829471691b6",
+          "name": "Monday",
+          "order": 8,
+          "url": "https://monday.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=airtable.com&sz=64",
+          "id": "shortcut-978c2740-3dac-4f9a-9744-6d0faf453e50",
+          "name": "Airtable",
+          "order": 9,
+          "url": "https://airtable.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.dropbox.com&sz=64",
+          "id": "shortcut-36c7160b-12d2-429c-a2e5-b722953f2173",
+          "name": "Dropbox",
+          "order": 10,
+          "url": "https://www.dropbox.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=drive.google.com&sz=64",
+          "id": "shortcut-f4672201-19c6-4f23-bef1-06d16bdef674",
+          "name": "Google Drive",
+          "order": 11,
+          "url": "https://drive.google.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=onedrive.live.com&sz=64",
+          "id": "shortcut-230ac604-4bf7-4d76-8844-fe5ad6b7e585",
+          "name": "OneDrive",
+          "order": 12,
+          "url": "https://onedrive.live.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=coda.io&sz=64",
+          "id": "shortcut-1e79eb1f-654b-44ce-a28b-249ab1151ca4",
+          "name": "Coda",
+          "order": 13,
+          "url": "https://coda.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=evernote.com&sz=64",
+          "id": "shortcut-11358a12-3453-40bd-98eb-e220d7a34af5",
+          "name": "Evernote",
+          "order": 14,
+          "url": "https://evernote.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=todoist.com&sz=64",
+          "id": "shortcut-3d9e1ce2-a180-4e7f-9df1-94e4fe069107",
+          "name": "Todoist",
+          "order": 15,
+          "url": "https://todoist.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.grammarly.com&sz=64",
+          "id": "shortcut-fda2efea-393b-4c74-9804-5dd173c15a03",
+          "name": "Grammarly",
+          "order": 16,
+          "url": "https://www.grammarly.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=calendly.com&sz=64",
+          "id": "shortcut-cf72a3d7-0984-40cb-aa44-fc46384d2736",
+          "name": "Calendly",
+          "order": 17,
+          "url": "https://calendly.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.loom.com&sz=64",
+          "id": "shortcut-062f03fa-6375-48b3-a0e9-94d7980c242d",
+          "name": "Loom",
+          "order": 18,
+          "url": "https://www.loom.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=miro.com&sz=64",
+          "id": "shortcut-a0b8bf4c-e18b-4cf9-886f-064301ce5ce8",
+          "name": "Miro",
+          "order": 19,
+          "url": "https://miro.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=obsidian.md&sz=64",
+          "id": "shortcut-d433df43-499a-4272-b0d0-b92a1d77644f",
+          "name": "Obsidian",
+          "order": 20,
+          "url": "https://obsidian.md"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=proton.me&sz=64",
+          "id": "shortcut-2bb5f4af-e821-4556-ba4b-76b98aefb0ad",
+          "name": "Proton Mail",
+          "order": 21,
+          "url": "https://proton.me"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=linear.app&sz=64",
+          "id": "shortcut-15f22b26-f95e-4f1d-adcb-4242d7630bbf",
+          "name": "Linear",
+          "order": 22,
+          "url": "https://linear.app"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.figma.com&sz=64",
+          "id": "shortcut-49dba8c9-2c6e-4a55-98f2-bb61b5d69823",
+          "name": "Figma",
+          "order": 23,
+          "url": "https://www.figma.com"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-5d448c02-52ed-463c-9c2b-3268ebcd7bbb",
+      "name": "游戏与娱乐",
+      "order": 8,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=store.steampowered.com&sz=64",
+          "id": "shortcut-d3aada0e-85e1-446d-9ad2-4cb1e26cd3e1",
+          "name": "Steam",
+          "order": 0,
+          "url": "https://store.steampowered.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.epicgames.com&sz=64",
+          "id": "shortcut-3f12d4c4-788a-41fa-bbdb-b1ea943534a1",
+          "name": "Epic Games",
+          "order": 1,
+          "url": "https://www.epicgames.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.roblox.com&sz=64",
+          "id": "shortcut-7a9139a9-dc37-4cdb-a5d3-ad2fe6bb1a2c",
+          "name": "Roblox",
+          "order": 2,
+          "url": "https://www.roblox.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=store.playstation.com&sz=64",
+          "id": "shortcut-04f3fa49-5e38-41cc-ad0d-7781dd9b41d3",
+          "name": "PlayStation Store",
+          "order": 3,
+          "url": "https://store.playstation.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.xbox.com&sz=64",
+          "id": "shortcut-0a1824e8-5544-45ec-8d1f-a6800d8d2e78",
+          "name": "Xbox",
+          "order": 4,
+          "url": "https://www.xbox.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.nintendo.com&sz=64",
+          "id": "shortcut-3af5a9cc-5abe-4cd0-8518-2c014816e10d",
+          "name": "Nintendo",
+          "order": 5,
+          "url": "https://www.nintendo.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.gog.com&sz=64",
+          "id": "shortcut-3e0279df-d1f9-4b42-a27d-5a17db282318",
+          "name": "GOG",
+          "order": 6,
+          "url": "https://www.gog.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=itch.io&sz=64",
+          "id": "shortcut-c2742fc9-207c-4885-998f-a238ddcae6f3",
+          "name": "itch.io",
+          "order": 7,
+          "url": "https://itch.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.battle.net&sz=64",
+          "id": "shortcut-867973e5-c5bb-4b32-a62a-8ba3017bb573",
+          "name": "Battle.net",
+          "order": 8,
+          "url": "https://www.battle.net"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.riotgames.com&sz=64",
+          "id": "shortcut-dd6069a2-a272-4492-8833-6470ebee5158",
+          "name": "Riot Games",
+          "order": 9,
+          "url": "https://www.riotgames.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.ubisoft.com&sz=64",
+          "id": "shortcut-6da39a11-4728-4c77-be61-d35c99deaa8b",
+          "name": "Ubisoft Connect",
+          "order": 10,
+          "url": "https://www.ubisoft.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.ea.com&sz=64",
+          "id": "shortcut-d50def3e-1f9e-4675-83c3-4fa2d93e84b6",
+          "name": "EA",
+          "order": 11,
+          "url": "https://www.ea.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=bethesda.net&sz=64",
+          "id": "shortcut-56a25b15-e98e-4d97-971f-f18af343be60",
+          "name": "Bethesda",
+          "order": 12,
+          "url": "https://bethesda.net"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.twitch.tv&sz=64",
+          "id": "shortcut-3af273a6-4b27-43ec-a412-c60d95fa332c",
+          "name": "Twitch",
+          "order": 13,
+          "url": "https://www.twitch.tv"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=discord.com&sz=64",
+          "id": "shortcut-47ccce8f-4613-4432-a7a3-87bc18a6e518",
+          "name": "Discord",
+          "order": 14,
+          "url": "https://discord.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=game.bilibili.com&sz=64",
+          "id": "shortcut-9f4b9ea6-b7d1-419c-8256-cc6b00ecf037",
+          "name": "Bilibili Games",
+          "order": 15,
+          "url": "https://game.bilibili.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.taptap.io&sz=64",
+          "id": "shortcut-e4eb2908-b933-4ad4-a461-3631baf4d2a8",
+          "name": "TapTap",
+          "order": 16,
+          "url": "https://www.taptap.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=apps.apple.com&sz=64",
+          "id": "shortcut-2787f598-9574-41b2-a861-038a7a03c909",
+          "name": "App Store Games",
+          "order": 17,
+          "url": "https://apps.apple.com/us/games"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=play.google.com&sz=64",
+          "id": "shortcut-756cd16e-c91c-4d38-b4fd-1d0974811f0c",
+          "name": "Google Play Games",
+          "order": 18,
+          "url": "https://play.google.com/store/apps/category/GAME"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.miniclip.com&sz=64",
+          "id": "shortcut-77464253-06b0-44bb-876f-69e4632506af",
+          "name": "Miniclip",
+          "order": 19,
+          "url": "https://www.miniclip.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.kongregate.com&sz=64",
+          "id": "shortcut-52486311-30ba-48c5-a2ce-a41472b52d3e",
+          "name": "Kongregate",
+          "order": 20,
+          "url": "https://www.kongregate.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=poki.com&sz=64",
+          "id": "shortcut-51026cea-68a6-435f-bfbf-f8a544ae47e7",
+          "name": "Poki",
+          "order": 21,
+          "url": "https://poki.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=gaming.tiktok.com&sz=64",
+          "id": "shortcut-5f74d99e-255e-4ef5-832b-57e00aa6860b",
+          "name": "TikTok Gaming",
+          "order": 22,
+          "url": "https://gaming.tiktok.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.meta.com&sz=64",
+          "id": "shortcut-e282c69a-7e59-45a5-b427-72832dc36895",
+          "name": "Meta Quest",
+          "order": 23,
+          "url": "https://www.meta.com/quest"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "color": "#4285f4",
+      "id": "cat-fa64d9cc-ccfb-428e-bff0-35175dfbae3c",
+      "name": "金融与Web3",
+      "order": 9,
+      "shortcuts": [
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.binance.com&sz=64",
+          "id": "shortcut-7f8c6e44-6b60-4ba2-b57d-40ebff6a52c1",
+          "name": "Binance",
+          "order": 0,
+          "url": "https://www.binance.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.coinbase.com&sz=64",
+          "id": "shortcut-01c27c53-c2c0-4fd1-99fc-471400966054",
+          "name": "Coinbase",
+          "order": 1,
+          "url": "https://www.coinbase.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.kraken.com&sz=64",
+          "id": "shortcut-f6567db0-1fbd-4d9b-ac68-bb1273197e74",
+          "name": "Kraken",
+          "order": 2,
+          "url": "https://www.kraken.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.okx.com&sz=64",
+          "id": "shortcut-88e4a8c4-2652-4dfe-977e-761c1d192299",
+          "name": "OKX",
+          "order": 3,
+          "url": "https://www.okx.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=robinhood.com&sz=64",
+          "id": "shortcut-2792f59e-fb9d-4f89-89ea-c193583705a4",
+          "name": "Robinhood",
+          "order": 4,
+          "url": "https://robinhood.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.etoro.com&sz=64",
+          "id": "shortcut-75ce55ec-5c66-4cb9-8869-002297972b88",
+          "name": "eToro",
+          "order": 5,
+          "url": "https://www.etoro.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.ibkr.com&sz=64",
+          "id": "shortcut-0c8ebc89-5c1e-4636-a8f9-e09cf475f8b3",
+          "name": "Interactive Brokers",
+          "order": 6,
+          "url": "https://www.ibkr.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.fidelity.com&sz=64",
+          "id": "shortcut-5503c74d-6e7f-4101-bd1b-c0b5e40cb908",
+          "name": "Fidelity",
+          "order": 7,
+          "url": "https://www.fidelity.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.schwab.com&sz=64",
+          "id": "shortcut-dfad5c33-38d7-4679-b605-1f6a11b5d07c",
+          "name": "Charles Schwab",
+          "order": 8,
+          "url": "https://www.schwab.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.paypal.com&sz=64",
+          "id": "shortcut-e164aa0c-6aa2-40bb-8f15-cc6247883fbf",
+          "name": "PayPal",
+          "order": 9,
+          "url": "https://www.paypal.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=stripe.com&sz=64",
+          "id": "shortcut-7ea7958c-8183-4f75-b255-fc1503bb0f58",
+          "name": "Stripe",
+          "order": 10,
+          "url": "https://stripe.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=squareup.com&sz=64",
+          "id": "shortcut-3e63001a-a7f9-4f97-bed7-363bdb47ace7",
+          "name": "Square",
+          "order": 11,
+          "url": "https://squareup.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.alipay.com&sz=64",
+          "id": "shortcut-758283a2-eaf5-4a82-afc1-b1e7522aa046",
+          "name": "Alipay",
+          "order": 12,
+          "url": "https://www.alipay.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=pay.weixin.qq.com&sz=64",
+          "id": "shortcut-007866ae-56cd-42db-b28d-88f27c1208b5",
+          "name": "WeChat Pay",
+          "order": 13,
+          "url": "https://pay.weixin.qq.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.revolut.com&sz=64",
+          "id": "shortcut-b44ba159-ac78-4bee-bc87-9c731a391844",
+          "name": "Revolut",
+          "order": 14,
+          "url": "https://www.revolut.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=wise.com&sz=64",
+          "id": "shortcut-9324ff7f-c072-4810-9e34-8005c0ff5ec4",
+          "name": "Wise",
+          "order": 15,
+          "url": "https://wise.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=metamask.io&sz=64",
+          "id": "shortcut-0cf379aa-6a42-44b4-b1d9-b9cc2e293611",
+          "name": "MetaMask",
+          "order": 16,
+          "url": "https://metamask.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=phantom.app&sz=64",
+          "id": "shortcut-8d10926f-2bc2-4f4c-bc5f-74d47461f097",
+          "name": "Phantom",
+          "order": 17,
+          "url": "https://phantom.app"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=app.uniswap.org&sz=64",
+          "id": "shortcut-c1c29b50-c830-40ec-8e36-f9bd9cbd8060",
+          "name": "Uniswap",
+          "order": 18,
+          "url": "https://app.uniswap.org"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=opensea.io&sz=64",
+          "id": "shortcut-5c693387-a5cb-4213-8598-16082043d816",
+          "name": "OpenSea",
+          "order": 19,
+          "url": "https://opensea.io"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.dune.com&sz=64",
+          "id": "shortcut-31eb9392-e981-4c1e-8279-e64dd0cb98e9",
+          "name": "Dune Analytics",
+          "order": 20,
+          "url": "https://www.dune.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=coinmarketcap.com&sz=64",
+          "id": "shortcut-2c6b766b-bdcd-419e-8ed4-11464f3802ee",
+          "name": "CoinMarketCap",
+          "order": 21,
+          "url": "https://coinmarketcap.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.coingecko.com&sz=64",
+          "id": "shortcut-4cd3dfa8-993b-44f5-bcbe-e77db84793b7",
+          "name": "CoinGecko",
+          "order": 22,
+          "url": "https://www.coingecko.com"
+        },
+        {
+          "iconColor": "#4285f4",
+          "iconType": "favicon",
+          "iconUrl": "https://www.google.com/s2/favicons?domain=www.glassnode.com&sz=64",
+          "id": "shortcut-6998d210-f332-47e7-98c7-ae7190eb5fa6",
+          "name": "Glassnode",
+          "order": 23,
+          "url": "https://www.glassnode.com"
+        }
+      ]
+    }
+  ]
+}

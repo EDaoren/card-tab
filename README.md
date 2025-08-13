@@ -50,6 +50,14 @@
 5. **主题**：点击调色板图标更改主题和背景
 6. **配置管理**：在同步设置中管理多个云端配置
 
+### 快速导入快捷方式
+1. 下载配置文件：[📂 下载 top_shortcuts_24.json](top_shortcuts_24.json)
+2. 点击 **云端同步**
+3. 点击 **导入数据**，选择刚刚下载的 `top_shortcuts_24.json` 文件
+4. 等待导入完成，即可加载预设快捷方式分类
+
+<img src="store-assets/screenshots/top_shortcuts.png" width="1000" alt="项目界面截图">
+
 ### 云端同步设置
 
 如需多设备同步，可选择配置Supabase云端同步：
