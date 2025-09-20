@@ -1,3 +1,82 @@
+try {
+  importScripts('supabase.min.js', 'supabase-client.js');
+  console.log('Background: Supabase libraries loaded');
+} catch (error) {
+  console.warn('Background: Failed to load Supabase libraries', error);
+}
+
+let backgroundSupabaseClient = null;
+
+async function getStoredSupabaseConfig() {
+  try {
+    const result = await chrome.storage.sync.get(['supabase_config']);
+    return result.supabase_config;
+  } catch (error) {
+    console.error('Background: Failed to read Supabase config:', error);
+    return null;
+  }
+}
+
+async function ensureBackgroundSupabaseClient(config) {
+  if (!config || !config.enabled) {
+    return null;
+  }
+
+  if (!config.url || !config.anonKey || !config.userId) {
+    console.warn('Background: Incomplete Supabase config, skip sync');
+    return null;
+  }
+
+  if (typeof SupabaseClient === 'undefined') {
+    console.warn('Background: SupabaseClient is unavailable');
+    return null;
+  }
+
+  if (!globalThis.supabase) {
+    console.warn('Background: Supabase SDK is unavailable');
+    return null;
+  }
+
+  if (!backgroundSupabaseClient) {
+    backgroundSupabaseClient = new SupabaseClient();
+  }
+
+  await backgroundSupabaseClient.initialize({
+    url: config.url,
+    anonKey: config.anonKey,
+    userId: config.userId
+  }, !backgroundSupabaseClient.isConnected);
+
+  return backgroundSupabaseClient;
+}
+
+async function syncSupabaseDataIfNeeded(result, dataToPersist) {
+  if (!result || result.configType !== 'supabase') {
+    return;
+  }
+
+  try {
+    const supabaseConfig = await getStoredSupabaseConfig();
+    if (!supabaseConfig) {
+      return;
+    }
+
+    const configForSync = {
+      ...supabaseConfig,
+      userId: result.configId || supabaseConfig.userId
+    };
+
+    const client = await ensureBackgroundSupabaseClient(configForSync);
+    if (!client) {
+      return;
+    }
+
+    await client.saveData(dataToPersist);
+    console.log('Background: Supabase data updated');
+  } catch (error) {
+    console.error('Background: Failed to sync Supabase data:', error);
+  }
+}
 /**
  * Background script for Card Tab extension
  * Handles context menus, keyboard shortcuts, and quick add functionality
@@ -365,20 +444,32 @@ async function getCurrentConfigData() {
 // 保存当前配置的数据
 async function saveCurrentConfigData(result) {
   try {
+    const source = result.configType === 'supabase' ? 'supabase' : 'chrome';
+    const originalData = result.data || {};
+    const dataToPersist = {
+      ...originalData,
+      _metadata: {
+        ...(originalData._metadata || {}),
+        lastModified: new Date().toISOString(),
+        source
+      }
+    };
+
+    result.data = dataToPersist;
+
     if (result.configType === 'chrome') {
-      // 保存到 Chrome Sync
-      await chrome.storage.sync.set({ [result.key]: result.data });
+      await chrome.storage.sync.set({ [result.key]: dataToPersist });
     } else if (result.configType === 'supabase') {
-      // 保存到缓存（Chrome Storage Local）
-      // 注意：这里只更新缓存，实际的云端同步由主页面的数据管理器处理
-      await chrome.storage.local.set({ [result.key]: result.data });
+      await chrome.storage.local.set({ [result.key]: dataToPersist });
+      await syncSupabaseDataIfNeeded(result, dataToPersist);
+    } else {
+      console.warn('Background: Unknown config type when saving data:', result.configType);
     }
   } catch (error) {
     console.error('Background: Error saving current config data:', error);
     throw error;
   }
 }
-
 // 处理来自内容脚本的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received message:', request);

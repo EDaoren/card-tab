@@ -172,18 +172,9 @@ class UnifiedDataManager {
    */
   async initSupabaseClient() {
     try {
-      const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
-      const supabaseConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
-
-      if (supabaseConfig && supabaseConfig.enabled && supabaseConfig.url && supabaseConfig.anonKey) {
-        // 初始化 Supabase 客户端（重用现有实例或创建新实例）
-        if (typeof SupabaseClient !== 'undefined') {
-          if (!this.supabaseClient) {
-            this.supabaseClient = new SupabaseClient();
-          }
-          await this.supabaseClient.initialize(supabaseConfig);
-          console.log('UnifiedDataManager: Supabase 客户端初始化成功');
-        }
+      const supabaseConfig = await this.ensureSupabaseClientReady({ optional: true, shouldTest: false });
+      if (supabaseConfig) {
+        console.log('UnifiedDataManager: Supabase 客户端初始化成功');
       }
     } catch (error) {
       console.warn('UnifiedDataManager: Supabase 客户端初始化失败:', error);
@@ -192,30 +183,96 @@ class UnifiedDataManager {
   }
 
   /**
+   * 获取当前激活的 Supabase 配置，确保 userId 与当前配置一致
+   */
+  async getActiveSupabaseConfig() {
+    try {
+      const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
+      const supabaseConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
+
+      if (!supabaseConfig || !supabaseConfig.enabled || !supabaseConfig.url || !supabaseConfig.anonKey) {
+        return null;
+      }
+
+      const activeConfigId = this.appData?.currentUser?.configId || supabaseConfig.userId;
+
+      if (activeConfigId && supabaseConfig.userId !== activeConfigId) {
+        const updatedConfig = { ...supabaseConfig, userId: activeConfigId };
+        await this.setToChromeStorageSync({
+          [this.STORAGE_KEYS.SUPABASE_CONFIG]: updatedConfig
+        });
+        return updatedConfig;
+      }
+
+      return { ...supabaseConfig };
+    } catch (error) {
+      console.warn('UnifiedDataManager: 获取 Supabase 配置失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 确保 Supabase 客户端处于可用状态
+   */
+  async ensureSupabaseClientReady(options = {}) {
+    const { shouldTest, optional = false } = options;
+    const supabaseConfig = await this.getActiveSupabaseConfig();
+
+    if (!supabaseConfig) {
+      if (optional) {
+        return null;
+      }
+      throw new Error('Supabase 配置不可用');
+    }
+
+    if (typeof SupabaseClient === 'undefined') {
+      throw new Error('SupabaseClient 未定义');
+    }
+
+    if (!this.supabaseClient) {
+      this.supabaseClient = new SupabaseClient();
+    }
+
+    const needsConnectionTest = typeof shouldTest === 'boolean'
+      ? shouldTest
+      : !this.supabaseClient.isConnected;
+
+    await this.supabaseClient.initialize(supabaseConfig, needsConnectionTest);
+
+    return supabaseConfig;
+  }
+
+
+  /**
    * 加载当前配置的数据
    */
-  async loadCurrentConfigData() {
+  async loadCurrentConfigData(forceRefresh = false) {
     const currentConfig = this.getCurrentConfig();
     const configId = currentConfig.configId;
     
     try {
-      // 1. 先尝试从缓存加载
-      const cachedData = await this.loadFromCache(configId);
-      console.log(`UnifiedDataManager: 缓存数据检查 ${configId}:`, {
-        hasCachedData: !!cachedData,
-        hasMetadata: !!(cachedData && cachedData._metadata),
-        hasCacheMetadata: !!(cachedData && cachedData._metadata && cachedData._metadata.cacheMetadata),
-        isValid: cachedData ? this.isCacheValid(cachedData) : false
-      });
+      let cachedData = null;
 
-      if (cachedData && this.isCacheValid(cachedData)) {
-        console.log(`UnifiedDataManager: 从缓存加载配置 ${configId}`);
-        this.currentConfigData = cachedData;
-        return;
+      if (!forceRefresh) {
+        cachedData = await this.loadFromCache(configId);
+        console.log(`UnifiedDataManager: 缓存数据检查 ${configId}:`, {
+          hasCachedData: !!cachedData,
+          hasMetadata: !!(cachedData && cachedData._metadata),
+          hasCacheMetadata: !!(cachedData && cachedData._metadata && cachedData._metadata.cacheMetadata),
+          isValid: cachedData ? this.isCacheValid(cachedData) : false
+        });
+
+        if (cachedData && this.isCacheValid(cachedData)) {
+          console.log(`UnifiedDataManager: 从缓存加载配置 ${configId}`);
+          this.currentConfigData = cachedData;
+          return;
+        }
+      } else {
+        console.log(`UnifiedDataManager: 强制刷新配置 ${configId}，跳过缓存`);
       }
       
       // 2. 从主存储加载
-      console.log(`UnifiedDataManager: 从主存储加载配置 ${configId}`);
+      console.log(`UnifiedDataManager: 从主存储加载配置 ${configId}${forceRefresh ? '（强制刷新）' : ''}`);
       const data = await this.loadFromMainStorage(currentConfig);
       
       if (data) {
@@ -233,6 +290,7 @@ class UnifiedDataManager {
       this.currentConfigData = this.getDefaultConfigData();
     }
   }
+
 
   /**
    * 从缓存加载数据
@@ -293,24 +351,42 @@ class UnifiedDataManager {
    */
   async loadFromSupabase(config) {
     try {
-      if (!this.supabaseClient) {
-        throw new Error('Supabase 客户端未初始化');
-      }
+      await this.ensureSupabaseClientReady({ shouldTest: !this.supabaseClient?.isConnected });
 
       const rawData = await this.supabaseClient.loadData();
 
-      // Supabase 返回的数据格式是 { data: {...}, updated_at: "..." }
-      // 我们需要提取其中的 data 字段
       if (rawData && rawData.data) {
         return rawData.data;
       }
 
       return rawData;
     } catch (error) {
+      const shouldRetry = (
+        this.supabaseClient &&
+        typeof this.supabaseClient.isConnectionError === 'function' &&
+        this.supabaseClient.isConnectionError(error)
+      );
+
+      if (shouldRetry) {
+        console.warn('UnifiedDataManager: 从 Supabase 加载失败，尝试重新连接后重试:', error);
+        try {
+          await this.ensureSupabaseClientReady({ shouldTest: true });
+          const retryData = await this.supabaseClient.loadData();
+          if (retryData && retryData.data) {
+            return retryData.data;
+          }
+          return retryData;
+        } catch (retryError) {
+          console.error('UnifiedDataManager: Supabase 加载重试仍然失败:', retryError);
+          return null;
+        }
+      }
+
       console.error('UnifiedDataManager: Supabase 加载失败:', error);
       return null;
     }
   }
+
 
   /**
    * 获取默认配置数据
@@ -620,12 +696,26 @@ class UnifiedDataManager {
    * 保存到 Supabase
    */
   async saveToSupabase(config, data) {
-    if (!this.supabaseClient) {
-      throw new Error('Supabase 客户端未初始化');
-    }
+    try {
+      await this.ensureSupabaseClientReady({ shouldTest: !this.supabaseClient?.isConnected });
+      await this.supabaseClient.saveData(data);
+    } catch (error) {
+      const shouldRetry = (
+        this.supabaseClient &&
+        typeof this.supabaseClient.isConnectionError === 'function' &&
+        this.supabaseClient.isConnectionError(error)
+      );
 
-    await this.supabaseClient.saveData(data);
+      if (shouldRetry) {
+        console.warn('UnifiedDataManager: 保存到 Supabase 失败，尝试重新连接后重试:', error);
+        await this.ensureSupabaseClientReady({ shouldTest: true });
+        await this.supabaseClient.saveData(data);
+      } else {
+        throw error;
+      }
+    }
   }
+
 
   /**
    * 清除指定配置的缓存

@@ -108,7 +108,7 @@ class SyncAdapter {
       console.log('SyncAdapter: 开始手动同步');
       
       // 重新加载当前配置数据（这会触发同步）
-      await window.unifiedDataManager.loadCurrentConfigData();
+      await window.unifiedDataManager.loadCurrentConfigData(true);
       
       this.lastSyncTime = new Date().toISOString();
       console.log('SyncAdapter: 手动同步完成');
@@ -277,7 +277,7 @@ class SyncAdapter {
    */
   async loadData(preferCloud = false, forceRefresh = false) {
     if (forceRefresh) {
-      await window.unifiedDataManager.loadCurrentConfigData();
+      await window.unifiedDataManager.loadCurrentConfigData(true);
     }
     return window.unifiedDataManager.getCurrentConfigData();
   }

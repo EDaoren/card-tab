@@ -65,12 +65,12 @@ class SupabaseClient {
       this.currentConfigHash = this.generateConfigHash(config);
 
       // 检查Supabase SDK是否已加载
-      if (!window.supabase) {
+      if (!globalThis.supabase) {
         throw new Error('Supabase SDK未加载，请确保supabase.min.js已正确加载');
       }
 
       // 创建Supabase客户端
-      this.client = window.supabase.createClient(config.url, config.anonKey);
+      this.client = globalThis.supabase.createClient(config.url, config.anonKey);
 
       if (shouldTest) {
         // 需要验证连接（配置切换、用户手动测试等场景）
@@ -618,4 +618,4 @@ WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
 
 // 创建全局实例
 const supabaseClient = new SupabaseClient();
-window.supabaseClient = supabaseClient;
+globalThis.supabaseClient = supabaseClient;
