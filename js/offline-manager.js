@@ -12,6 +12,8 @@ class OfflineManager {
     this.retryQueue = [];
     this.maxRetries = 3;
     this.retryDelay = 5000; // 5秒
+    this.retryTimer = null;
+    this.networkDisabledElements = new Set();
   }
 
   /**
@@ -74,12 +76,16 @@ class OfflineManager {
     
     // 移除离线模式样式
     document.body.classList.remove('offline-mode');
+    this.enableNetworkFeatures();
     
     // 恢复搜索引擎图标
     this.restoreSearchEngineIcons();
     
     // 处理重试队列
-    this.processRetryQueue();
+    this.processRetryQueue(true);
+    
+    // 如果仍有待重试项目，安排后续重试
+    this.scheduleRetryProcessing();
     
     // 显示网络恢复动画
     document.body.classList.add('network-restored');
@@ -105,6 +111,7 @@ class OfflineManager {
     
     // 禁用需要网络的功能
     this.disableNetworkFeatures();
+    this.clearRetryTimer();
   }
 
   /**
@@ -182,6 +189,13 @@ class OfflineManager {
         this.handleImageError(event.target);
       }
     }, true);
+    
+    // 监听图片加载成功以恢复原始状态
+    document.addEventListener('load', (event) => {
+      if (event.target.tagName === 'IMG') {
+        this.handleImageLoad(event.target);
+      }
+    }, true);
   }
 
   /**
@@ -191,12 +205,15 @@ class OfflineManager {
     const src = img.src;
     
     // 如果是favicon，创建备选图标
-    if (src.includes('favicon') || src.includes('icon')) {
+    if ((src.includes('favicon') || src.includes('icon')) && img && img.parentNode) {
       this.createFaviconFallback(img);
     }
     
-    // 添加到重试队列
-    if (this.retryQueue.length < 50) { // 限制队列大小
+    const existingItem = this.retryQueue.find(item => item.element === img);
+    if (existingItem) {
+      existingItem.originalSrc = src;
+      existingItem.timestamp = Date.now();
+    } else if (this.retryQueue.length < 50) { // 限制队列大小
       this.retryQueue.push({
         element: img,
         originalSrc: src,
@@ -204,14 +221,53 @@ class OfflineManager {
         timestamp: Date.now()
       });
     }
+    
+    if (this.isOnline) {
+      this.scheduleRetryProcessing();
+    }
+
+  }
+
+  handleImageLoad(img) {
+    this.removeFromRetryQueue(img);
+    
+    const cacheEntry = this.faviconCache.get(img);
+    if (cacheEntry) {
+      const { fallback, originalDisplay } = cacheEntry;
+      if (fallback && fallback.parentNode) {
+        fallback.remove();
+      }
+      if (img && img.style) {
+        if (originalDisplay) {
+          img.style.display = originalDisplay;
+        } else {
+          img.style.removeProperty('display');
+        }
+      }
+      this.faviconCache.delete(img);
+    }
   }
 
   /**
    * 创建favicon备选图标
    */
   createFaviconFallback(img) {
+    if (!img || !img.parentNode) {
+      return;
+    }
+    
+    if (this.faviconCache.has(img)) {
+      const cached = this.faviconCache.get(img);
+      if (cached.fallback && cached.fallback.parentNode) {
+        cached.fallback.style.display = 'inline-flex';
+      }
+      img.style.display = 'none';
+      return;
+    }
+    
     const fallback = document.createElement('div');
     fallback.className = 'favicon-fallback';
+    fallback.dataset.offlineFallback = 'true';
     
     // 尝试从URL提取网站名称
     const siteName = this.extractSiteNameFromUrl(img.src);
@@ -219,14 +275,18 @@ class OfflineManager {
     
     if (siteClass) {
       fallback.classList.add(siteClass);
-    } else {
+    } else if (siteName) {
       // 使用首字母
       fallback.textContent = siteName.charAt(0).toUpperCase();
     }
     
-    // 替换原图片
+    const originalDisplay = img.style.display;
+    
+    // 替换原图标
     img.style.display = 'none';
     img.parentNode.insertBefore(fallback, img.nextSibling);
+    
+    this.faviconCache.set(img, { fallback, originalDisplay });
   }
 
   /**
@@ -269,18 +329,19 @@ class OfflineManager {
    * 禁用需要网络的功能
    */
   disableNetworkFeatures() {
-    // 禁用Supabase相关功能
-    const supabaseElements = document.querySelectorAll('[id*="supabase"], [class*="sync"]');
-    supabaseElements.forEach(el => {
+    const supabaseElements = Array.from(document.querySelectorAll('[id*="supabase"], [class*="sync"]'));
+    const fetchButtons = Array.from(document.querySelectorAll('#fetch-url-info'));
+    const targets = new Set([...supabaseElements, ...fetchButtons]);
+    
+    targets.forEach(el => {
+      if (!el) {
+        return;
+      }
       if (!el.classList.contains('feature-disabled')) {
         el.classList.add('feature-disabled');
       }
-    });
-
-    // 禁用获取网站信息按钮
-    const fetchButtons = document.querySelectorAll('#fetch-url-info');
-    fetchButtons.forEach(btn => {
-      btn.classList.add('feature-disabled');
+      el.dataset.networkDisabled = 'true';
+      this.networkDisabledElements.add(el);
     });
   }
 
@@ -288,49 +349,103 @@ class OfflineManager {
    * 启用网络功能
    */
   enableNetworkFeatures() {
-    const disabledElements = document.querySelectorAll('.feature-disabled');
-    disabledElements.forEach(el => {
+    this.networkDisabledElements.forEach(el => {
+      if (!el || !el.classList) {
+        return;
+      }
       el.classList.remove('feature-disabled');
+      if (el.dataset) {
+        delete el.dataset.networkDisabled;
+      }
     });
+    this.networkDisabledElements.clear();
   }
 
   /**
    * 处理重试队列
    */
-  processRetryQueue() {
+  processRetryQueue(force = false) {
     if (!this.isOnline || this.retryQueue.length === 0) {
+      this.clearRetryTimer();
       return;
     }
-
+    
     const now = Date.now();
-    const itemsToRetry = this.retryQueue.filter(item => 
-      item.retries < this.maxRetries && 
-      (now - item.timestamp) > this.retryDelay
+    const itemsToRetry = this.retryQueue.filter(item =>
+      item.retries < this.maxRetries &&
+      (force || (now - item.timestamp) > this.retryDelay)
     );
-
+    
     itemsToRetry.forEach(item => {
+      if (!item.element || !item.element.isConnected) {
+        this.removeFromRetryQueue(item.element);
+        return;
+      }
       this.retryImageLoad(item);
     });
-
-    // 清理过期或超过重试次数的项目
-    this.retryQueue = this.retryQueue.filter(item => 
-      item.retries < this.maxRetries && 
-      (now - item.timestamp) < 300000 // 5分钟内
+    
+    this.retryQueue = this.retryQueue.filter(item =>
+      item.retries < this.maxRetries &&
+      item.element &&
+      item.element.isConnected
     );
+    
+    if (this.retryQueue.length === 0) {
+      this.clearRetryTimer();
+    } else {
+      this.scheduleRetryProcessing();
+    }
   }
 
   /**
    * 重试图片加载
    */
   retryImageLoad(item) {
+    if (!item.element || !item.element.isConnected) {
+      this.removeFromRetryQueue(item.element);
+      return;
+    }
+    
     item.retries++;
     item.timestamp = Date.now();
     
-    // 重新设置src触发重新加载
-    item.element.src = '';
+    const target = item.element;
+    const originalSrc = item.originalSrc;
+    
+    target.src = '';
     setTimeout(() => {
-      item.element.src = item.originalSrc;
+      target.src = originalSrc;
     }, 100);
+  }
+
+  clearRetryTimer() {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+  }
+
+  scheduleRetryProcessing() {
+    if (!this.isOnline || this.retryQueue.length === 0) {
+      this.clearRetryTimer();
+      return;
+    }
+    
+    if (this.retryTimer) {
+      return;
+    }
+    
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this.processRetryQueue();
+    }, this.retryDelay);
+  }
+
+  removeFromRetryQueue(img) {
+    if (!img) {
+      return;
+    }
+    this.retryQueue = this.retryQueue.filter(item => item.element !== img);
   }
 
   /**
@@ -351,9 +466,19 @@ class OfflineManager {
     if (this.offlineIndicator) {
       this.offlineIndicator.remove();
     }
+    
+    this.enableNetworkFeatures();
+    this.clearRetryTimer();
+    
     this.retryQueue = [];
-    this.faviconCache.clear();
     this.searchEngineIcons.clear();
+    
+    this.faviconCache.forEach(entry => {
+      if (entry && entry.fallback && entry.fallback.parentNode) {
+        entry.fallback.remove();
+      }
+    });
+    this.faviconCache.clear();
   }
 }
 
