@@ -207,7 +207,6 @@ class SupabaseClient {
     if (!this.isConnected) {
       throw new Error('Supabase未连接');
     }
-
     try {
       const { data, error } = await this.client
         .from(this.tableName)
