@@ -270,7 +270,6 @@ class ThemeConfigUIManager {
       await window.unifiedDataManager.switchConfig(configId);
       // 使用统一的配置刷新入口
       await this.refreshCurrentConfiguration();
-      console.log('🔄 统一配置刷新完成');
     } catch (error) {
       console.error('切换配置失败:', error);
       this.showMessage(`切换配置失败: ${error.message}`, 'error');
@@ -283,75 +282,56 @@ class ThemeConfigUIManager {
   async refreshCurrentConfiguration() {
     try {
       console.log('🔄 开始刷新当前配置数据...');
-
       // 1. 重新加载主题设置
       if (typeof loadThemeSettings === 'function') {
-        console.log('🔄 重新加载主题设置...');
         await loadThemeSettings();
-        console.log('✅ 主题设置加载完成');
       } else {
         console.warn('⚠️ loadThemeSettings 函数不存在');
       }
 
       // 2. 更新配置选择器UI
       if (this.updateConfigSelector) {
-        console.log('🔄 更新配置选择器UI...');
         await this.updateConfigSelector();
-        console.log('✅ 配置选择器UI更新完成');
       } else {
         console.warn('⚠️ updateConfigSelector 方法不存在');
       }
 
       // 3. 更新主题选择UI
       if (typeof updateThemeOptionsUI === 'function') {
-        console.log('🔄 更新主题选择UI...');
         updateThemeOptionsUI();
-        console.log('✅ 主题选择UI更新完成');
       } else {
         console.warn('⚠️ updateThemeOptionsUI 函数不存在');
       }
 
       // 4. 更新背景图片UI
       if (typeof updateBackgroundImageUI === 'function') {
-        console.log('🔄 更新背景图片UI...');
         updateBackgroundImageUI();
-        console.log('✅ 背景图片UI更新完成');
       } else {
         console.warn('⚠️ updateBackgroundImageUI 函数不存在');
       }
 
       // 5. 更新背景图片预览
       if (typeof showCurrentBackgroundPreview === 'function') {
-        console.log('🔄 更新背景图片预览...');
         showCurrentBackgroundPreview();
-        console.log('✅ 背景图片预览更新完成');
       } else {
         console.warn('⚠️ showCurrentBackgroundPreview 函数不存在');
       }
 
       // 6. 重新初始化存储管理器以加载新配置数据
       if (typeof storageManager !== 'undefined' && storageManager.init) {
-        console.log('🔄 重新初始化存储管理器...');
         await storageManager.init();
-        console.log('✅ 存储管理器重新初始化完成');
       }
 
       // 6.5. 重新初始化视图管理器以应用新的视图模式设置
       if (typeof viewManager !== 'undefined' && viewManager.initView) {
-        console.log('🔄 重新初始化视图管理器...');
         await viewManager.initView();
-        console.log('✅ 视图管理器重新初始化完成');
       }
 
       // 7. 重新渲染快捷方式（现在storageManager和viewManager都有了新数据）
       if (typeof categoryManager !== 'undefined' && categoryManager.renderCategories) {
-        console.log('🔄 通过categoryManager重新渲染快捷方式...');
         await categoryManager.renderCategories();
-        console.log('✅ 快捷方式渲染完成（通过categoryManager）');
       } else if (typeof renderCategories === 'function') {
-        console.log('🔄 重新渲染快捷方式（备选方案）...');
         renderCategories();
-        console.log('✅ 快捷方式渲染完成');
       } else {
         console.warn('⚠️ categoryManager 和 renderCategories 函数都不存在');
       }
@@ -362,9 +342,7 @@ class ThemeConfigUIManager {
       const dropdown = document.querySelector('.config-dropdown');
       if (dropdown) {
         dropdown.classList.remove('open');
-        console.log('✅ 下拉菜单已关闭');
       }
-
       console.log('✅ 配置数据刷新完成');
     } catch (error) {
       console.error('❌ 配置数据刷新失败:', error);
@@ -436,21 +414,6 @@ class ThemeConfigUIManager {
       // 1. 创建新配置并保存到主存储（Supabase）
       const newConfig = await themeConfigManager.addConfig(formData);
       console.log('新配置已创建:', newConfig);
-
-      // 2. 清除Chrome Storage缓存，确保下次读取最新数据
-      //await syncManager.clearChromeStorageCache();
-
-      // 3. 直接切换到新配置（使用动态配置切换）
-      // const dynamicConfig = {
-      //   id: newConfig.userId,
-      //   displayName: newConfig.displayName,
-      //   userId: newConfig.userId,
-      //   supabaseUrl: supabaseClient.config?.url,
-      //   supabaseKey: supabaseClient.config?.anonKey,
-      //   isActive: false,
-      //   isDefault: false,
-      //   createdAt: new Date().toISOString()
-      // };
 
       await window.unifiedDataManager.switchConfig(newConfig.userId);
 
@@ -1380,54 +1343,6 @@ class ThemeConfigUIManager {
     } catch (error) {
       console.error('删除配置失败:', error);
       this.showMessage(`删除配置失败: ${error.message}`, 'error');
-    }
-  }
-
-  /**
-   * 删除动态配置（直接删除Supabase中的用户数据）
-   */
-  async deleteDynamicConfig(config) {
-    try {
-      console.log('开始删除动态配置的Supabase数据:', config.userId);
-
-      // 获取正确的 Supabase 客户端和配置信息
-      const supabaseClient = this.getSupabaseClient();
-
-      // 从存储中获取当前 Supabase 配置
-      const result = await new Promise((resolve) => {
-        chrome.storage.sync.get(['supabase_config'], resolve);
-      });
-      const currentConfig = result.supabase_config;
-
-      if (!currentConfig || !currentConfig.url || !currentConfig.anonKey) {
-        throw new Error('无法获取 Supabase 配置信息');
-      }
-
-      // 临时切换到目标用户进行删除操作
-      await supabaseClient.initialize({
-        url: currentConfig.url,
-        anonKey: currentConfig.anonKey,
-        userId: config.userId
-      });
-
-      // 删除Supabase中的用户数据
-      await supabaseClient.deleteData();
-      console.log('动态配置的Supabase数据已删除');
-
-      // 恢复到原来的连接
-      const currentUser = window.unifiedDataManager.getCurrentConfig();
-      if (currentUser && currentUser.type === 'supabase') {
-        await supabaseClient.initialize({
-          url: currentConfig.url,
-          anonKey: currentConfig.anonKey,
-          userId: currentUser.userId
-        });
-        console.log('已恢复到原始Supabase连接');
-      }
-
-    } catch (error) {
-      console.error('删除动态配置失败:', error);
-      throw error;
     }
   }
 

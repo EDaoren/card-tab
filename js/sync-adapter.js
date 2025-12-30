@@ -196,53 +196,6 @@ class SyncAdapter {
   }
 
   /**
-   * 获取所有配置列表
-   */
-  getAllConfigs() {
-    return window.unifiedDataManager.getAllConfigs();
-  }
-
-  /**
-   * 切换配置
-   */
-  async switchConfig(configId) {
-    try {
-      await window.unifiedDataManager.switchConfig(configId);
-
-      // 更新同步状态
-      const newConfig = window.unifiedDataManager.getCurrentConfig();
-      this.isSupabaseEnabled = newConfig.type === 'supabase';
-      
-      if (this.isSupabaseEnabled) {
-        const result = await this.getFromChromeStorageSync(['supabase_config']);
-        this.currentSupabaseConfig = result.supabase_config;
-      } else {
-        this.currentSupabaseConfig = null;
-      }
-      
-      console.log('SyncAdapter: 配置切换完成', configId);
-      return true;
-    } catch (error) {
-      console.error('SyncAdapter: 配置切换失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 删除配置
-   */
-  async deleteConfig(configId) {
-    try {
-      await window.unifiedDataManager.deleteConfig(configId);
-      console.log('SyncAdapter: 配置删除完成', configId);
-      return true;
-    } catch (error) {
-      console.error('SyncAdapter: 配置删除失败:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Chrome Storage Sync 操作
    */
   async getFromChromeStorageSync(keys) {
@@ -415,11 +368,6 @@ class ThemeConfigAdapter {
       configData.userId,
       supabaseConfig
     );
-  }
-
-  async switchConfig(configId) {
-    await window.unifiedDataManager.switchConfig(configId);
-    return this.getActiveConfig();
   }
 
   async updateConfig(configId, updates) {

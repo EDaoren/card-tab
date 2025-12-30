@@ -667,22 +667,9 @@ class UnifiedDataManager {
      */
     async saveToSupabase(config, data) {
         try {
-            // await this.ensureSupabaseClientReady({ shouldTest: !this.supabaseClient?.isConnected });
             await this.supabaseClient.saveData(data);
         } catch (error) {
-            const shouldRetry = (
-                this.supabaseClient &&
-                typeof this.supabaseClient.isConnectionError === 'function' &&
-                this.supabaseClient.isConnectionError(error)
-            );
-
-            if (shouldRetry) {
-                console.warn('UnifiedDataManager: 保存到 Supabase 失败，尝试重新连接后重试:', error);
-                await this.ensureSupabaseClientReady({shouldTest: true});
-                await this.supabaseClient.saveData(data);
-            } else {
-                throw error;
-            }
+            throw error;
         }
     }
 
