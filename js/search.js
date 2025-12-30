@@ -61,7 +61,7 @@ class SearchManager {
     this.updateSearchEngineIcon();
 
     // 检查Chrome Search API可用性
-    this.checkSearchAPIAvailability();
+    //this.checkSearchAPIAvailability();
   }
 
   /**
