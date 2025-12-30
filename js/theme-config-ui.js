@@ -265,161 +265,16 @@ class ThemeConfigUIManager {
    * 切换到指定配置
    */
   async switchToConfig(configId) {
-    let switchedConfig = null;
-
     try {
       console.log('开始切换配置:', configId);
-
-      // 检查是否是动态配置（从Supabase查询的用户配置）
-      const dynamicConfig = this.currentConfigs.find(c => c.id === configId);
-
-      if (dynamicConfig) {
-        console.log('切换到动态配置:', dynamicConfig);
-        await this.switchToDynamicConfig(dynamicConfig);
-        switchedConfig = dynamicConfig;
-      } else {
-        // 使用统一数据管理器切换配置
-        await window.unifiedDataManager.switchConfig(configId);
-        console.log('配置切换到:', configId);
-
-        console.log('同步管理器配置已更新');
-
-        // 重新初始化同步管理器
-        await syncManager.init();
-
-        console.log('同步管理器已重新初始化');
-
-        // 验证连接状态
-        const connectionStatus = supabaseClient.getConnectionStatus();
-        console.log('切换后的连接状态:', connectionStatus);
-
-        // 清除Chrome Storage缓存，确保重新加载正确的用户数据
-        console.log('清除Chrome Storage缓存...');
-        await syncManager.clearChromeStorageCache();
-        console.log('缓存已清除');
-
-        // 强制从云端重新加载数据（验证数据是否正确）
-        console.log('强制从云端重新加载数据...');
-        const freshData = await syncManager.loadData(true, true); // preferCloud=true, forceRefresh=true
-        console.log('重新加载的数据:', freshData);
-
-        switchedConfig = config;
-      }
-
+      await window.unifiedDataManager.switchConfig(configId);
       // 使用统一的配置刷新入口
-      console.log('🔄 开始调用统一配置刷新...');
       await this.refreshCurrentConfiguration();
       console.log('🔄 统一配置刷新完成');
-
-      // 显示详细的切换信息
-      if (switchedConfig) {
-        const message = `已切换到配置: ${switchedConfig.displayName} (${switchedConfig.userId})`;
-        this.showMessage(message, 'success');
-
-        // 在控制台输出详细信息用于调试
-        console.log('配置切换完成:', {
-          configName: switchedConfig.displayName,
-          userId: switchedConfig.userId,
-          supabaseUrl: switchedConfig.supabaseUrl || '动态配置'
-        });
-      }
     } catch (error) {
       console.error('切换配置失败:', error);
       this.showMessage(`切换配置失败: ${error.message}`, 'error');
     }
-  }
-
-  /**
-   * 切换到动态配置（从Supabase查询的用户配置）- 旁路缓存模式
-   */
-  async switchToDynamicConfig(config) {
-    try {
-      console.log('切换到动态配置（旁路缓存模式）:', config.userId);
-
-      // 使用 UnifiedDataManager 进行配置切换
-      await window.unifiedDataManager.switchConfig(config.userId);
-      console.log('配置切换完成');
-
-      // 更新 syncManager 状态（保持兼容性）
-      if (typeof syncManager !== 'undefined') {
-        const currentConfig = window.unifiedDataManager.getCurrentConfig();
-        syncManager.isSupabaseEnabled = currentConfig.type === 'supabase';
-
-        if (currentConfig.type === 'supabase') {
-          // 从存储中获取 Supabase 配置
-          const result = await new Promise((resolve) => {
-            chrome.storage.sync.get(['supabase_config'], resolve);
-          });
-          syncManager.currentSupabaseConfig = result.supabase_config;
-        }
-      }
-
-      // 5. 刷新页面组件以应用新配置
-      await this.refreshPageAfterConfigSwitch();
-
-      console.log('动态配置切换完成（旁路缓存模式），新用户ID:', config.userId);
-    } catch (error) {
-      console.error('切换动态配置失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 配置切换后刷新页面组件
-   */
-  async refreshPageAfterConfigSwitch() {
-    try {
-      console.log('ThemeConfigUI: 配置切换后刷新页面组件');
-
-      // 1. 重新初始化存储管理器（重新加载数据）
-      if (typeof storageManager !== 'undefined') {
-        await storageManager.init();
-        console.log('ThemeConfigUI: 存储管理器已重新初始化');
-      }
-
-      // 2. 重新渲染分类数据
-      if (typeof categoryManager !== 'undefined') {
-        await categoryManager.renderCategories();
-        console.log('ThemeConfigUI: 分类数据已重新渲染');
-      }
-
-      // 3. 重新应用主题设置
-      if (typeof loadThemeSettings === 'function') {
-        await loadThemeSettings();
-        console.log('ThemeConfigUI: 主题设置已重新加载和应用');
-      }
-
-      // 4. 重新应用视图模式
-      if (typeof viewManager !== 'undefined') {
-        await viewManager.initView();
-        console.log('ThemeConfigUI: 视图模式已重新应用');
-      }
-
-      // 5. 更新背景图片
-      if (typeof updateBackgroundImageUI === 'function') {
-        updateBackgroundImageUI();
-        console.log('ThemeConfigUI: 背景图片UI已更新');
-      }
-
-      // 6. 更新配置切换显示
-      await this.updateConfigSwitchDisplay();
-      console.log('ThemeConfigUI: 配置切换显示已更新');
-
-      console.log('ThemeConfigUI: 页面组件刷新完成');
-    } catch (error) {
-      console.error('ThemeConfigUI: 刷新页面组件失败:', error);
-    }
-  }
-
-  /**
-   * 同步动态配置到传统配置系统
-   * 确保动态配置切换时，传统配置系统也能正确更新
-   */
-  async syncDynamicConfigToTraditional(dynamicConfig) {
-    // 此方法已废弃，因为现在使用统一数据管理器
-    // 保留方法签名以避免调用错误，但不执行任何操作
-    console.log('syncDynamicConfigToTraditional: 方法已废弃，使用统一数据管理器');
-    console.log('配置切换已通过 UnifiedDataManager 完成:', dynamicConfig.userId);
   }
 
   /**
@@ -580,28 +435,24 @@ class ThemeConfigUIManager {
       console.log('新配置已创建:', newConfig);
 
       // 2. 清除Chrome Storage缓存，确保下次读取最新数据
-      await syncManager.clearChromeStorageCache();
-      console.log('Chrome Storage缓存已清除');
+      //await syncManager.clearChromeStorageCache();
 
       // 3. 直接切换到新配置（使用动态配置切换）
-      const dynamicConfig = {
-        id: newConfig.userId,
-        displayName: newConfig.displayName,
-        userId: newConfig.userId,
-        supabaseUrl: supabaseClient.config?.url,
-        supabaseKey: supabaseClient.config?.anonKey,
-        isActive: false,
-        isDefault: false,
-        createdAt: new Date().toISOString()
-      };
+      // const dynamicConfig = {
+      //   id: newConfig.userId,
+      //   displayName: newConfig.displayName,
+      //   userId: newConfig.userId,
+      //   supabaseUrl: supabaseClient.config?.url,
+      //   supabaseKey: supabaseClient.config?.anonKey,
+      //   isActive: false,
+      //   isDefault: false,
+      //   createdAt: new Date().toISOString()
+      // };
 
-      console.log('准备切换到新创建的配置:', dynamicConfig);
-      await this.switchToDynamicConfig(dynamicConfig);
+      await window.unifiedDataManager.switchConfig(newConfig.userId);
 
       // 4. 刷新当前配置的所有数据和UI
-      console.log('🔄 开始刷新新配置的数据...');
       await this.refreshCurrentConfiguration();
-      console.log('🔄 新配置数据刷新完成');
 
       this.closeNewConfigModal();
       this.showMessage('配置创建并切换成功！', 'success');
