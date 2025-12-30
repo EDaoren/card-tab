@@ -329,18 +329,21 @@ class ThemeConfigUIManager {
         console.warn('⚠️ showCurrentBackgroundPreview 函数不存在');
       }
 
-      // 6. 刷新快捷方式数据
+      // 6. 重新初始化存储管理器以加载新配置数据
       if (typeof storageManager !== 'undefined' && storageManager.init) {
-        console.log('🔄 重新加载快捷方式数据...');
+        console.log('🔄 重新初始化存储管理器...');
         await storageManager.init();
-        console.log('✅ 快捷方式数据加载完成');
-      } else {
-        console.log('🔄 重新加载快捷方式数据（统一数据管理器）...');
-        await window.unifiedDataManager.loadCurrentConfigData();
-        console.log('✅ 快捷方式数据加载完成');
+        console.log('✅ 存储管理器重新初始化完成');
       }
 
-      // 7. 重新渲染快捷方式
+      // 6.5. 重新初始化视图管理器以应用新的视图模式设置
+      if (typeof viewManager !== 'undefined' && viewManager.initView) {
+        console.log('🔄 重新初始化视图管理器...');
+        await viewManager.initView();
+        console.log('✅ 视图管理器重新初始化完成');
+      }
+
+      // 7. 重新渲染快捷方式（现在storageManager和viewManager都有了新数据）
       if (typeof categoryManager !== 'undefined' && categoryManager.renderCategories) {
         console.log('🔄 通过categoryManager重新渲染快捷方式...');
         await categoryManager.renderCategories();

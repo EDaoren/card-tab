@@ -839,6 +839,11 @@ class UnifiedDataManager {
             // 7. 保存缓存数据
             await this.saveToCache(configId, this.currentConfigData);
 
+            // 8. 重新加载新配置的数据
+            console.log(`UnifiedDataManager: 重新加载配置 ${configId} 的数据...`);
+            await this.loadCurrentConfigData(true);
+            console.log(`UnifiedDataManager: 配置 ${configId} 数据加载完成`);
+
             console.log(`UnifiedDataManager: 切换到配置 ${configId} 成功`);
             return this.currentConfigData;
         } catch (error) {
