@@ -3,7 +3,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const totalSteps = 10;
+  const totalSteps = 9;
   let currentStep = 0;
 
   try {
@@ -13,12 +13,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof window.unifiedDataManager === 'undefined') {
       throw new Error('UnifiedDataManager not loaded');
     }
-
-    // 更新进度：数据迁移
-    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
-
-    // 首先进行数据迁移（如果需要）
-    await window.unifiedDataManager.migrateFromOldStructure();
 
     // 更新进度：统一数据管理器初始化
     window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);

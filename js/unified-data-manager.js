@@ -33,8 +33,8 @@ class UnifiedDataManager {
             // 2. 初始化 Supabase 客户端
             await this.initSupabaseClient();
 
-            // 3. 加载当前配置的数据，暂时打开缓存
-            await this.loadCurrentConfigData(true);
+            // 3. 加载当前配置的数据
+            await this.loadCurrentConfigData();
 
             console.log('UnifiedDataManager: 初始化完成');
             return this.currentConfigData;
@@ -1128,125 +1128,6 @@ class UnifiedDataManager {
         return this.currentConfigData;
     }
 
-    /**
-     * 数据迁移：从旧结构迁移到新结构
-     */
-    async migrateFromOldStructure() {
-        try {
-            console.log('UnifiedDataManager: 开始数据迁移...');
-
-            // 1. 检查是否已经是新结构
-            const appDataResult = await this.getFromChromeStorageLocal([this.STORAGE_KEYS.APP_DATA]);
-            if (appDataResult[this.STORAGE_KEYS.APP_DATA]) {
-                console.log('UnifiedDataManager: 已是新结构，跳过迁移');
-                return;
-            }
-
-            // 2. 迁移旧的数据
-            await this.migrateOldData();
-
-            // 3. 迁移旧的主题配置
-            await this.migrateOldThemeConfigs();
-
-            console.log('UnifiedDataManager: 数据迁移完成');
-        } catch (error) {
-            console.error('UnifiedDataManager: 数据迁移失败:', error);
-            // 迁移失败时创建默认配置
-            await this.createDefaultAppData();
-        }
-    }
-
-    /**
-     * 迁移旧的数据结构
-     */
-    async migrateOldData() {
-        // 检查旧的存储键
-        const oldKeys = ['cardTabData', 'cardTabData_default'];
-        const oldDataResult = await this.getFromChromeStorageSync(oldKeys);
-
-        // 迁移默认配置数据
-        let defaultData = oldDataResult['cardTabData_default'] || oldDataResult['cardTabData'];
-        if (defaultData) {
-            await this.setToChromeStorageSync({
-                [this.STORAGE_KEYS.CONFIG_DATA(this.DEFAULT_CONFIG_ID)]: defaultData
-            });
-            console.log('UnifiedDataManager: 默认配置数据迁移完成');
-        } else {
-            // 如果没有旧数据，创建默认数据（新安装的情况）
-            const newDefaultData = this.getDefaultConfigData();
-            await this.setToChromeStorageSync({
-                [this.STORAGE_KEYS.CONFIG_DATA(this.DEFAULT_CONFIG_ID)]: newDefaultData
-            });
-            console.log('UnifiedDataManager: 创建默认配置数据完成');
-        }
-    }
-
-    /**
-     * 迁移旧的主题配置
-     */
-    async migrateOldThemeConfigs() {
-        const oldConfigKeys = ['themeConfigs', 'activeThemeConfigId', 'supabaseConfig'];
-        const oldConfigResult = await this.getFromChromeStorageSync(oldConfigKeys);
-
-        const oldThemeConfigs = oldConfigResult['themeConfigs'] || [];
-        const supabaseConfig = oldConfigResult['supabaseConfig'];
-
-        // 创建新的 app_data 结构
-        const newAppData = {
-            currentUser: {
-                configId: this.DEFAULT_CONFIG_ID,
-                displayName: '默认配置',
-                userId: this.DEFAULT_CONFIG_ID
-            },
-            userConfigs: {
-                [this.DEFAULT_CONFIG_ID]: {
-                    displayName: '默认配置',
-                    isActive: true,
-                    type: 'chrome',
-                    storageLocation: {
-                        key: this.STORAGE_KEYS.CONFIG_DATA(this.DEFAULT_CONFIG_ID),
-                        type: 'sync'
-                    }
-                }
-            },
-            configPaginationSettings: {
-                pageSize: 5
-            }
-        };
-
-        // 迁移云端配置
-        if (supabaseConfig && supabaseConfig.enabled && supabaseConfig.userId) {
-            const userId = supabaseConfig.userId;
-            newAppData.userConfigs[userId] = {
-                displayName: `云端配置 (${userId})`,
-                isActive: false,
-                type: 'supabase',
-                storageLocation: {
-                    type: 'supabase',
-                    userId: userId,
-                    cacheKey: this.STORAGE_KEYS.CONFIG_DATA(userId)
-                }
-            };
-
-            // 如果有活跃的云端配置，设为当前配置
-            const activeConfigId = oldConfigResult['activeThemeConfigId'];
-            const activeConfig = oldThemeConfigs.find(c => c.id === activeConfigId);
-            if (activeConfig && activeConfig.userId === userId) {
-                newAppData.currentUser = {
-                    configId: userId,
-                    displayName: `云端配置 (${userId})`,
-                    userId: userId
-                };
-                newAppData.userConfigs[userId].isActive = true;
-                newAppData.userConfigs[this.DEFAULT_CONFIG_ID].isActive = false;
-            }
-        }
-
-        this.appData = newAppData;
-        await this.saveAppData();
-
-        console.log('UnifiedDataManager: 主题配置迁移完成');
-    }
 }
 
 // 导出全局实例
