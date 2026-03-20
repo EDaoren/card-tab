@@ -175,39 +175,12 @@ function handleDataUpdated(updateInfo) {
 
       // 显示成功提示
       if (updateInfo.newShortcut) {
-        showQuickAddSuccessToast(updateInfo.newShortcut.name);
+        window.notification.success(`已添加“${updateInfo.newShortcut.name}”到 Card Tab`);
       }
     }).catch(error => {
       console.error('Failed to reload data:', error);
     });
   }
-}
-
-// 显示快速添加成功提示
-function showQuickAddSuccessToast(shortcutName) {
-  const toast = document.createElement('div');
-  toast.className = 'quick-add-toast';
-
-  toast.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 16px;">✅</span>
-      <span>已添加"${shortcutName}"到 Card Tab</span>
-    </div>
-  `;
-
-  document.body.appendChild(toast);
-
-  // 3秒后自动移除
-  setTimeout(() => {
-    if (toast.parentNode) {
-      toast.style.animation = 'slideOutRight 0.3s ease-out';
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 300);
-    }
-  }, 3000);
 }
 
 // 使用统一数据管理器保存快捷方式
@@ -277,7 +250,7 @@ async function handleSaveShortcutViaStorageManager(shortcutData) {
     }
 
     // 显示成功提示
-    showQuickAddSuccessToast(newShortcut.name);
+    window.notification.success(`已添加“${newShortcut.name}”到 Card Tab`);
 
     return newShortcut;
   } catch (error) {
@@ -302,7 +275,7 @@ function testQuickAddFunction() {
 
   // 检查扩展API是否可用
   if (typeof chrome === 'undefined' || !chrome.runtime) {
-    alert('❌ Chrome 扩展 API 不可用\n\n这可能是因为：\n1. 扩展未正确加载\n2. 权限配置错误\n3. 在不支持的页面上运行');
+    window.notification.error('Chrome 扩展 API 不可用\n\n这可能是因为：\n1. 扩展未正确加载\n2. 权限配置错误\n3. 在不支持的页面上运行');
     return;
   }
 }

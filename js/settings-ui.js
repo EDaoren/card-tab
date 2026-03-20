@@ -98,7 +98,7 @@ class SettingsUIManager {
         if (!file) return;
         
         if (file.size > 50 * 1024 * 1024) {
-          alert('图片过大，不能超过 50MB');
+          window.notification.error('图片过大，不能超过 50MB');
           e.target.value = ''; return;
         }
         
@@ -221,14 +221,23 @@ class SettingsUIManager {
     container.querySelectorAll('.delete-theme-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.target.getAttribute('data-id');
-        if (confirm('确定要删除此工作空间吗？此操作不可恢复。')) {
-          try {
-            await window.unifiedDataManager.deleteTheme(id);
-            this.refreshThemesList();
-            this.showMessage('主题已删除', 'success');
-          } catch(err) {
-            this.showMessage('删除失败: ' + err.message, 'error');
-          }
+        const confirmed = await window.notification.confirm('确定要删除此工作空间吗？此操作不可恢复。', {
+          title: '确认删除工作空间',
+          confirmText: '删除',
+          cancelText: '取消',
+          type: 'error'
+        });
+
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          await window.unifiedDataManager.deleteTheme(id);
+          this.refreshThemesList();
+          this.showMessage('主题已删除', 'success');
+        } catch(err) {
+          this.showMessage('删除失败: ' + err.message, 'error');
         }
       });
     });
@@ -697,7 +706,14 @@ class SettingsUIManager {
     });
 
     document.getElementById('cf-clear-setup-cache-btn')?.addEventListener('click', async () => {
-      if (!confirm('确定要清空本地缓存的 Cloudflare 资源信息吗？这不会删除你在 Cloudflare 上已经创建的资源。')) {
+      const confirmed = await window.notification.confirm('确定要清空本地缓存的 Cloudflare 资源信息吗？这不会删除你在 Cloudflare 上已经创建的资源。', {
+        title: '确认清空缓存',
+        confirmText: '清空',
+        cancelText: '取消',
+        type: 'warning'
+      });
+
+      if (!confirmed) {
         return;
       }
 
@@ -846,17 +862,26 @@ class SettingsUIManager {
   }
   
   async disableSyncHandler() {
-    if (confirm('确定要禁用云端同步吗？这会将当前云端主题切回本地主题，但云端数据仍会保留。')) {
-      try {
-        await window.syncManager.disableCloudSync();
-        this.showMessage('同步已禁用', 'success');
-        this.refreshSyncUI();
-        await this.refreshCloudflareSetupUI();
-        this.refreshThemesList();
-        window.loadThemeSettings();
-      } catch (err) {
-        this.showMessage('操作失败: ' + err.message, 'error');
-      }
+    const confirmed = await window.notification.confirm('确定要禁用云端同步吗？这会将当前云端主题切回本地主题，但云端数据仍会保留。', {
+      title: '确认禁用同步',
+      confirmText: '禁用',
+      cancelText: '取消',
+      type: 'warning'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await window.syncManager.disableCloudSync();
+      this.showMessage('同步已禁用', 'success');
+      this.refreshSyncUI();
+      await this.refreshCloudflareSetupUI();
+      this.refreshThemesList();
+      window.loadThemeSettings();
+    } catch (err) {
+      this.showMessage('操作失败: ' + err.message, 'error');
     }
   }
 
@@ -1039,32 +1064,30 @@ class SettingsUIManager {
     });
     
     document.getElementById('clear-data-btn').addEventListener('click', async () => {
-      if (confirm('确定要清空当前工作空间的所有分类和快捷方式吗？此操作极度危险！')) {
-        try {
-          // 只需清空 categories，保留 settings
-          await window.storageManager.importData({ categories: [], settings: window.storageManager.getSettings() });
-          this.showMessage('分类数据已清空', 'success');
-        } catch(err) {
-          this.showMessage('清空失败: ' + err.message, 'error');
-        }
+      const confirmed = await window.notification.confirm('确定要清空当前工作空间的所有分类和快捷方式吗？此操作极度危险！', {
+        title: '确认清空数据',
+        confirmText: '清空',
+        cancelText: '取消',
+        type: 'error'
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        // 只需清空 categories，保留 settings
+        await window.storageManager.importData({ categories: [], settings: window.storageManager.getSettings() });
+        this.showMessage('分类数据已清空', 'success');
+      } catch(err) {
+        this.showMessage('清空失败: ' + err.message, 'error');
       }
     });
   }
 
   /* ---------------------- 实用工具 ---------------------- */
   showMessage(msg, type = 'info') {
-    // 移除已有的 toast，避免重叠
-    document.querySelectorAll('.settings-toast, .toast-message').forEach(el => el.remove());
-
-    const toast = document.createElement('div');
-    toast.className = `toast-message toast-${type}`;
-    toast.textContent = msg;
-
-    document.body.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    return window.notification.show(msg, type, { duration: 3000 });
   }
 }
 

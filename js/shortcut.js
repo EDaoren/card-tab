@@ -105,7 +105,7 @@ class ShortcutManager {
   async fetchUrlInfo() {
     const url = this.shortcutUrlInput.value.trim();
     if (!url) {
-      alert('请输入网址');
+      window.notification.warning('请输入网址');
       return;
     }
     
@@ -151,7 +151,7 @@ class ShortcutManager {
       }
     } catch (error) {
       console.error('Error fetching URL info:', error);
-      alert('获取网站信息失败');
+      window.notification.error('获取网站信息失败');
     } finally {
       // Reset button state
       this.fetchUrlInfoBtn.disabled = false;
@@ -266,7 +266,7 @@ class ShortcutManager {
       categoryManager.renderCategories();
     } catch (error) {
       console.error('Error saving shortcut:', error);
-      alert(`保存快捷方式时出错: ${error.message}`);
+      window.notification.error(`保存快捷方式时出错: ${error.message}`);
     }
   }
 
@@ -277,7 +277,14 @@ class ShortcutManager {
     const shortcutId = this.shortcutIdInput.value;
     const categoryId = this.shortcutCategoryIdInput.value;
 
-    if (!confirm('确定要删除此快捷方式吗？')) {
+    const confirmed = await window.notification.confirm('确定要删除此快捷方式吗？', {
+      title: '确认删除快捷方式',
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'error'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -287,7 +294,7 @@ class ShortcutManager {
       categoryManager.renderCategories();
     } catch (error) {
       console.error('Error deleting shortcut:', error);
-      alert(`删除快捷方式时出错: ${error.message}`);
+      window.notification.error(`删除快捷方式时出错: ${error.message}`);
     }
   }
 

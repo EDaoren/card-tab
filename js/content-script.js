@@ -626,81 +626,23 @@ async function handleSave(pageInfo) {
     console.log('Save response:', response);
 
     if (response && response.success) {
-      // 在当前表单中显示成功状态
-      showInlineSuccessMessage();
+      window.notification.success(`已添加“${name}”到 Card Tab`, { duration: 2200 });
 
-      // 延迟关闭模态框
-      setTimeout(() => {
-        if (quickAddModal) {
-          quickAddModal.remove();
-          quickAddModal = null;
-        }
-      }, 1500);
+      if (quickAddModal) {
+        quickAddModal.remove();
+        quickAddModal = null;
+      }
     } else {
       throw new Error(response?.error || '保存失败');
     }
   } catch (error) {
     console.error('Error saving shortcut:', error);
-    alert('保存失败: ' + error.message);
+    window.notification.error('保存失败: ' + error.message);
 
     // 恢复保存按钮
     saveBtn.disabled = false;
     saveBtn.innerHTML = '保存';
   }
-}
-
-// 在表单中显示内联成功消息
-function showInlineSuccessMessage() {
-  const modalBody = quickAddModal.querySelector('.card-tab-modal-body');
-  const modalFooter = quickAddModal.querySelector('.card-tab-modal-footer');
-
-  // 隐藏表单内容，显示成功状态
-  modalBody.innerHTML = `
-    <div class="card-tab-success-container">
-      <div class="card-tab-success-animation">
-        <div class="card-tab-success-icon">✓</div>
-        <div class="card-tab-success-ripple"></div>
-      </div>
-      <h3 class="card-tab-success-title">添加成功！</h3>
-      <p class="card-tab-success-message">快捷方式已保存到 Card Tab</p>
-      <div class="card-tab-success-timer">
-        <div class="card-tab-timer-bar"></div>
-        <span class="card-tab-timer-text">1.5秒后自动关闭</span>
-      </div>
-    </div>
-  `;
-
-  // 隐藏底部按钮
-  modalFooter.style.display = 'none';
-
-  // 启动倒计时动画
-  startTimerAnimation();
-}
-
-// 启动倒计时动画
-function startTimerAnimation() {
-  const timerBar = quickAddModal.querySelector('.card-tab-timer-bar');
-  const timerText = quickAddModal.querySelector('.card-tab-timer-text');
-
-  if (!timerBar || !timerText) return;
-
-  let timeLeft = 1.5;
-
-  // 启动进度条动画
-  setTimeout(() => {
-    timerBar.classList.add('card-tab-timer-active');
-  }, 100);
-
-  // 更新倒计时文字
-  const countdown = setInterval(() => {
-    timeLeft -= 0.5;
-    if (timeLeft > 0) {
-      timerText.textContent = `${timeLeft}秒后自动关闭`;
-    } else {
-      timerText.textContent = '正在关闭...';
-      clearInterval(countdown);
-    }
-  }, 500);
 }
 
 // 表单验证辅助函数

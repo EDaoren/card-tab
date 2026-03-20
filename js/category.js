@@ -197,6 +197,7 @@ class CategoryManager {
     categoryElement.appendChild(categoryContent);
     
     this.categoriesContainer.appendChild(categoryElement);
+    this.applyCategoryContentState(categoryContent, !category.collapsed, false);
     
     // Add event listeners
     addShortcutBtn.addEventListener('click', (e) => {
@@ -216,6 +217,51 @@ class CategoryManager {
     
     categoryHeader.addEventListener('click', () => {
       this.toggleCategoryCollapse(category.id);
+    });
+  }
+
+  applyCategoryContentState(categoryContent, expanded, animate = true) {
+    if (!categoryContent) {
+      return;
+    }
+
+    if (expanded) {
+      categoryContent.classList.add('expanded');
+
+      if (!animate) {
+        categoryContent.style.maxHeight = 'none';
+        return;
+      }
+
+      categoryContent.style.maxHeight = `${categoryContent.scrollHeight}px`;
+      const handleTransitionEnd = (event) => {
+        if (event.propertyName !== 'max-height') {
+          return;
+        }
+
+        categoryContent.removeEventListener('transitionend', handleTransitionEnd);
+        if (categoryContent.classList.contains('expanded')) {
+          categoryContent.style.maxHeight = 'none';
+        }
+      };
+
+      categoryContent.addEventListener('transitionend', handleTransitionEnd);
+      return;
+    }
+
+    const currentHeight = categoryContent.scrollHeight;
+    categoryContent.style.maxHeight = currentHeight > 0 ? `${currentHeight}px` : '0px';
+
+    if (!animate) {
+      categoryContent.classList.remove('expanded');
+      categoryContent.style.maxHeight = '0px';
+      return;
+    }
+
+    void categoryContent.offsetHeight;
+    categoryContent.classList.remove('expanded');
+    requestAnimationFrame(() => {
+      categoryContent.style.maxHeight = '0px';
     });
   }
 
@@ -343,7 +389,7 @@ class CategoryManager {
       this.renderCategories();
     } catch (error) {
       console.error('Error saving category:', error);
-      alert(`保存分类时出错: ${error.message}`);
+      window.notification.error(`保存分类时出错: ${error.message}`);
     }
   }
 
@@ -353,7 +399,14 @@ class CategoryManager {
   async deleteCategory() {
     const categoryId = this.categoryIdInput.value;
     
-    if (!confirm('确定要删除此分类及其所有快捷方式吗？')) {
+    const confirmed = await window.notification.confirm('确定要删除此分类及其所有快捷方式吗？', {
+      title: '确认删除分类',
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'error'
+    });
+
+    if (!confirmed) {
       return;
     }
     
@@ -363,7 +416,7 @@ class CategoryManager {
       this.renderCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert(`删除分类时出错: ${error.message}`);
+      window.notification.error(`删除分类时出错: ${error.message}`);
     }
   }
 
@@ -383,11 +436,11 @@ class CategoryManager {
 
       // 立即切换UI状态
       if (isCurrentlyExpanded) {
-        categoryContent.classList.remove('expanded');
+        this.applyCategoryContentState(categoryContent, false);
         toggleButton.textContent = 'expand_more';
         toggleButton.closest('button').title = '展开';
       } else {
-        categoryContent.classList.add('expanded');
+        this.applyCategoryContentState(categoryContent, true);
         toggleButton.textContent = 'expand_less';
         toggleButton.closest('button').title = '折叠';
       }
@@ -397,11 +450,11 @@ class CategoryManager {
         console.error('Error saving category collapse state:', error);
         // 如果保存失败，回滚UI状态
         if (isCurrentlyExpanded) {
-          categoryContent.classList.add('expanded');
+          this.applyCategoryContentState(categoryContent, true);
           toggleButton.textContent = 'expand_less';
           toggleButton.closest('button').title = '折叠';
         } else {
-          categoryContent.classList.remove('expanded');
+          this.applyCategoryContentState(categoryContent, false);
           toggleButton.textContent = 'expand_more';
           toggleButton.closest('button').title = '展开';
         }
