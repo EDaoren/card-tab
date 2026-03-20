@@ -106,7 +106,6 @@ For multi-device synchronization, you can optionally configure either **Cloudfla
    - Click **Enable Sync** to start using Cloudflare sync.
 3. If you already have existing Cloudflare resources, you can instead fill in the `Worker URL` and `Access Token` in the “Connect Existing Resources” section.
 4. The settings page caches the Worker URL, Worker name, D1 ID, D1 name, and R2 bucket name locally so they can be restored and copied later.
-5. If you still prefer the remote provisioning approach, you can use the fallback external provisioning service described in `CLOUDFLARE_PROVISIONING_SERVICE.md`. The template is available at `workers/worker.js`.
 
 ### Troubleshooting
 

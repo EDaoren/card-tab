@@ -14,10 +14,6 @@ card-tab/
 ├── cf-d1-init.sql              # Cloudflare D1 初始化脚本
 ├── cloudflare/
 │   └── cf-worker.js            # Cloudflare 同步 Worker 模板
-├── workers/
-│   ├── worker.js               # 外部开通服务模板
-│   ├── README.md               # 部署说明
-│   └── wrangler.toml.example   # Wrangler 示例配置
 ├── js/
 │   ├── core/
 │   │   ├── unified-data-manager.js # 统一数据管理
@@ -58,7 +54,6 @@ card-tab/
 - 业务 JavaScript 放在 `js/`。
 - 第三方依赖放在 `js/vendor/`。
 - 与 Cloudflare 同步模板相关的资源放在 `cloudflare/`。
-- `workers/` 用于外部 provisioning service 模板，不属于扩展页面运行时代码。
 - `doc/` 用于项目内部说明文档。
 
 ## 重点目录说明
@@ -76,11 +71,6 @@ card-tab/
 ### `cloudflare/`
 
 - `cloudflare/cf-worker.js`：扩展内置的 Cloudflare Worker 模板，设置页可直接复制。
-
-### `workers/`
-
-- `worker.js`：独立的一键开通服务模板。
-- 这套文件是部署参考，不直接参与扩展运行时。
 
 ## 当前整理结果
 

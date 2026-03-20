@@ -25,7 +25,6 @@ const filesToInclude = [
   'privacy-policy.html',
   'README.md',
   'README_EN.md',
-  'CLOUDFLARE_PROVISIONING_SERVICE.md',
   'supabase-init.sql',
   'cloudflare',
   'cf-d1-init.sql',

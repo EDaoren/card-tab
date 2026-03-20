@@ -106,7 +106,6 @@
    - 点击 **启用同步** 即可开始使用。
 3. 如果你已经在 Cloudflare 上准备好了现有资源，也可以直接在“连接已有资源”区域填写 `Worker URL` 和 `Access Token` 后连接。
 4. 设置页会把 Worker URL、Worker 名称、D1 ID、D1 名称、R2 Bucket 名称缓存到本地，方便下次恢复和复制。
-5. 若你更喜欢走远程开通方案，仍可使用备用的外部开通服务，参考 `CLOUDFLARE_PROVISIONING_SERVICE.md`，服务模板位于 `workers/worker.js`。
 
 
 ## 技术栈
