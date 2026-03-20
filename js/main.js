@@ -185,22 +185,8 @@ function handleDataUpdated(updateInfo) {
 
 // 显示快速添加成功提示
 function showQuickAddSuccessToast(shortcutName) {
-  // 创建提示元素
   const toast = document.createElement('div');
-  toast.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #28a745;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000;
-    font-size: 14px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    animation: slideInRight 0.3s ease-out;
-  `;
+  toast.className = 'quick-add-toast';
 
   toast.innerHTML = `
     <div style="display: flex; align-items: center; gap: 8px;">
@@ -208,23 +194,6 @@ function showQuickAddSuccessToast(shortcutName) {
       <span>已添加"${shortcutName}"到 Card Tab</span>
     </div>
   `;
-
-  // 添加动画样式
-  if (!document.getElementById('quick-add-toast-styles')) {
-    const style = document.createElement('style');
-    style.id = 'quick-add-toast-styles';
-    style.textContent = `
-      @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      @keyframes slideOutRight {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
 
   document.body.appendChild(toast);
 

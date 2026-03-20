@@ -75,6 +75,7 @@ class DragManager {
 
       // 创建完整卡片的拖拽虚影
       const ghost = category.cloneNode(true);
+      const primaryRgb = getComputedStyle(document.body).getPropertyValue('--primary-color-rgb').trim() || '66, 133, 244';
       ghost.style.cssText = `
         position: absolute;
         top: -9999px;
@@ -86,7 +87,7 @@ class DragManager {
         transform: rotate(2deg) scale(1.02);
         pointer-events: none;
         filter: brightness(1.05) saturate(1.1);
-        border: 1px solid rgba(66, 133, 244, 0.3);
+        border: 1px solid rgba(${primaryRgb}, 0.3);
       `;
       document.body.appendChild(ghost);
 
@@ -172,6 +173,7 @@ class DragManager {
 
       // 创建完整快捷方式的拖拽虚影
       const ghost = shortcut.cloneNode(true);
+      const primaryRgb = getComputedStyle(document.body).getPropertyValue('--primary-color-rgb').trim() || '66, 133, 244';
       ghost.style.cssText = `
         position: absolute;
         top: -9999px;
@@ -183,7 +185,7 @@ class DragManager {
         transform: rotate(1deg) scale(1.05);
         pointer-events: none;
         filter: brightness(1.08) saturate(1.1);
-        border: 1px solid rgba(66, 133, 244, 0.25);
+        border: 1px solid rgba(${primaryRgb}, 0.25);
       `;
       document.body.appendChild(ghost);
 
@@ -355,14 +357,15 @@ class DragManager {
 
         if (draggedCategory && targetCategory) {
           const isSameCategory = draggedCategory.dataset.id === targetCategory.dataset.id;
+          const primaryRgb = getComputedStyle(document.body).getPropertyValue('--primary-color-rgb').trim() || '66, 133, 244';
 
           if (isSameCategory) {
-            // 同分类内排序 - 蓝色提示
-            shortcut.style.borderLeft = '2px solid rgba(66, 133, 244, 0.6)';
-            shortcut.style.backgroundColor = 'rgba(66, 133, 244, 0.05)';
-            shortcut.style.boxShadow = '0 2px 6px rgba(66, 133, 244, 0.15)';
+            // 同分类内排序 - 主色提示
+            shortcut.style.borderLeft = `2px solid rgba(${primaryRgb}, 0.6)`;
+            shortcut.style.backgroundColor = `rgba(${primaryRgb}, 0.05)`;
+            shortcut.style.boxShadow = `0 2px 6px rgba(${primaryRgb}, 0.15)`;
           } else {
-            // 跨分类移动 - 绿色提示
+            // 跨分类移动 - 绿色提示（语义色保留）
             shortcut.style.borderLeft = '2px solid rgba(52, 168, 83, 0.6)';
             shortcut.style.backgroundColor = 'rgba(52, 168, 83, 0.05)';
             shortcut.style.boxShadow = '0 2px 6px rgba(52, 168, 83, 0.15)';
@@ -378,7 +381,7 @@ class DragManager {
     shortcut._dragLeave = (e) => {
       if (!shortcut.contains(e.relatedTarget)) {
         shortcut.style.borderLeft = '';
-        shortcut.style.backgroundColor = this.draggedElement !== shortcut ? 'rgba(66, 133, 244, 0.02)' : '';
+        shortcut.style.backgroundColor = '';
         shortcut.style.transform = this.draggedElement !== shortcut ? 'scale(1.01)' : '';
         shortcut.style.boxShadow = '';
       }
@@ -558,17 +561,20 @@ class DragManager {
     `;
 
     // 设置样式
+    const primaryColor = getComputedStyle(document.body).getPropertyValue('--primary-color').trim() || '#4285f4';
+    const primaryRgb = getComputedStyle(document.body).getPropertyValue('--primary-color-rgb').trim() || '66, 133, 244';
+    const secondaryColor = getComputedStyle(document.body).getPropertyValue('--secondary-color').trim() || '#34a853';
     indicator.style.cssText = `
       position: fixed;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10000;
-      background: linear-gradient(135deg, #4285f4, #34a853);
+      background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor});
       color: white;
       padding: 12px 20px;
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(66, 133, 244, 0.4);
+      box-shadow: 0 8px 32px rgba(${primaryRgb}, 0.4);
       font-size: 14px;
       font-weight: 600;
       text-align: center;
@@ -649,8 +655,9 @@ class DragManager {
             const isSameCategory = draggedCategory.dataset.id === targetCategory.dataset.id;
 
             if (isSameCategory) {
-              // 同分类 - 蓝色提示（排序）
-              shortcut.style.backgroundColor = 'rgba(66, 133, 244, 0.02)';
+              // 同分类 - 主色提示（排序）
+              const primaryRgb = getComputedStyle(document.body).getPropertyValue('--primary-color-rgb').trim() || '66, 133, 244';
+              shortcut.style.backgroundColor = `rgba(${primaryRgb}, 0.02)`;
             } else {
               // 跨分类 - 绿色提示（移动）
               shortcut.style.backgroundColor = 'rgba(52, 168, 83, 0.02)';

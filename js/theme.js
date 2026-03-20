@@ -87,7 +87,7 @@ function applyBackgroundImageToDOM(imageUrl, opacity = 30) {
       backgroundContainer.style.backgroundImage = '';
 
       if (backgroundOverlay) {
-        backgroundOverlay.style.opacity = 1 - (opacity / 100);
+        backgroundOverlay.style.opacity = '0';
       }
     }
   }
