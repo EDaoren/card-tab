@@ -106,33 +106,12 @@
         <div class="search-box">
           <div class="search-input-row">
             <div class="search-engine-selector">
-              <span class="material-symbols-rounded search-engine-icon" style="color: #9aa0a6; font-size: 20px;">language</span>
+              <span class="material-symbols-rounded search-engine-icon">language</span>
               <span class="search-engine-dropdown">
                 <span class="material-symbols-rounded">expand_more</span>
               </span>
               <!-- 下拉菜单 -->
-              <div class="search-engine-dropdown-menu">
-                <div class="search-engine-option" data-engine="default">
-                  <span class="material-symbols-rounded" style="color: #9aa0a6; font-size: 20px;">language</span>
-                  <span>默认搜索</span>
-                </div>
-                <div class="search-engine-option" data-engine="google">
-                  <img src="https://www.google.com/favicon.ico" alt="Google">
-                  <span>Google</span>
-                </div>
-                <div class="search-engine-option" data-engine="bing">
-                  <img src="https://www.bing.com/favicon.ico" alt="Bing">
-                  <span>Bing</span>
-                </div>
-                <div class="search-engine-option" data-engine="baidu">
-                  <img src="https://www.baidu.com/favicon.ico" alt="Baidu">
-                  <span>百度</span>
-                </div>
-                <div class="search-engine-option" data-engine="ddg">
-                  <img src="https://duckduckgo.com/favicon.ico" alt="DuckDuckGo">
-                  <span>DuckDuckGo</span>
-                </div>
-              </div>
+              <div class="search-engine-dropdown-menu"></div>
             </div>
             <div class="search-input-container">
               <input type="text" id="search-input"  autocomplete="off" spellcheck="false">
@@ -152,11 +131,8 @@
 
     <div class="floating-buttons" id="floating-buttons">
       <div class="floating-buttons-group collapsed" id="floating-buttons-group">
-        <button id="sync-btn" class="view-btn secondary-btn" title="云端同步">
-          <span class="material-symbols-rounded">sync</span>
-        </button>
-        <button id="theme-btn" class="view-btn secondary-btn" title="切换主题">
-          <span class="material-symbols-rounded">palette</span>
+        <button id="settings-btn" class="view-btn secondary-btn" title="设置">
+          <span class="material-symbols-rounded">settings</span>
         </button>
         <button id="grid-view-btn" class="view-btn secondary-btn active" title="网格视图">
           <span class="material-symbols-rounded">grid_view</span>
@@ -265,348 +241,6 @@
     </div>
   </div>
 
-  <!-- Theme Selection Modal -->
-  <div id="theme-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>背景设置</h2>
-        <button class="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <!-- 配置切换区域 -->
-        <div class="config-switch-section" id="config-switch-section">
-          <!-- 未配置Supabase时显示 -->
-          <div class="config-prompt" id="config-prompt" style="display: none;">
-            <div class="prompt-content">
-              <span class="material-symbols-rounded">cloud_sync</span>
-              <div class="prompt-text">
-                <p>配置云端同步后可保存多套主题配置</p>
-                <small>支持工作、个人等多套配置，数据云端同步</small>
-              </div>
-            </div>
-            <button id="setup-sync-btn" class="primary-btn">立即配置云端同步</button>
-          </div>
-
-          <!-- 已配置Supabase时显示 -->
-          <div class="config-selector" id="config-selector" style="display: none;">
-            <div class="current-config-display">
-              <div class="config-info">
-                <span class="config-label">当前配置：</span>
-                <div class="config-name-display">
-                  <span id="current-config-name">默认配置</span>
-                  <span id="current-config-user" class="config-user-id"></span>
-                </div>
-              </div>
-              <div class="config-management-buttons">
-                <button id="manage-configs-btn" class="primary-btn">
-                  <span class="material-symbols-rounded">settings</span>
-                  管理配置
-                </button>
-                <button id="new-config-btn" class="secondary-btn">
-                  <span class="material-symbols-rounded">add</span>
-                  新建配置
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="themes-section">
-          <h3>选择主题颜色</h3>
-          <div class="theme-options">
-            <div class="theme-option" data-theme="default">
-              <div class="theme-preview theme-default"></div>
-              <span>默认白</span>
-            </div>
-            <div class="theme-option" data-theme="blue">
-              <div class="theme-preview theme-blue"></div>
-              <span>淡蓝</span>
-            </div>
-            <div class="theme-option" data-theme="green">
-              <div class="theme-preview theme-green"></div>
-              <span>薄荷</span>
-            </div>
-            <div class="theme-option" data-theme="purple">
-              <div class="theme-preview theme-purple"></div>
-              <span>紫晶</span>
-            </div>
-            <div class="theme-option" data-theme="pink">
-              <div class="theme-preview theme-pink"></div>
-              <span>粉彩</span>
-            </div>
-            <div class="theme-option" data-theme="dark">
-              <div class="theme-preview theme-dark"></div>
-              <span>暗夜</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-image-section">
-          <h3>自定义背景图片</h3>
-
-          <!-- 未配置Supabase时的提示界面 -->
-          <div id="bg-setup-prompt" class="bg-setup-prompt" style="display: none;">
-            <div class="setup-prompt-content">
-              <div class="setup-prompt-icon">
-                <span class="material-symbols-rounded">cloud_upload</span>
-              </div>
-              <h4>需要云端存储支持</h4>
-              <p>背景图片功能支持高清4K图片，需要云端存储空间。</p>
-              <p>配置Supabase后即可上传和同步您的个性化背景。</p>
-              <p><small>💡 提示：执行完整的初始化脚本后，存储功能将自动配置完成</small></p>
-              <button id="setup-supabase-btn" class="save-btn">
-                <span class="material-symbols-rounded">settings</span>
-                立即配置云端同步
-              </button>
-            </div>
-          </div>
-
-          <!-- 正常的背景图片设置界面 -->
-          <div id="bg-image-controls" class="bg-image-controls">
-            <div class="form-group">
-              <div id="background-preview" class="background-preview">
-                <img id="background-preview-img" src="" alt="背景预览">
-                <div class="no-bg-placeholder">无背景图片</div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>上传背景图片</label>
-              <div class="upload-area">
-                <input type="file" id="bg-image-upload" accept="image/*" class="file-input">
-                <label for="bg-image-upload" class="file-input-label">
-                  <span class="material-symbols-rounded">cloud_upload</span>
-                  选择图片文件
-                </label>
-                <div class="upload-hint">
-                  <small>支持 JPG、PNG、WebP 格式，最大 50MB</small>
-                  <small>推荐使用高分辨率图片获得最佳效果</small>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="bg-opacity">背景透明度</label>
-              <div class="range-with-value">
-                <input type="range" id="bg-opacity" min="0" max="100" value="30">
-                <span id="bg-opacity-value">30%</span>
-              </div>
-            </div>
-
-            <div class="form-actions centered">
-              <button type="button" id="remove-bg-btn" class="delete-btn">移除背景图</button>
-              <button type="button" id="apply-bg-btn" class="save-btn">应用背景</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Supabase Sync Settings Modal -->
-  <div id="sync-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>云端同步设置</h2>
-        <button class="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="sync-status" id="sync-status">
-          <div class="status-item">
-            <span class="status-label">当前模式:</span>
-            <span class="status-value" id="current-mode">Chrome Storage</span>
-          </div>
-          <div class="status-item">
-            <span class="status-label">Supabase状态:</span>
-            <span class="status-value" id="supabase-status">未连接</span>
-          </div>
-          <div class="status-item">
-            <span class="status-label">最后同步:</span>
-            <span class="status-value" id="last-sync">从未同步</span>
-          </div>
-        </div>
-
-        <div class="sync-section" id="supabase-config-section">
-          <h3>Supabase配置</h3>
-          <div class="config-form">
-            <div class="form-group">
-              <label for="supabase-url">Supabase项目URL</label>
-              <input type="url" id="supabase-url" placeholder="https://your-project.supabase.co">
-              <small>在Supabase项目设置中找到</small>
-            </div>
-            <div class="form-group">
-              <label for="supabase-anon-key">匿名密钥 (anon key)</label>
-              <input type="password" id="supabase-anon-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-              <small>在Supabase项目API设置中找到</small>
-            </div>
-            <div class="form-group">
-              <label for="user-id">用户标识 <span style="color: #e74c3c;">*</span></label>
-              <input type="text" id="user-id" placeholder="例如：your-email@example.com" required>
-              <small style="color: #e74c3c;">⚠️ 必填项！建议使用邮箱，不能使用 "default"</small>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button id="test-connection" class="secondary-btn">测试连接</button>
-            <button id="enable-sync" class="save-btn">启用云端同步</button>
-            <button id="disable-sync" class="delete-btn" style="display: none;">禁用云端同步</button>
-          </div>
-        </div>
-
-        <div class="sync-section">
-          <h3>数据管理</h3>
-          <div class="form-actions">
-            <button id="manual-sync" class="secondary-btn" disabled>手动同步</button>
-            <button id="export-data" class="secondary-btn">导出数据</button>
-            <button id="import-data" class="secondary-btn">导入数据</button>
-          </div>
-          <input type="file" id="import-file" accept=".json" style="display: none;">
-        </div>
-
-        <div class="sync-section">
-          <h3>设置说明</h3>
-          <div class="setup-guide">
-            <ol>
-              <li>在 <a href="https://supabase.com" target="_blank">Supabase</a> 创建免费账户和项目</li>
-              <li><strong>执行完整初始化脚本</strong>：在项目的SQL编辑器中执行下方的完整脚本（包含数据表和Storage配置）</li>
-              <li>复制项目URL和匿名密钥到上方配置</li>
-              <li>设置唯一的用户标识（建议使用邮箱）</li>
-              <li>点击"测试连接"验证配置</li>
-              <li>启用云端同步开始多端数据同步</li>
-            </ol>
-            <p><strong>💡 提示：</strong>新的初始化脚本已包含Storage桶创建和所有安全策略配置，一次执行即可完成所有设置！</p>
-            <button id="show-sql" class="link-btn">查看数据表创建脚本</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SQL Script Modal -->
-  <div id="sql-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>数据表创建脚本</h2>
-        <button class="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <p>请在Supabase项目的SQL编辑器中执行以下脚本：</p>
-        <div class="sql-script">
-          <pre id="sql-content"></pre>
-          <button id="copy-sql" class="secondary-btn">复制脚本</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Config Management Modal -->
-  <div id="config-management-modal" class="modal">
-    <div class="modal-content config-management-content">
-      <div class="modal-header">
-        <h2>配置管理</h2>
-        <button class="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <!-- Search and Filter Bar -->
-        <div class="config-search-bar">
-          <div class="search-input-wrapper">
-            <input type="text" id="config-search" placeholder="搜索配置名称或用户ID...">
-            <span class="search-icon">🔍</span>
-          </div>
-          <div class="config-actions">
-            <button id="new-config-btn-main" class="primary-btn">新建配置</button>
-            <select id="config-sort" class="sort-select">
-              <option value="name">按名称排序</option>
-              <option value="recent">按使用时间</option>
-              <option value="created">按创建时间</option>
-            </select>
-            <select id="page-size-select" class="sort-select">
-              <option value="5">每页5条</option>
-              <option value="10" selected>每页10条</option>
-              <option value="20">每页20条</option>
-              <option value="50">每页50条</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Config List -->
-        <div class="config-list-container">
-          <div id="config-list" class="config-list">
-            <!-- 配置卡片将在这里动态生成 -->
-          </div>
-          <div id="config-empty" class="config-empty" style="display: none;">
-            <div class="empty-icon">📋</div>
-            <h3>暂无配置</h3>
-            <p>创建您的第一个配置来开始使用多设备同步</p>
-            <button id="create-config-btn" class="primary-btn">创建配置</button>
-          </div>
-        </div>
-
-        <!-- Pagination -->
-        <div id="config-pagination" class="config-pagination" style="display: none;">
-          <!-- 分页控件将在这里动态生成 -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Edit Config Modal -->
-  <div id="edit-config-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>编辑配置</h2>
-        <button class="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <form id="edit-config-form">
-          <div class="form-group">
-            <label for="edit-config-name">配置名称</label>
-            <input type="text" id="edit-config-name" required>
-          </div>
-          <div class="form-group">
-            <label for="edit-config-user-id">用户标识</label>
-            <input type="text" id="edit-config-user-id" required readonly>
-            <small>用户标识创建后不可修改</small>
-          </div>
-          <div class="form-actions centered">
-            <button type="button" id="cancel-edit-config-btn" class="secondary-btn">取消</button>
-            <button type="submit" id="save-edit-config-btn" class="save-btn">保存修改</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- New Config Modal -->
-  <div id="new-config-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>新建配置</h2>
-        <button class="close-modal">×</button>
-      </div>
-      <div class="modal-body">
-        <form id="new-config-form">
-          <div class="form-group">
-            <label for="new-config-name">配置名称</label>
-            <input type="text" id="new-config-name" placeholder="例如：个人配置、工作配置" required>
-          </div>
-          <div class="form-group">
-            <label for="new-config-user-id">用户标识</label>
-            <input type="text" id="new-config-user-id" placeholder="user-personal" required>
-            <small>用于区分不同配置的唯一标识</small>
-          </div>
-          <div class="info-note">
-            <span class="material-symbols-rounded">info</span>
-            <span>将使用相同的Supabase连接</span>
-          </div>
-          <div class="form-actions centered">
-            <button type="button" class="secondary-btn" id="cancel-new-config-btn">取消</button>
-            <button type="submit" class="save-btn" id="create-config-btn">创建并切换</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- 优先加载性能优化脚本 -->
   <script src="js/simple-loading-manager.js"></script>
@@ -614,6 +248,7 @@
   <!-- 核心功能脚本 -->
   <script src="js/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/cf-client.js"></script>
 
   <!-- 新的统一数据管理系统 -->
   <script src="js/unified-data-manager.js"></script>
@@ -622,8 +257,6 @@
 
   <!-- UI管理器 -->
   <script src="js/notification.js"></script>
-  <script src="js/sync-ui.js"></script>
-  <script src="js/theme-config-ui.js"></script>
 
   <!-- 业务逻辑模块 -->
   <script src="js/category.js"></script>

@@ -4,13 +4,13 @@
   <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
   <br>
   <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
-  <img src="https://img.shields.io/badge/Version-1.0.5-blue" alt="Version 1.0.5">
+  <img src="https://img.shields.io/badge/Version-1.0.6-blue" alt="Version 1.0.6">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License MIT">
 </div>
 
 A modern, customizable new tab page for Chrome browser with cloud sync support.
 
-**Card Tab** transforms your new tab experience with a clean, organized interface for managing your bookmarks and shortcuts. Features include customizable themes, cloud synchronization via Supabase, and a beautiful card-based design.
+**Card Tab** transforms your new tab experience with a clean, organized interface for managing your bookmarks and shortcuts. Features include customizable themes, cloud synchronization via Supabase or Cloudflare D1/R2, and a beautiful card-based design.
 
 ## Features
 
@@ -20,7 +20,7 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 - **🎨 Theme Options** - 6 themes available including dark mode
 - **🖼️ Custom Background** - Upload images as background
 - **📱 View Modes** - Grid view and list view
-- **☁️ Cloud Sync** - Optional Supabase data synchronization
+- **☁️ Cloud Sync** - Optional Supabase or Cloudflare D1/R2 synchronization
 - **🖱️ Right-click Add** - Quick add shortcuts from any webpage
 - **⚙️ Multi-config** - Support multiple cloud configurations
 
@@ -60,7 +60,9 @@ A modern, customizable new tab page for Chrome browser with cloud sync support.
 
 ### Cloud Sync Setup
 
-For multi-device synchronization, you can optionally configure Supabase cloud sync:
+For multi-device synchronization, you can optionally configure either **Cloudflare D1/R2** or **Supabase** in the settings page.
+
+#### Option A: Supabase
 
 #### Step 1: Create Supabase Project
 
@@ -93,6 +95,19 @@ For multi-device synchronization, you can optionally configure Supabase cloud sy
 4. Click "Test Connection" to verify
 5. Click "Enable Cloud Sync" to start syncing
 
+#### Option B: Cloudflare D1/R2
+
+1. Open Card Tab settings and switch to **Cloudflare D1/R2**.
+2. Use the **Cloudflare Auto Create (recommended)** flow at the top of the page:
+   - Enable the auto-create toggle.
+   - Fill in `Account ID`, `API Token`, and a `Base Name`.
+   - Click **Create Resources** to automatically create the Worker, D1 database, and R2 bucket.
+   - Click **Initialize Data** to create the tables.
+   - Click **Enable Sync** to start using Cloudflare sync.
+3. If you already have existing Cloudflare resources, you can instead fill in the `Worker URL` and `Access Token` in the “Connect Existing Resources” section.
+4. The settings page caches the Worker URL, Worker name, D1 ID, D1 name, and R2 bucket name locally so they can be restored and copied later.
+5. If you still prefer the remote provisioning approach, you can use the fallback external provisioning service described in `CLOUDFLARE_PROVISIONING_SERVICE.md`. The template is available at `workers/worker.js`.
+
 ### Troubleshooting
 
 **Connection Issues:**
@@ -121,8 +136,8 @@ For multi-device synchronization, you can optionally configure Supabase cloud sy
 - **chrome.contextMenus**: Right-click menu quick add
 
 ### Cloud Integration
-- **Supabase**: PostgreSQL database
-- **Supabase Storage**: Background image file storage
+- **Supabase**: PostgreSQL database and Storage
+- **Cloudflare D1/R2**: Worker API, D1 database and R2 file storage
 
 ## Development
 
@@ -140,14 +155,14 @@ The build script creates `card-tab.zip` ready for Chrome Web Store submission.
 ## Privacy & Security
 
 - **Local First**: All data stored locally by default
-- **Optional Cloud Sync**: Supabase integration is completely optional
-- **Your Own Database**: When using cloud sync, data goes to YOUR Supabase project
+- **Optional Cloud Sync**: Supabase and Cloudflare integrations are both optional
+- **Your Own Backend**: When using cloud sync, data goes to your own Supabase or Cloudflare resources
 - **No Tracking**: No analytics, no data collection, no third-party tracking
 - **Open Source**: Full source code available for review
 
 ## Important Notes
 
-- **Personal Use**: Each person should create their own Supabase project
+- **Personal Use**: Each person should create their own Supabase project or Cloudflare resources
 - **Theme ID**: Use different theme IDs for different theme configurations
 - **Free Tier**: Supabase free tier is sufficient for personal use
 - **Backup**: Regular data export is recommended

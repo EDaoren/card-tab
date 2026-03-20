@@ -20,42 +20,19 @@ console.log('🔄 Building extension package...');
 // Files and directories to include
 const filesToInclude = [
   'index.html',
+  'settings.html',
   'manifest.json',
   'privacy-policy.html',
   'README.md',
   'README_EN.md',
+  'CLOUDFLARE_PROVISIONING_SERVICE.md',
   'supabase-init.sql',
+  'cf-worker.js',
+  'cf-d1-init.sql',
   'icons',
   'js',
   'styles',
   'fonts'
-];
-
-// Files to exclude (test files, development files, etc.)
-const filesToExclude = [
-  // Test files (已清理)
-  'test-*.html',
-  'test-*.json',
-
-  // Development files
-  'build.js',
-  'package.json',
-  'package-lock.json',
-  'node_modules',
-  '.git',
-  '.gitignore',
-  'build',
-
-  // Development tools
-  'verify-csp-compliance.js',
-  'csp-violations-report.json',
-  'init-github.bat',
-  '数据库设计.txt',
-
-  // Stage-specific documentation (已清理)
-  'TROUBLESHOOTING.md',
-  'QUICK_ADD_GUIDE.md',
-  'store-listing.md'
 ];
 
 /**

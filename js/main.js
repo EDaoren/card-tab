@@ -47,17 +47,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize sync adapter
     await syncManager.init();
 
-    // Initialize sync UI
-    await syncUIManager.init();
-
-    // 更新进度：主题配置初始化
-    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
-
-    // Initialize theme config UI
-    if (typeof themeConfigUIManager !== 'undefined') {
-      await themeConfigUIManager.init();
-    }
-
     // Initialize theme settings after sync is ready
     initThemeSettings();
 
@@ -388,6 +377,14 @@ function initFloatingButtons() {
       buttonsGroup.classList.add('collapsed');
       menuBtn.title = '展开菜单';
     }
+  }
+
+  // 新增设置页面跳转按钮逻辑
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      window.location.href = 'settings.html';
+    });
   }
 
   console.log('✅ 悬浮按钮初始化完成');

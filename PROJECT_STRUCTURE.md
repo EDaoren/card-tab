@@ -102,14 +102,10 @@ js/
 ### 界面模块
 
 ```
-├── sync-ui.js               # 同步界面 (400+ 行)
-│   ├── Supabase配置
-│   ├── 连接测试
-│   └── 状态显示
-├── theme-config-ui.js       # 主题配置界面 (500+ 行)
-│   ├── 配置管理
-│   ├── 多配置支持
-│   └── 界面交互
+├── settings-ui.js           # 设置页界面 (600+ 行)
+│   ├── 主题工作空间管理
+│   ├── Cloudflare / Supabase 配置
+│   └── 数据导入导出
 └── icons.js                 # 图标管理 (180+ 行)
     ├── 字体检测
     ├── 备选方案
@@ -130,15 +126,19 @@ js/
     └── 初始化协调
 ```
 
-### 外部依赖
+### 云端与外部依赖
 
 ```
-├── supabase-client.js       # Supabase客户端 (400+ 行)
+├── supabase-client.js       # Supabase客户端
 │   ├── 数据库操作
 │   ├── 文件存储
 │   └── 错误处理
-└── supabase.min.js         # Supabase SDK (压缩版)
-    └── 官方JavaScript SDK
+├── cf-client.js             # Cloudflare Worker API 客户端
+│   ├── D1 数据同步
+│   ├── R2 文件存储
+│   └── Worker 连接测试
+└── supabase.min.js          # Supabase SDK (压缩版)
+    └── 官方 JavaScript SDK
 ```
 
 ## 🖼️ 图标资源 (icons/)
@@ -204,18 +204,20 @@ store-assets/
 ```
 
 ### 核心数据流
-1. **用户交互** → category.js / shortcut.js
-2. **数据处理** → storage.js
-3. **状态管理** → sync-manager.js
-4. **界面更新** → view.js / theme.js
-5. **云端同步** → supabase-client.js
+1. **用户交互** → `category.js` / `shortcut.js`
+2. **数据处理** → `storage-adapter.js` / `unified-data-manager.js`
+3. **状态管理** → `sync-adapter.js`
+4. **界面更新** → `view.js` / `theme.js` / `settings-ui.js`
+5. **云端同步** → `supabase-client.js` / `cf-client.js`
 
 ## 🎯 模块职责
 
 ### 数据层
-- `storage.js`: 本地存储抽象
-- `sync-manager.js`: 数据同步协调
-- `supabase-client.js`: 云端数据操作
+- `storage-adapter.js`: 本地数据兼容层
+- `sync-adapter.js`: 同步状态兼容层
+- `unified-data-manager.js`: 统一主题/数据管理
+- `supabase-client.js`: Supabase 数据与文件操作
+- `cf-client.js`: Cloudflare D1/R2 数据与文件操作
 
 ### 业务层
 - `category.js`: 分类业务逻辑
@@ -225,7 +227,7 @@ store-assets/
 ### 表现层
 - `view.js`: 视图状态管理
 - `theme.js`: 主题样式管理
-- `*-ui.js`: 界面交互逻辑
+- `settings-ui.js`: 设置页界面交互逻辑
 
 ### 优化层
 - `offline-manager.js`: 离线功能优化

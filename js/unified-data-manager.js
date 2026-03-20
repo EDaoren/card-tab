@@ -1,23 +1,70 @@
 /**
- * 统一数据管理器
- * 基于新的数据结构设计，统一管理所有配置和数据
+ * 统一数据管理器 (Unified Data Manager)
+ * 负责管理所有配置和数据的存储、读取和同步。
+ * 改为基于 themeId（主题）的配置管理模式。每套主题是一套完整的工作空间。
  */
 
 class UnifiedDataManager {
+    // 定义存储键
+    STORAGE_KEYS = {
+        APP_DATA: 'card_tab_app_data',          // 存储统地元数据（当前活跃主题、所有主题列表等）
+        CONFIG_DATA: (themeId) => `cardTabData_${themeId}`, // 本地缓存特定主题的数据
+        SUPABASE_CONFIG: 'supabase_config',     // Supabase 连接配置
+        CF_CONFIG: 'cf_config'                  // Cloudflare 连接配置
+    };
+
+    DEFAULT_THEME_ID = 'default';
+
     constructor() {
         this.appData = null;
         this.currentConfigData = null;
         this.supabaseClient = null;
+        this.cloudflareClient = null;
+    }
 
-        // 存储键名常量
-        this.STORAGE_KEYS = {
-            APP_DATA: 'app_data',
-            SUPABASE_CONFIG: 'supabase_config',
-            CONFIG_DATA: (configId) => `cardTabData_${configId}`
+    /**
+     * 获取默认全局应用数据
+     */
+    getDefaultAppData() {
+        return {
+            version: '2.0.0', // 升级版本号表示数据结构变更
+            currentThemeId: this.DEFAULT_THEME_ID,
+            themes: {
+                [this.DEFAULT_THEME_ID]: {
+                    themeId: this.DEFAULT_THEME_ID,
+                    themeName: '默认主题',
+                    themeType: 'default',
+                    bgImageUrl: null,
+                    bgImagePath: null,
+                    bgOpacity: 30,
+                    isActive: true,
+                    type: 'chrome', // 'chrome', 'supabase', 'cloudflare'
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }
+            }
         };
+    }
 
-        // 默认配置ID
-        this.DEFAULT_CONFIG_ID = 'default';
+    /**
+     * 获取指定主题的数据骨架
+     */
+    getDefaultConfigData() {
+        return {
+            categories: [
+                {
+                    id: `cat-${Date.now()}`,
+                    name: '默认分类',
+                    color: '#4285f4',
+                    collapsed: false,
+                    order: 0,
+                    shortcuts: []
+                }
+            ],
+            settings: {
+                viewMode: 'grid'
+            }
+        };
     }
 
     /**
@@ -27,509 +74,771 @@ class UnifiedDataManager {
         try {
             console.log('UnifiedDataManager: 开始初始化...');
 
-            // 1. 加载应用配置数据
+            // 1. 加载全局元数据 (appData)
             await this.loadAppData();
 
-            // 2. 初始化 Supabase 客户端
-            await this.initSupabaseClient();
+            // 1.5 尝试从旧版本结构迁移
+            await this.migrateFromOldStructure();
 
-            // 3. 加载当前配置的数据
+            // 2. 初始化云端客户端
+            await this.initCloudClients();
+
+            // 3. 加载当前活跃主题的数据
             await this.loadCurrentConfigData();
 
-            console.log('UnifiedDataManager: 初始化完成');
+            console.log('UnifiedDataManager: 初始化完成', {
+                currentThemeId: this.appData.currentThemeId,
+                themesCount: Object.keys(this.appData.themes).length
+            });
+
             return this.currentConfigData;
         } catch (error) {
             console.error('UnifiedDataManager: 初始化失败:', error);
+            // 降级使用默认数据
+            this.appData = this.getDefaultAppData();
+            this.currentConfigData = this.getDefaultConfigData();
+            return this.currentConfigData;
+        }
+    }
+
+    /**
+     * 将老版本的 app_data 结构迁移到新结构
+     */
+    async migrateFromOldStructure() {
+        let changed = false;
+
+        // 处理 currentUser -> currentThemeId
+        if (this.appData.currentUser && this.appData.currentUser.configId) {
+            this.appData.currentThemeId = this.appData.currentUser.configId;
+            delete this.appData.currentUser;
+            changed = true;
+        }
+
+        // 处理 userConfigs -> themes
+        if (this.appData.userConfigs) {
+            if (!this.appData.themes) this.appData.themes = {};
+            
+            for (const [key, oldConfig] of Object.entries(this.appData.userConfigs)) {
+                this.appData.themes[key] = {
+                    themeId: key,
+                    themeName: oldConfig.displayName || key,
+                    themeType: 'default',
+                    bgImageUrl: null,
+                    bgImagePath: null,
+                    bgOpacity: 30,
+                    isActive: key === this.appData.currentThemeId,
+                    type: oldConfig.type || 'chrome',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+            }
+            delete this.appData.userConfigs;
+            changed = true;
+        }
+
+        if (changed) {
+            this.appData.version = '2.0.0';
+            await this.saveAppData();
+            console.log('UnifiedDataManager: 成功从旧数据结构迁移');
+        }
+    }
+
+    /**
+     * 加载全局元数据
+     */
+    async loadAppData() {
+        try {
+            const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.APP_DATA]);
+            
+            if (result && result[this.STORAGE_KEYS.APP_DATA]) {
+                this.appData = result[this.STORAGE_KEYS.APP_DATA];
+                // 确保有必要的字段
+                if (!this.appData.themes) {
+                    this.appData.themes = {
+                        [this.DEFAULT_THEME_ID]: {
+                            themeId: this.DEFAULT_THEME_ID,
+                            themeName: '默认主题',
+                            themeType: 'default',
+                            isActive: true,
+                            type: 'chrome'
+                        }
+                    };
+                }
+                if (!this.appData.currentThemeId) {
+                    this.appData.currentThemeId = this.DEFAULT_THEME_ID;
+                }
+            } else {
+                this.appData = this.getDefaultAppData();
+                await this.saveAppData();
+            }
+        } catch (error) {
+            console.error('UnifiedDataManager: 加载 APP_DATA 失败:', error);
+            this.appData = this.getDefaultAppData();
+        }
+    }
+
+    /**
+     * 保存全局元数据
+     */
+    async saveAppData() {
+        try {
+            await this.setToChromeStorageSync({
+                [this.STORAGE_KEYS.APP_DATA]: this.appData
+            });
+        } catch (error) {
+            console.error('UnifiedDataManager: 保存 APP_DATA 失败:', error);
+        }
+    }
+
+    /**
+     * 初始化云端客户端
+     */
+    async initCloudClients() {
+        // 1. 获取配置
+        const result = await this.getFromChromeStorageSync([
+            this.STORAGE_KEYS.SUPABASE_CONFIG,
+            this.STORAGE_KEYS.CF_CONFIG
+        ]);
+        
+        const supabaseConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
+        const cfConfig = result[this.STORAGE_KEYS.CF_CONFIG];
+
+        // 2. 初始化 Supabase
+        if (supabaseConfig && supabaseConfig.enabled && typeof SupabaseClient !== 'undefined') {
+            try {
+                if (!this.supabaseClient) {
+                    this.supabaseClient = new SupabaseClient();
+                }
+                await this.supabaseClient.initialize(supabaseConfig);
+                console.log('UnifiedDataManager: Supabase 客户端初始化成功');
+            } catch (error) {
+                console.error('UnifiedDataManager: Supabase客户端初始化失败:', error);
+            }
+        }
+
+        // 3. 初始化 Cloudflare
+        if (cfConfig && cfConfig.enabled && typeof CloudflareClient !== 'undefined') {
+            try {
+                if (!this.cloudflareClient) {
+                    this.cloudflareClient = new CloudflareClient();
+                }
+                await this.cloudflareClient.initialize(cfConfig);
+                console.log('UnifiedDataManager: Cloudflare 客户端初始化成功');
+            } catch (error) {
+                console.error('UnifiedDataManager: Cloudflare 客户端初始化失败:', error);
+            }
+        }
+    }
+
+    /**
+     * 加载当前主题的数据
+     * 策略：先本地缓存 -> 如果缓存没命中且是云端 -> 则等待云端请求返回
+     * @param {boolean} forceRefresh - 是否强制从云端获取最新数据
+     */
+    async loadCurrentConfigData(forceRefresh = false) {
+        try {
+            const currentThemeId = this.appData.currentThemeId;
+            const currentTheme = this.getCurrentTheme();
+
+            if (!currentTheme) {
+                throw new Error('当前主题不存在');
+            }
+
+            console.log(`UnifiedDataManager: 加载主题数据 ${currentThemeId} (${currentTheme.type})`);
+
+            // 如果不是强制刷新，尝试从缓存读取
+            if (!forceRefresh) {
+                const cachedData = await this.loadFromCache(currentThemeId);
+                if (cachedData) {
+                    this.currentConfigData = cachedData;
+                    console.log('UnifiedDataManager: 从缓存加载数据成功');
+                    
+                    // 异步触发后台更新
+                    if (currentTheme.type !== 'chrome') {
+                        this.backgroundSyncFromCloud(currentTheme).catch(e => console.error('后台同步失败', e));
+                    }
+                    return this.currentConfigData;
+                }
+            }
+
+            // 缓存未命中或强制刷新，从数据源读取
+            let data = null;
+            if (currentTheme.type === 'supabase') {
+                data = await this.loadFromSupabase(currentTheme);
+            } else if (currentTheme.type === 'cloudflare') {
+                data = await this.loadFromCloudflare(currentTheme);
+            } else {
+                data = await this.loadFromChromeSync(currentThemeId);
+            }
+
+            if (data) {
+                this.currentConfigData = data;
+                // 更新缓存
+                await this.saveToCache(currentThemeId, data);
+            } else {
+                this.currentConfigData = this.getDefaultConfigData();
+                await this.saveCurrentConfigData(this.currentConfigData);
+            }
+
+            return this.currentConfigData;
+        } catch (error) {
+            console.error('UnifiedDataManager: 加载当前主题数据失败:', error);
+            if (!this.currentConfigData) {
+                this.currentConfigData = this.getDefaultConfigData();
+            }
+            return this.currentConfigData;
+        }
+    }
+
+    /**
+     * 后台同步云端数据，用于保持本地缓存更新
+     */
+    async backgroundSyncFromCloud(theme) {
+        try {
+            let cloudData = null;
+            if (theme.type === 'supabase') {
+                cloudData = await this.loadFromSupabase(theme);
+            } else if (theme.type === 'cloudflare') {
+                cloudData = await this.loadFromCloudflare(theme);
+            }
+
+            if (cloudData) {
+                await this.saveToCache(theme.themeId, cloudData);
+                // 触发一个事件通知UI可能有更新
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    try {
+                        chrome.runtime.sendMessage({ action: "dataUpdated", source: "backgroundSync" });
+                    } catch (e) {
+                        // 忽略发送消息错误（可能不在扩展上下文中）
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('UnifiedDataManager: 后台同步失败', e);
+        }
+    }
+
+    /**
+     * 保存当前主题的数据
+     * 策略：旁路刷新 - 先写主存储，再清缓存，再更新缓存并返回
+     */
+    async saveCurrentConfigData(data) {
+        try {
+            const currentThemeId = this.appData.currentThemeId;
+            const currentTheme = this.getCurrentTheme();
+
+            if (!currentTheme) throw new Error('当前主题不存在');
+
+            // 如果更新了主题元数据，先合并到 currentTheme
+            if (data._themeMeta) {
+                Object.assign(currentTheme, data._themeMeta);
+                currentTheme.updatedAt = new Date().toISOString();
+                await this.saveAppData();
+                delete data._themeMeta; // 不要把元数据存进 data blob里
+            }
+
+            const dataToSave = data || this.currentConfigData;
+
+            // 1. 写主存储
+            if (currentTheme.type === 'supabase') {
+                await this.saveToSupabase(currentTheme, dataToSave);
+            } else if (currentTheme.type === 'cloudflare') {
+                await this.saveToCloudflare(currentTheme, dataToSave);
+            } else {
+                await this.saveToChromeSync(currentThemeId, dataToSave);
+            }
+
+            // 2. 清缓存并重新写入（旁路缓存模式）
+            await this.clearCache(currentThemeId);
+            await this.saveToCache(currentThemeId, dataToSave);
+            
+            // 3. 更新内存
+            this.currentConfigData = dataToSave;
+            
+            return true;
+        } catch (error) {
+            console.error('UnifiedDataManager: 保存数据失败:', error);
             throw error;
         }
     }
 
     /**
-     * 加载应用配置数据 (app_data)
+     * 保存主题的视觉设置（仅更新元数据，不触碰内部大 JSON）
      */
-    async loadAppData() {
-        try {
-            const result = await this.getFromChromeStorageLocal([this.STORAGE_KEYS.APP_DATA]);
-            this.appData = result[this.STORAGE_KEYS.APP_DATA];
+    async saveThemeSettings(themeSettings) {
+        const theme = this.getCurrentTheme();
+        if (!theme) return false;
 
-            if (!this.appData) {
-                console.log('UnifiedDataManager: 未找到 app_data，创建默认配置');
-                await this.createDefaultAppData();
-            } else {
-                console.log('UnifiedDataManager: 加载 app_data 成功');
-                this.validateAppData();
+        await this.updateThemeMetadata(theme.themeId, {
+            themeType: themeSettings.themeType !== undefined ? themeSettings.themeType : theme.themeType,
+            bgImageUrl: themeSettings.bgImageUrl !== undefined ? themeSettings.bgImageUrl : theme.bgImageUrl,
+            bgImagePath: themeSettings.bgImagePath !== undefined ? themeSettings.bgImagePath : theme.bgImagePath,
+            bgOpacity: themeSettings.bgOpacity !== undefined ? themeSettings.bgOpacity : theme.bgOpacity
+        });
 
-                // 检查并恢复云端配置
-                await this.recoverCloudConfigIfNeeded();
-            }
-        } catch (error) {
-            console.error('UnifiedDataManager: 加载 app_data 失败:', error);
-            await this.createDefaultAppData();
-        }
+        return true;
     }
 
-    /**
-     * 创建默认的应用配置数据
-     */
-    async createDefaultAppData() {
-        this.appData = {
-            currentUser: {
-                configId: this.DEFAULT_CONFIG_ID,
-                displayName: '默认配置',
-                userId: this.DEFAULT_CONFIG_ID
-            },
-            userConfigs: {
-                [this.DEFAULT_CONFIG_ID]: {
-                    displayName: '默认配置',
-                    isActive: true,
-                    type: 'chrome',
-                    storageLocation: {
-                        key: this.STORAGE_KEYS.CONFIG_DATA(this.DEFAULT_CONFIG_ID),
-                        type: 'sync'
-                    }
+
+    /* --- 底层存储操作 --- */
+
+    async loadFromCache(themeId) {
+        const key = this.STORAGE_KEYS.CONFIG_DATA(themeId);
+        const result = await this.getFromChromeStorageLocal([key]);
+        return result[key] || null;
+    }
+
+    async saveToCache(themeId, data) {
+        const key = this.STORAGE_KEYS.CONFIG_DATA(themeId);
+        await this.setToChromeStorageLocal({ [key]: data });
+    }
+
+    async clearCache(themeId) {
+        const key = this.STORAGE_KEYS.CONFIG_DATA(themeId);
+        return new Promise(resolve => chrome.storage.local.remove(key, resolve));
+    }
+
+    async clearAllCacheExceptCurrent() {
+        const currentKey = this.STORAGE_KEYS.CONFIG_DATA(this.appData.currentThemeId);
+        return new Promise(resolve => {
+            chrome.storage.local.get(null, (items) => {
+                const keysToRemove = Object.keys(items).filter(k => 
+                    k.startsWith('cardTabData_') && k !== currentKey
+                );
+                if (keysToRemove.length > 0) {
+                    chrome.storage.local.remove(keysToRemove, resolve);
+                } else {
+                    resolve();
                 }
-            },
-            configPaginationSettings: {
-                pageSize: 5
-            }
-        };
-
-        await this.saveAppData();
-        console.log('UnifiedDataManager: 创建默认 app_data 完成');
+            });
+        });
     }
 
-    /**
-     * 验证应用配置数据的完整性
-     */
-    validateAppData() {
-        if (!this.appData.currentUser || !this.appData.userConfigs) {
-            throw new Error('app_data 结构不完整');
-        }
-
-        const currentConfigId = this.appData.currentUser.configId;
-        if (!this.appData.userConfigs[currentConfigId]) {
-            console.warn(`当前配置 ${currentConfigId} 不存在，切换到默认配置`);
-            this.appData.currentUser = {
-                configId: this.DEFAULT_CONFIG_ID,
-                displayName: '默认配置',
-                userId: this.DEFAULT_CONFIG_ID
-            };
-            this.appData.userConfigs[this.DEFAULT_CONFIG_ID].isActive = true;
-        }
+    async loadFromChromeSync(themeId) {
+        const key = `chrome_sync_${themeId}`;
+        const result = await this.getFromChromeStorageSync([key]);
+        return result[key] || null;
     }
 
-    /**
-     * 检查并恢复云端配置（如果需要）
-     * TODO 没有做真正操作云端，现在逻辑有问题，而且如果每次加载首页都刷新supabase性能不行
-     */
-    async recoverCloudConfigIfNeeded() {
-        try {
-            // 检查是否有 Supabase 配置
-            const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
-            const supabaseConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
-
-            if (supabaseConfig && supabaseConfig.enabled && supabaseConfig.userId) {
-                const userId = supabaseConfig.userId;
-
-                // 检查 app_data 中是否已有此云端配置
-                if (!this.appData.userConfigs[userId]) {
-                    console.log(`UnifiedDataManager: 恢复云端配置 ${userId}`);
-
-                    // 添加云端配置到 userConfigs
-                    this.appData.userConfigs[userId] = {
-                        displayName: `云端配置 (${userId})`,
-                        isActive: false,
-                        type: 'supabase',
-                        storageLocation: {
-                            type: 'supabase',
-                            userId: userId,
-                            cacheKey: this.STORAGE_KEYS.CONFIG_DATA(userId)
-                        }
-                    };
-
-                    // 如果当前用户就是这个云端配置，更新当前用户信息
-                    if (this.appData.currentUser.configId === userId) {
-                        this.appData.currentUser = {
-                            configId: userId,
-                            displayName: `云端配置 (${userId})`,
-                            userId: userId
-                        };
-                        this.appData.userConfigs[userId].isActive = true;
-                        this.appData.userConfigs[this.DEFAULT_CONFIG_ID].isActive = false;
-                    }
-
-                    // 保存更新后的 app_data
-                    await this.saveAppData();
-                    console.log(`UnifiedDataManager: 云端配置 ${userId} 恢复完成`);
-                }
-            }
-        } catch (error) {
-            console.warn('UnifiedDataManager: 恢复云端配置失败:', error);
-        }
+    async saveToChromeSync(themeId, data) {
+        const key = `chrome_sync_${themeId}`;
+        await this.setToChromeStorageSync({ [key]: data });
     }
 
-    /**
-     * 初始化 Supabase 客户端
-     */
-    async initSupabaseClient() {
-        try {
-            const supabaseConfig = await this.ensureSupabaseClientReady({optional: true, shouldTest: false});
-            if (supabaseConfig) {
-                console.log('UnifiedDataManager: Supabase 客户端初始化成功');
-            }
-        } catch (error) {
-            console.warn('UnifiedDataManager: Supabase 客户端初始化失败:', error);
-            this.supabaseClient = null;
-        }
-    }
-
-    /**
-     * 获取当前激活的 Supabase 配置，确保 userId 与当前配置一致
-     */
-    async getActiveSupabaseConfig() {
-        try {
-            const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
-            const supabaseConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
-
-            if (!supabaseConfig || !supabaseConfig.enabled || !supabaseConfig.url || !supabaseConfig.anonKey) {
-                return null;
-            }
-
-            const activeConfigId = this.appData?.currentUser?.configId || supabaseConfig.userId;
-
-            if (activeConfigId && supabaseConfig.userId !== activeConfigId) {
-                const updatedConfig = {...supabaseConfig, userId: activeConfigId};
-                await this.setToChromeStorageSync({
-                    [this.STORAGE_KEYS.SUPABASE_CONFIG]: updatedConfig
-                });
-                return updatedConfig;
-            }
-
-            return {...supabaseConfig};
-        } catch (error) {
-            console.warn('UnifiedDataManager: 获取 Supabase 配置失败:', error);
-            return null;
-        }
-    }
-
-    /**
-     * 确保 Supabase 客户端处于可用状态
-     */
-    async ensureSupabaseClientReady(options = {}) {
-        const {shouldTest, optional = false} = options;
-        const supabaseConfig = await this.getActiveSupabaseConfig();
-
-        if (!supabaseConfig) {
-            if (optional) {
-                return null;
-            }
-            throw new Error('Supabase 配置不可用');
-        }
-
-        if (typeof SupabaseClient === 'undefined') {
-            throw new Error('SupabaseClient 未定义');
-        }
-
-        if (!this.supabaseClient) {
-            this.supabaseClient = new SupabaseClient();
-        }
-
-        const needsConnectionTest = typeof shouldTest === 'boolean'
-            ? shouldTest
-            : !this.supabaseClient.isConnected;
-
-        await this.supabaseClient.initialize(supabaseConfig, needsConnectionTest);
-
-        return supabaseConfig;
-    }
-
-    /**
-     * 加载当前配置的数据
-     */
-    async loadCurrentConfigData(forceRefresh = false) {
-        const currentConfig = this.getCurrentConfig();
-        const configId = currentConfig.configId;
-
-        try {
-            let cachedData = null;
-
-            if (!forceRefresh) {
-                cachedData = await this.loadFromCache(configId);
-                if (cachedData && this.isCacheValid(cachedData)) {
-                    this.currentConfigData = cachedData;
-                    return;
-                }
-            } else {
-                console.log(`UnifiedDataManager: 强制刷新配置 ${configId}，跳过缓存`);
-            }
-
-            // 2. 从主存储加载
-            const data = await this.loadFromMainStorage(currentConfig);
-
-            if (data) {
-                this.currentConfigData = data;
-                // 缓存数据
-                await this.saveToCache(configId, data);
-            } else {
-                // 使用默认数据
-                this.currentConfigData = this.getDefaultConfigData();
-                // 切换到默认配置
-                await this.switchConfig(this.DEFAULT_CONFIG_ID);
-            }
-
-        } catch (error) {
-            console.error(`UnifiedDataManager: 加载配置 ${configId} 失败:`, error);
-            // 使用默认数据
-            this.currentConfigData = this.getDefaultConfigData();
-            await this.switchConfig(this.DEFAULT_CONFIG_ID);
-        }
-    }
-
-
-    /**
-     * 从缓存加载数据
-     */
-    async loadFromCache(configId) {
-        try {
-            const cacheKey = this.STORAGE_KEYS.CONFIG_DATA(configId);
-            const result = await this.getFromChromeStorageLocal([cacheKey]);
-            return result[cacheKey];
-        } catch (error) {
-            console.warn(`UnifiedDataManager: 缓存加载失败 ${configId}:`, error);
-            return null;
-        }
-    }
-
-    /**
-     * 检查缓存是否有效
-     */
-    isCacheValid(data) {
-        if (!data || !data._metadata || !data._metadata.cacheMetadata) {
-            return false;
-        }
-
-        const cache = data._metadata.cacheMetadata;
-        const now = new Date();
-        const expiresAt = new Date(cache.expiresAt);
-
-        return cache.isValid && now < expiresAt;
-    }
-
-    /**
-     * 从主存储加载数据
-     */
-    async loadFromMainStorage(config) {
-        if (config.type === 'chrome') {
-            return await this.loadFromChromeSync(config);
-        } else if (config.type === 'supabase') {
-            return await this.loadFromSupabase(config);
+    async loadFromSupabase(theme) {
+        if (!this.supabaseClient) throw new Error('SupabaseClient 未初始化');
+        
+        const result = await this.supabaseClient.loadData(theme.themeId);
+        if (result && result.data) {
+            // 同步远端的元数据到本地 appData
+            this.updateThemeMetadataFromCloudResponse(theme.themeId, result);
+            return result.data;
         }
         return null;
     }
 
-    /**
-     * 从 Chrome Sync 加载数据
-     */
-    async loadFromChromeSync(config) {
-        try {
-            const result = await this.getFromChromeStorageSync([config.storageLocation.key]);
-            return result[config.storageLocation.key];
-        } catch (error) {
-            console.error('UnifiedDataManager: Chrome Sync 加载失败:', error);
-            return null;
+    async saveToSupabase(theme, data) {
+        if (!this.supabaseClient) throw new Error('SupabaseClient 未初始化');
+        await this.supabaseClient.saveData(theme.themeId, data, theme);
+    }
+
+    async loadFromCloudflare(theme) {
+        if (!this.cloudflareClient) throw new Error('CloudflareClient 未初始化');
+        
+        const result = await this.cloudflareClient.loadData(theme.themeId);
+        if (result && result.data) {
+            this.updateThemeMetadataFromCloudResponse(theme.themeId, result);
+            return result.data;
         }
+        return null;
+    }
+
+    async saveToCloudflare(theme, data) {
+        if (!this.cloudflareClient) throw new Error('CloudflareClient 未初始化');
+        await this.cloudflareClient.saveData(theme.themeId, data, theme);
     }
 
     /**
-     * 从 Supabase 加载数据
+     * 将云端返回的 theme 元数据更新到本地 appData
      */
-    async loadFromSupabase(config) {
-        try {
-            // await this.ensureSupabaseClientReady({ shouldTest: !this.supabaseClient?.isConnected });
-            const rawData = await this.supabaseClient.loadData();
-            if (rawData && rawData.data) {
-                return rawData.data;
-            }
-            return rawData;
-        } catch (error) {
-            console.error('UnifiedDataManager: Supabase 加载失败:', error);
-            return null;
+    updateThemeMetadataFromCloudResponse(themeId, cloudRes) {
+        if (!this.appData.themes[themeId]) return;
+        const theme = this.appData.themes[themeId];
+        
+        let changed = false;
+        if (cloudRes.theme_name && cloudRes.theme_name !== theme.themeName) { theme.themeName = cloudRes.theme_name; changed = true; }
+        if (cloudRes.theme_type && cloudRes.theme_type !== theme.themeType) { theme.themeType = cloudRes.theme_type; changed = true; }
+        if (cloudRes.bg_image_url !== undefined && cloudRes.bg_image_url !== theme.bgImageUrl) { theme.bgImageUrl = cloudRes.bg_image_url; changed = true; }
+        if (cloudRes.bg_image_path !== undefined && cloudRes.bg_image_path !== theme.bgImagePath) { theme.bgImagePath = cloudRes.bg_image_path; changed = true; }
+        if (cloudRes.bg_opacity !== undefined && cloudRes.bg_opacity !== theme.bgOpacity) { theme.bgOpacity = cloudRes.bg_opacity; changed = true; }
+
+        if (changed) {
+            this.saveAppData().catch(e => console.error(e));
         }
     }
 
 
-    /**
-     * 获取默认配置数据
-     */
-    getDefaultConfigData() {
-        return {
-            categories: [
-                {
-                    id: 'cat-1',
-                    name: '搜索引擎',
-                    color: '#4285f4',
-                    collapsed: false,
-                    order: 0,
-                    shortcuts: [
-                        {
-                            id: 'shortcut-1',
-                            name: '百度',
-                            url: 'https://www.baidu.com',
-                            iconType: 'letter',
-                            iconColor: '#2932e1',
-                            iconUrl: '',
-                            order: 0
-                        },
-                        {
-                            id: 'shortcut-2',
-                            name: '谷歌',
-                            url: 'https://www.google.com',
-                            iconType: 'letter',
-                            iconColor: '#4285f4',
-                            iconUrl: '',
-                            order: 1
-                        },
-                        {
-                            id: 'shortcut-3',
-                            name: '必应',
-                            url: 'https://www.bing.com',
-                            iconType: 'letter',
-                            iconColor: '#0078d4',
-                            iconUrl: '',
-                            order: 2
-                        }
-                    ]
-                },
-                {
-                    id: 'cat-2',
-                    name: '社交媒体',
-                    color: '#34a853',
-                    collapsed: false,
-                    order: 1,
-                    shortcuts: [
-                        {
-                            id: 'shortcut-4',
-                            name: '微博',
-                            url: 'https://weibo.com',
-                            iconType: 'letter',
-                            iconColor: '#ff8200',
-                            iconUrl: '',
-                            order: 0
-                        },
-                        {
-                            id: 'shortcut-5',
-                            name: '知乎',
-                            url: 'https://www.zhihu.com',
-                            iconType: 'letter',
-                            iconColor: '#0084ff',
-                            iconUrl: '',
-                            order: 1
-                        },
-                        {
-                            id: 'shortcut-6',
-                            name: 'Twitter',
-                            url: 'https://twitter.com',
-                            iconType: 'letter',
-                            iconColor: '#1da1f2',
-                            iconUrl: '',
-                            order: 2
-                        }
-                    ]
-                },
-                {
-                    id: 'cat-3',
-                    name: '开发工具',
-                    color: '#ea4335',
-                    collapsed: false,
-                    order: 2,
-                    shortcuts: [
-                        {
-                            id: 'shortcut-7',
-                            name: 'GitHub',
-                            url: 'https://github.com',
-                            iconType: 'letter',
-                            iconColor: '#24292e',
-                            iconUrl: '',
-                            order: 0
-                        },
-                        {
-                            id: 'shortcut-8',
-                            name: 'Stack Overflow',
-                            url: 'https://stackoverflow.com',
-                            iconType: 'letter',
-                            iconColor: '#f48024',
-                            iconUrl: '',
-                            order: 1
-                        },
-                        {
-                            id: 'shortcut-9',
-                            name: 'MDN',
-                            url: 'https://developer.mozilla.org',
-                            iconType: 'letter',
-                            iconColor: '#000000',
-                            iconUrl: '',
-                            order: 2
-                        }
-                    ]
-                }
-            ],
-            settings: {
-                viewMode: 'grid'
-            },
-            themeSettings: {
-                theme: 'default',
-                backgroundImageUrl: null,
-                backgroundImagePath: null,
-                backgroundOpacity: 30
-            },
-            _metadata: {
-                lastModified: new Date().toISOString(),
-                source: 'default'
-            }
+    /* --- 主题与配置管理 --- */
+
+    getCurrentTheme() {
+        return this.appData?.themes?.[this.appData.currentThemeId] || null;
+    }
+
+    getAllThemes() {
+        if (!this.appData || !this.appData.themes) return [];
+        return Object.values(this.appData.themes);
+    }
+
+    generateThemeId(prefix = 'theme') {
+        return `${prefix}-${Date.now()}`;
+    }
+
+    async createLocalTheme(themeName, themeType = 'default', bgOpacity = 30) {
+        const themeId = this.generateThemeId('theme');
+        const now = new Date().toISOString();
+        const theme = {
+            themeId,
+            themeName,
+            themeType,
+            bgImageUrl: null,
+            bgImagePath: null,
+            bgOpacity,
+            isActive: false,
+            type: 'chrome',
+            createdAt: now,
+            updatedAt: now
         };
+
+        this.appData.themes[themeId] = theme;
+        await this.saveAppData();
+
+        const defaultData = this.getDefaultConfigData();
+        await this.saveToChromeSync(themeId, defaultData);
+        await this.saveToCache(themeId, defaultData);
+
+        return theme;
+    }
+
+    async updateThemeMetadata(themeId, updates = {}) {
+        const theme = this.appData?.themes?.[themeId];
+        if (!theme) {
+            throw new Error(`主题 ${themeId} 不存在`);
+        }
+
+        const allowedKeys = [
+            'themeName',
+            'themeType',
+            'bgImageUrl',
+            'bgImagePath',
+            'bgOpacity'
+        ];
+
+        allowedKeys.forEach((key) => {
+            if (Object.prototype.hasOwnProperty.call(updates, key)) {
+                theme[key] = updates[key];
+            }
+        });
+
+        theme.updatedAt = new Date().toISOString();
+        await this.saveAppData();
+
+        if (theme.type !== 'chrome') {
+            await this.initCloudClients();
+
+            if (themeId === this.appData.currentThemeId) {
+                await this.saveCurrentConfigData({ ...this.currentConfigData });
+            } else {
+                let dataToPersist = await this.loadFromCache(themeId);
+
+                if (!dataToPersist) {
+                    if (theme.type === 'supabase' && this.supabaseClient) {
+                        const cloudResponse = await this.supabaseClient.loadData(theme.themeId);
+                        dataToPersist = cloudResponse?.data || null;
+                    } else if (theme.type === 'cloudflare' && this.cloudflareClient) {
+                        const cloudResponse = await this.cloudflareClient.loadData(theme.themeId);
+                        dataToPersist = cloudResponse?.data || null;
+                    }
+                }
+
+                if (!dataToPersist) {
+                    dataToPersist = this.getDefaultConfigData();
+                }
+
+                if (theme.type === 'supabase') {
+                    await this.saveToSupabase(theme, dataToPersist);
+                } else if (theme.type === 'cloudflare') {
+                    await this.saveToCloudflare(theme, dataToPersist);
+                }
+
+                await this.saveToCache(themeId, dataToPersist);
+            }
+        }
+
+        return theme;
+    }
+
+    async switchTheme(themeId) {
+        try {
+            console.log(`UnifiedDataManager: 切换到主题 ${themeId}`);
+
+            if (!this.appData.themes[themeId]) {
+                throw new Error(`主题 ${themeId} 不存在`);
+            }
+
+            // 清除其他缓存
+            await this.clearAllCacheExceptCurrent();
+
+            // 更新活跃状态
+            this.appData.currentThemeId = themeId;
+            Object.values(this.appData.themes).forEach(t => {
+                t.isActive = (t.themeId === themeId);
+            });
+
+            await this.saveAppData();
+
+            // 加载新主题数据
+            await this.loadCurrentConfigData(true);
+            
+            console.log(`UnifiedDataManager: 切换到主题 ${themeId} 成功`);
+            return this.currentConfigData;
+        } catch (error) {
+            console.error(`UnifiedDataManager: 切换主题失败:`, error);
+            throw error;
+        }
+    }
+
+    async promoteCurrentThemeToCloud(provider = 'cloudflare', cfConfig = null, supabaseConfig = null, themeName = '') {
+        try {
+            const currentTheme = this.getCurrentTheme();
+            if (!currentTheme) {
+                throw new Error('当前主题不存在');
+            }
+
+            const dataToMigrate = this.currentConfigData || await this.loadCurrentConfigData();
+            const now = new Date().toISOString();
+
+            if (provider === 'cloudflare') {
+                const newCfConfig = { ...cfConfig, enabled: true };
+
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: { enabled: false } });
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: newCfConfig });
+
+                if (!this.cloudflareClient) {
+                    this.cloudflareClient = new CloudflareClient();
+                }
+                await this.cloudflareClient.initialize(newCfConfig);
+
+                if (this.supabaseClient) {
+                    this.supabaseClient.disconnect();
+                    this.supabaseClient = null;
+                }
+            } else if (provider === 'supabase') {
+                const newSupabaseConfig = { ...supabaseConfig, enabled: true };
+
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: { enabled: false } });
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: newSupabaseConfig });
+
+                if (!this.supabaseClient) {
+                    this.supabaseClient = new SupabaseClient();
+                }
+                await this.supabaseClient.initialize(newSupabaseConfig);
+
+                if (this.cloudflareClient) {
+                    this.cloudflareClient.disconnect();
+                    this.cloudflareClient = null;
+                }
+            } else {
+                throw new Error(`不支持的云端提供商：${provider}`);
+            }
+
+            currentTheme.type = provider;
+            if (themeName) {
+                currentTheme.themeName = themeName;
+            }
+            currentTheme.updatedAt = now;
+            await this.saveAppData();
+
+            await this.saveCurrentConfigData(dataToMigrate || this.getDefaultConfigData());
+
+            console.log(`UnifiedDataManager: 当前主题已切换为 ${provider} 云端工作区`, {
+                themeId: currentTheme.themeId
+            });
+
+            return currentTheme;
+        } catch (error) {
+            console.error('UnifiedDataManager: 当前主题切换为云端失败:', error);
+            throw error;
+        }
     }
 
     /**
-     * 获取当前配置信息
+     * 添加新的云端主题
+     */
+    async addCloudTheme(themeName, themeId, provider = 'cloudflare', cfConfig = null, supabaseConfig = null) {
+        try {
+            console.log(`UnifiedDataManager: 添加云端主题 ${themeId} (provider: ${provider})`);
+
+            // 1. 注册主题
+            this.appData.themes[themeId] = {
+                themeId: themeId,
+                themeName: themeName,
+                themeType: 'default',
+                bgImageUrl: null,
+                bgImagePath: null,
+                bgOpacity: 30,
+                isActive: false,
+                type: provider,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (provider === 'cloudflare') {
+                const newCfConfig = { ...cfConfig, enabled: true };
+                
+                // 互斥禁用 supabase
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: { enabled: false } });
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: newCfConfig });
+
+                if (!this.cloudflareClient) this.cloudflareClient = new CloudflareClient();
+                await this.cloudflareClient.initialize(newCfConfig);
+
+                // 首次拉取云端数据，如果没有则写入默认骨架
+                const themeObj = this.appData.themes[themeId];
+                const cloudData = await this.loadFromCloudflare(themeObj);
+                
+                if (!cloudData) {
+                    await this.saveToCloudflare(themeObj, this.getDefaultConfigData());
+                    await this.saveToCache(themeId, this.getDefaultConfigData());
+                } else {
+                    await this.saveToCache(themeId, cloudData);
+                }
+
+                if (this.supabaseClient) {
+                    this.supabaseClient.disconnect();
+                    this.supabaseClient = null;
+                }
+            } else if (provider === 'supabase') {
+                // ... 与 cloudflare 类似
+                const newSupabaseConfig = { ...supabaseConfig, enabled: true };
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: { enabled: false } });
+                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: newSupabaseConfig });
+
+                if (!this.supabaseClient) this.supabaseClient = new SupabaseClient();
+                await this.supabaseClient.initialize(newSupabaseConfig);
+
+                const themeObj = this.appData.themes[themeId];
+                const cloudData = await this.loadFromSupabase(themeObj);
+                
+                if (!cloudData) {
+                    await this.saveToSupabase(themeObj, this.getDefaultConfigData());
+                    await this.saveToCache(themeId, this.getDefaultConfigData());
+                } else {
+                    await this.saveToCache(themeId, cloudData);
+                }
+
+                if (this.cloudflareClient) {
+                    this.cloudflareClient.disconnect();
+                    this.cloudflareClient = null;
+                }
+            }
+
+            await this.saveAppData();
+            return this.appData.themes[themeId];
+        } catch (error) {
+            console.error(`UnifiedDataManager: 添加云端主题失败:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 删除主题
+     */
+    async deleteTheme(themeId) {
+        try {
+            if (themeId === this.DEFAULT_THEME_ID) {
+                throw new Error('不能删除默认主题');
+            }
+            if (this.appData.currentThemeId === themeId) {
+                throw new Error('不能删除当前正在使用的主题，请先切换');
+            }
+
+            const theme = this.appData.themes[themeId];
+            if (!theme) return;
+
+            // 尝试删除云端数据
+            if (theme.type === 'supabase' && this.supabaseClient) {
+                try {
+                    await this.supabaseClient.deleteThemeData(themeId);
+                } catch (e) { console.warn('云端删除失败', e); }
+            } else if (theme.type === 'cloudflare' && this.cloudflareClient) {
+                try {
+                    await this.cloudflareClient.deleteData(themeId);
+                } catch (e) { console.warn('云端删除失败', e); }
+            }
+
+            // 清理缓存
+            await this.clearCache(themeId);
+
+            // 移除元数据
+            delete this.appData.themes[themeId];
+            await this.saveAppData();
+
+            console.log(`UnifiedDataManager: 主题 ${themeId} 已删除`);
+        } catch (error) {
+            console.error(`UnifiedDataManager: 删除主题失败:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 禁用云端同步
+     */
+    async disableCloudSync() {
+        try {
+            console.log('UnifiedDataManager: 禁用云端同步');
+
+            const currentTheme = this.getCurrentTheme();
+            if (currentTheme && currentTheme.type !== 'chrome') {
+                const dataToKeep = this.currentConfigData || await this.loadCurrentConfigData();
+
+                currentTheme.type = 'chrome';
+                currentTheme.updatedAt = new Date().toISOString();
+                await this.saveAppData();
+
+                await this.saveCurrentConfigData(dataToKeep || this.getDefaultConfigData());
+            }
+
+            // 禁用云端配置
+            await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: { enabled: false } });
+            await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: { enabled: false } });
+
+            if (this.supabaseClient) { this.supabaseClient.disconnect(); this.supabaseClient = null; }
+            if (this.cloudflareClient) { this.cloudflareClient.disconnect(); this.cloudflareClient = null; }
+
+            console.log('UnifiedDataManager: 云端同步已禁用');
+        } catch (error) {
+            console.error('UnifiedDataManager: 禁用云端同步失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取当前主题的设置 (兼容老接口)
      */
     getCurrentConfig() {
-        return {
-            configId: this.appData.currentUser.configId,
-            displayName: this.appData.currentUser.displayName,
-            userId: this.appData.currentUser.userId,
-            ...this.appData.userConfigs[this.appData.currentUser.configId]
-        };
+        return this.getCurrentTheme(); // 这个对象现在包含了 visual attributes
     }
 
-    /**
-     * 获取所有配置（兼容旧的 themeConfigManager.getAllConfigs）
-     */
     getAllConfigs() {
-        const configs = [];
-
-        for (const [configId, config] of Object.entries(this.appData.userConfigs)) {
-            // 跳过默认配置，因为它不应该出现在云端配置管理中
-            if (configId === this.DEFAULT_CONFIG_ID) {
-                continue;
-            }
-
-            configs.push({
-                id: configId,
-                displayName: config.displayName,
-                userId: configId,
-                type: config.type,
-                isActive: config.isActive,
-                createdAt: new Date().toISOString(), // 临时值，实际应该从数据中获取
-                lastModified: new Date().toISOString() // 临时值，实际应该从数据中获取
-            });
-        }
-
-        return configs;
+        return this.getAllThemes();
     }
 
-    /**
-     * Chrome Storage Local 操作
-     */
+    switchConfig(id) {
+        return this.switchTheme(id);
+    }
+
+    /* --- 辅助功能 --- */
+
     async getFromChromeStorageLocal(keys) {
         return new Promise((resolve) => {
             if (chrome.storage && chrome.storage.local) {
@@ -550,9 +859,6 @@ class UnifiedDataManager {
         });
     }
 
-    /**
-     * Chrome Storage Sync 操作
-     */
     async getFromChromeStorageSync(keys) {
         return new Promise((resolve) => {
             if (chrome.storage && chrome.storage.sync) {
@@ -573,549 +879,10 @@ class UnifiedDataManager {
         });
     }
 
-    /**
-     * 保存应用配置数据
-     */
-    async saveAppData() {
-        await this.setToChromeStorageLocal({
-            [this.STORAGE_KEYS.APP_DATA]: this.appData
-        });
-    }
-
-    /**
-     * 保存本地缓存数据
-     */
-    async saveToCache(configId, data) {
-        const cacheKey = this.STORAGE_KEYS.CONFIG_DATA(configId);
-        const cachedData = {
-            ...data,
-            _metadata: {
-                ...data._metadata,
-                cacheMetadata: {
-                    cachedAt: new Date().toISOString(),
-                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24小时
-                    isValid: true,
-                    source: data._metadata?.source || 'unknown',
-                    userId: configId
-                }
-            }
-        };
-
-        await this.setToChromeStorageLocal({
-            [cacheKey]: cachedData
-        });
-    }
-
-    /**
-     * 保存当前配置数据（旁路缓存模式）
-     */
-    async saveCurrentConfigData(data) {
-        const currentConfig = this.getCurrentConfig();
-        const configId = currentConfig.configId;
-
-        try {
-            // 添加元数据
-            const dataToSave = {
-                ...data,
-                _metadata: {
-                    lastModified: new Date().toISOString(),
-                    source: currentConfig.type === 'chrome' ? 'chrome' : 'supabase'
-                }
-            };
-
-            // 1. 保存到主存储
-            await this.saveToMainStorage(currentConfig, dataToSave);
-
-            // 2. 清除缓存
-            await this.clearCache(configId);
-
-            // 3. 重新缓存
-            await this.saveToCache(configId, dataToSave);
-
-            // 4. 更新内存中的数据
-            this.currentConfigData = dataToSave;
-
-            console.log(`UnifiedDataManager: 配置 ${configId} 保存成功`);
-        } catch (error) {
-            console.error(`UnifiedDataManager: 配置 ${configId} 保存失败:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 保存到主存储
-     */
-    async saveToMainStorage(config, data) {
-        if (config.type === 'chrome') {
-            await this.saveToChromeSync(config, data);
-        } else if (config.type === 'supabase') {
-            await this.saveToSupabase(config, data);
-        }
-    }
-
-    /**
-     * 保存到 Chrome Sync
-     */
-    async saveToChromeSync(config, data) {
-        await this.setToChromeStorageSync({
-            [config.storageLocation.key]: data
-        });
-    }
-
-    /**
-     * 保存到 Supabase
-     */
-    async saveToSupabase(config, data) {
-        try {
-            await this.supabaseClient.saveData(data);
-        } catch (error) {
-            throw error;
-        }
-    }
-
-
-    /**
-     * 清除指定配置的缓存
-     */
-    async clearCache(configId) {
-        const cacheKey = this.STORAGE_KEYS.CONFIG_DATA(configId);
-
-        if (chrome.storage && chrome.storage.local) {
-            await new Promise((resolve) => {
-                chrome.storage.local.remove([cacheKey], resolve);
-            });
-        }
-
-        console.log(`UnifiedDataManager: 清除缓存 ${configId}`);
-    }
-
-    /**
-     * 清除所有配置缓存（除了当前配置）
-     */
-    async clearAllCacheExceptCurrent() {
-        const currentConfigId = this.appData.currentUser.configId;
-        const allConfigIds = Object.keys(this.appData.userConfigs);
-
-        for (const configId of allConfigIds) {
-            if (configId !== currentConfigId) {
-                await this.clearCache(configId);
-            }
-        }
-
-        console.log('UnifiedDataManager: 清除所有非当前配置缓存');
-    }
-
-    /**
-     * 发现并注册配置
-     */
-    async discoverAndRegisterConfig(configId) {
-        try {
-            // 1. 首先检查是否是默认配置
-            if (configId === this.DEFAULT_CONFIG_ID) {
-                this.appData.userConfigs[this.DEFAULT_CONFIG_ID] = {
-                    displayName: '默认配置',
-                    isActive: false,
-                    type: 'chrome',
-                    storageLocation: {
-                        key: this.STORAGE_KEYS.CONFIG_DATA(this.DEFAULT_CONFIG_ID),
-                        type: 'sync'
-                    }
-                };
-                await this.saveAppData();
-                return true;
-            }
-
-            // 2. 检查是否是云端配置（通过检查缓存）
-            // const cachedData = await this.loadFromCache(configId);
-            // if (cachedData) {
-            //   this.appData.userConfigs[configId] = {
-            //     displayName: `云端配置 (${configId})`,
-            //     isActive: false,
-            //     type: 'supabase',
-            //     storageLocation: {
-            //       type: 'supabase',
-            //       userId: configId,
-            //       cacheKey: this.STORAGE_KEYS.CONFIG_DATA(configId)
-            //     }
-            //   };
-            //   await this.saveAppData();
-            //   return true;
-            // }
-
-            //2. 如果有 Supabase 客户端，尝试从云端查找 TODO 逻辑可能有问题
-            if (this.supabaseClient) {
-                try {
-                    const currentConfig = this.supabaseClient.config;
-                    if (currentConfig) {
-                        const tempConfig = {...currentConfig, userId: configId};
-                        await this.supabaseClient.initialize(tempConfig);
-
-                        const cloudData = await this.supabaseClient.loadData();
-
-                        // 恢复原来的配置
-                        await this.supabaseClient.initialize(currentConfig);
-
-                        if (cloudData && cloudData.data) {
-                            this.appData.userConfigs[configId] = {
-                                displayName: `云端配置 (${configId})`,
-                                isActive: false,
-                                type: 'supabase',
-                                storageLocation: {
-                                    type: 'supabase',
-                                    userId: configId,
-                                    cacheKey: this.STORAGE_KEYS.CONFIG_DATA(configId)
-                                }
-                            };
-
-                            await this.saveToCache(configId, cloudData.data);
-                            await this.saveAppData();
-                            return true;
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`UnifiedDataManager: 云端查找配置 ${configId} 失败:`, error);
-                }
-            }
-
-            return false;
-        } catch (error) {
-            console.error(`UnifiedDataManager: 发现配置 ${configId} 失败:`, error);
-            return false;
-        }
-    }
-
-    /**
-     * 切换配置
-     */
-    async switchConfig(configId) {
-        try {
-            console.log(`UnifiedDataManager: 切换到配置 ${configId}`);
-
-            // 1. 检查缓存配置是否存在，如果不存在则尝试自动发现和注册
-            if (!this.appData.userConfigs[configId]) {
-                console.log(`UnifiedDataManager: 配置 ${configId} 未注册，尝试自动发现...`);
-                const discovered = await this.discoverAndRegisterConfig(configId);
-                if (!discovered) {
-                    throw new Error(`配置 ${configId} 不存在且无法发现`);
-                }
-            }
-
-            // 2. 清除其他配置缓存
-            await this.clearAllCacheExceptCurrent();
-
-            // 3. 更新当前配置
-            const newConfig = this.appData.userConfigs[configId];
-            this.appData.currentUser = {
-                configId: configId,
-                displayName: newConfig.displayName,
-                userId: configId
-            };
-
-            // 4. 更新活跃状态
-            Object.keys(this.appData.userConfigs).forEach(id => {
-                this.appData.userConfigs[id].isActive = (id === configId);
-            });
-
-            // 5. 如果切换到云端配置，更新 Supabase 配置中的 userId
-            if (newConfig.type === 'supabase') {
-                await this.updateSupabaseConfigUserId(configId);
-            }
-
-            // 6. 保存 app_data
-            await this.saveAppData();
-            // 7. 保存缓存数据
-            await this.saveToCache(configId, this.currentConfigData);
-
-            // 8. 重新加载新配置的数据
-            console.log(`UnifiedDataManager: 重新加载配置 ${configId} 的数据...`);
-            await this.loadCurrentConfigData(true);
-            console.log(`UnifiedDataManager: 配置 ${configId} 数据加载完成`);
-
-            console.log(`UnifiedDataManager: 切换到配置 ${configId} 成功`);
-            return this.currentConfigData;
-        } catch (error) {
-            console.error(`UnifiedDataManager: 切换配置失败:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 更新 Supabase 配置中的 userId
-     */
-    async updateSupabaseConfigUserId(newUserId) {
-        try {
-            console.log(`UnifiedDataManager: 更新 Supabase 配置 userId 为 ${newUserId}`);
-
-            // 获取当前的 Supabase 配置
-            const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
-            const currentConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
-
-            if (currentConfig && currentConfig.enabled) {
-                // 更新 userId
-                const updatedConfig = {
-                    ...currentConfig,
-                    userId: newUserId
-                };
-
-                // 保存更新后的配置
-                await this.setToChromeStorageSync({
-                    [this.STORAGE_KEYS.SUPABASE_CONFIG]: updatedConfig
-                });
-
-                // 更新 Supabase 客户端的 userId（避免重新创建客户端实例）
-                if (this.supabaseClient) {
-                    this.supabaseClient.config = updatedConfig;
-                    this.supabaseClient.userId = newUserId;
-                    this.supabaseClient.currentConfigHash = this.supabaseClient.generateConfigHash(updatedConfig);
-                    console.log(`UnifiedDataManager: Supabase 客户端 userId 已更新为 ${newUserId}`);
-                }
-
-                console.log(`UnifiedDataManager: Supabase 配置 userId 更新完成`);
-            }
-        } catch (error) {
-            console.error(`UnifiedDataManager: 更新 Supabase 配置 userId 失败:`, error);
-            // 不抛出错误，避免影响主流程
-        }
-    }
-
-    /**
-     * 添加新的云端配置
-     */
-    async addCloudConfig(displayName, userId, supabaseConfig) {
-        try {
-            console.log(`UnifiedDataManager: 添加云端配置 ${userId}`);
-
-            // 1. 检查配置是否已存在，如果存在则重新连接而不是报错
-            if (this.appData.userConfigs[userId]) {
-                console.log(`UnifiedDataManager: 配置 ${userId} 已存在，重新连接云端配置`);
-
-                // 更新现有配置为云端配置
-                this.appData.userConfigs[userId] = {
-                    displayName: displayName,
-                    isActive: false,
-                    type: 'supabase',
-                    storageLocation: {
-                        type: 'supabase',
-                        userId: userId,
-                        cacheKey: this.STORAGE_KEYS.CONFIG_DATA(userId)
-                    }
-                };
-            } else {
-                // 添加新的云端配置
-                this.appData.userConfigs[userId] = {
-                    displayName: displayName,
-                    isActive: false,
-                    type: 'supabase',
-                    storageLocation: {
-                        type: 'supabase',
-                        userId: userId,
-                        cacheKey: this.STORAGE_KEYS.CONFIG_DATA(userId)
-                    }
-                };
-            }
-
-            // 扩展配置信息
-            const newSupabaseConfig = {
-                ...supabaseConfig,
-                enabled: true,
-                userId: userId
-            };
-
-            await this.setToChromeStorageSync({
-                [this.STORAGE_KEYS.SUPABASE_CONFIG]: newSupabaseConfig
-            });
-
-            // 3. 初始化 Supabase 客户端（重用现有实例或创建新实例）
-            if (typeof SupabaseClient !== 'undefined') {
-                if (!this.supabaseClient) {
-                    this.supabaseClient = new SupabaseClient();
-                }
-                await this.supabaseClient.initialize(newSupabaseConfig);
-                console.log('UnifiedDataManager: Supabase 客户端初始化成功');
-            } else {
-                throw new Error('SupabaseClient 未定义');
-            }
-
-            // 5. 检查云端是否有数据
-            const cloudData = await this.loadFromSupabase({type: 'supabase'});
-
-            if (!cloudData) {
-
-                //获取当前配置数据
-                let cachedData = await this.loadFromCache(userId);
-                if (!cachedData) {
-                    // 使用默认数据填装
-                    // 使用默认数据
-                    cachedData = this.getDefaultConfigData();
-                }
-                // 6. 云端无数据，上传数据
-                await this.saveToSupabase({type: 'supabase'}, cachedData);
-                // 缓存上传的数据
-                await this.saveToCache(userId, cachedData);
-            } else {
-                // 7. 云端有数据，缓存到本地
-                console.log('UnifiedDataManager: 云端有数据，缓存到本地');
-                await this.saveToCache(userId, cloudData);
-            }
-
-            // 7. 保存 app_data
-            await this.saveAppData();
-
-            console.log(`UnifiedDataManager: 云端配置 ${userId} 添加成功`);
-            return {
-                userId: userId,
-                ...this.appData.userConfigs[userId]
-            };
-        } catch (error) {
-            console.error(`UnifiedDataManager: 添加云端配置失败:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 禁用云端同步
-     */
-    async disableCloudSync() {
-        try {
-            console.log('UnifiedDataManager: 禁用云端同步');
-
-            // 1. 获取当前云端数据
-            const currentConfig = this.getCurrentConfig();
-            if (currentConfig.type === 'supabase') {
-                const cloudData = await this.loadFromSupabase(currentConfig);
-
-                if (cloudData) {
-                    // 2. 清空背景图片相关字段
-                    const dataToSync = {
-                        ...cloudData,
-                        themeSettings: {
-                            ...cloudData.themeSettings,
-                            backgroundImageUrl: null,
-                            backgroundImagePath: null
-                        }
-                    };
-
-                    // 3. 同步到默认配置
-                    await this.saveToChromeSync({
-                        storageLocation: {key: this.STORAGE_KEYS.CONFIG_DATA(this.DEFAULT_CONFIG_ID)}
-                    }, dataToSync);
-
-                    console.log('UnifiedDataManager: 云端数据已同步到默认配置');
-                }
-            }
-
-            // 4. 禁用 Supabase 配置
-            await this.setToChromeStorageSync({
-                [this.STORAGE_KEYS.SUPABASE_CONFIG]: {
-                    enabled: false
-                }
-            });
-
-            // 5. 切换到默认配置
-            await this.switchConfig(this.DEFAULT_CONFIG_ID);
-
-            // 6. 清理 Supabase 客户端
-            this.supabaseClient = null;
-
-            console.log('UnifiedDataManager: 云端同步已禁用');
-        } catch (error) {
-            console.error('UnifiedDataManager: 禁用云端同步失败:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * 删除配置
-     */
-    async deleteConfig(configId) {
-        try {
-            console.log(`UnifiedDataManager: 删除配置 ${configId}`);
-            console.log('当前所有配置:', Object.keys(this.appData.userConfigs));
-
-            // 1. 不能删除默认配置
-            if (configId === this.DEFAULT_CONFIG_ID) {
-                throw new Error('不能删除默认配置');
-            }
-
-            // 2. 不能删除当前配置
-            if (this.appData.currentUser.configId === configId) {
-                throw new Error('不能删除当前正在使用的配置，请先切换到其他配置');
-            }
-
-            // 3. 获取要删除的配置信息（如果存在）
-            const configToDelete = this.appData.userConfigs[configId];
-
-            // 4. 删除云端数据（不管本地是否有配置，都尝试删除云端数据）
-            if (this.supabaseClient) {
-                await this.deleteCloudConfigData(configId);
-            }
-
-            // 5. 清除缓存
-            await this.clearCache(configId);
-
-            // 6. 删除配置（如果本地存在）
-            if (configToDelete) {
-                delete this.appData.userConfigs[configId];
-                // 保存 app_data
-                await this.saveAppData();
-                console.log(`UnifiedDataManager: 本地配置 ${configId} 已删除`);
-            } else {
-                console.log(`UnifiedDataManager: 本地配置 ${configId} 不存在，跳过本地删除`);
-            }
-
-            console.log(`UnifiedDataManager: 配置 ${configId} 删除成功`);
-        } catch (error) {
-            console.error(`UnifiedDataManager: 删除配置失败:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * 删除云端配置数据
-     */
-    async deleteCloudConfigData(configId) {
-        try {
-            console.log(`UnifiedDataManager: 删除云端配置数据 ${configId}`);
-
-            // 获取当前 Supabase 配置
-            const result = await this.getFromChromeStorageSync([this.STORAGE_KEYS.SUPABASE_CONFIG]);
-            const currentConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
-
-            if (!currentConfig || !currentConfig.url || !currentConfig.anonKey) {
-                console.warn('UnifiedDataManager: 无法获取 Supabase 配置，跳过云端数据删除');
-                return;
-            }
-
-            // 临时切换到目标用户进行删除操作
-            const originalConfig = this.supabaseClient.config;
-            await this.supabaseClient.initialize({
-                url: currentConfig.url,
-                anonKey: currentConfig.anonKey,
-                userId: configId
-            });
-
-            // 删除 Supabase 中的用户数据
-            await this.supabaseClient.deleteData();
-            console.log(`UnifiedDataManager: 云端配置数据 ${configId} 已删除`);
-
-            // 恢复原来的配置
-            if (originalConfig) {
-                await this.supabaseClient.initialize(originalConfig);
-            }
-        } catch (error) {
-            console.warn(`UnifiedDataManager: 删除云端配置数据失败:`, error);
-            // 不抛出错误，因为本地删除仍然可以继续
-        }
-    }
-
-    /**
-     * 获取当前配置数据
-     */
     getCurrentConfigData() {
         return this.currentConfigData;
     }
-
 }
 
 // 导出全局实例
-window.unifiedDataManager = new UnifiedDataManager();
+globalThis.unifiedDataManager = new UnifiedDataManager();

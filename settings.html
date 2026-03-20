@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Tab - Settings</title>
+
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/settings.css">
+  <link rel="stylesheet" href="fonts/material-symbols-rounded.css">
+</head>
+<body class="theme-default">
+  <div class="settings-layout">
+    <aside class="settings-sidebar">
+      <div class="sidebar-header">
+        <button id="back-to-home-btn" class="icon-btn" title="返回主页">
+          <span class="material-symbols-rounded">arrow_back</span>
+        </button>
+        <h2>设置</h2>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-target="panel-appearance">
+          <span class="material-symbols-rounded">palette</span>
+          <span>外观主题</span>
+        </button>
+        <button class="nav-item" data-target="panel-sync">
+          <span class="material-symbols-rounded">cloud_sync</span>
+          <span>云端同步</span>
+        </button>
+        <button class="nav-item" data-target="panel-data">
+          <span class="material-symbols-rounded">database</span>
+          <span>数据管理</span>
+        </button>
+        <button class="nav-item" data-target="panel-about">
+          <span class="material-symbols-rounded">info</span>
+          <span>关于</span>
+        </button>
+      </nav>
+    </aside>
+
+    <main class="settings-content">
+      <section id="panel-appearance" class="settings-panel active">
+        <div class="panel-header">
+          <h3>主题工作空间</h3>
+          <button id="create-theme-btn" class="primary-btn">新建主题</button>
+        </div>
+        <p class="panel-desc">主题即工作空间。切换主题会随之切换对应的一套书签和视图设置。</p>
+
+        <div id="themes-list" class="themes-grid"></div>
+
+        <div id="theme-edit-form" class="edit-form-container" style="display: none;">
+          <h4>编辑主题</h4>
+          <div class="form-group">
+            <label for="theme-name-input">主题名称</label>
+            <input type="text" id="theme-name-input" placeholder="例如：工作区 (暗色)">
+          </div>
+          <div class="form-group">
+            <label>色彩风格</label>
+            <div class="theme-color-selector">
+              <div class="color-option" data-type="default" title="默认 (浅色)"></div>
+              <div class="color-option" data-type="dark" title="暗色"></div>
+              <div class="color-option" data-type="blue" title="蓝色"></div>
+              <div class="color-option" data-type="green" title="绿色"></div>
+              <div class="color-option" data-type="purple" title="紫色"></div>
+              <div class="color-option" data-type="pink" title="粉色"></div>
+            </div>
+          </div>
+          <div class="form-group" id="bg-setting-group">
+            <label for="bg-image-upload">背景图片 (仅云端主题可用)</label>
+            <div id="bg-preview-area" class="bg-preview-area" role="button" tabindex="0" aria-label="选择背景图片">
+              <img id="bg-preview-img" src="" alt="预览" style="display:none;">
+              <div id="bg-placeholder" class="bg-placeholder">无背景图片</div>
+            </div>
+            <div class="bg-actions">
+              <input type="file" id="bg-image-upload" accept="image/*" style="display: none;">
+              <button id="upload-bg-btn" class="secondary-btn">上传图片</button>
+              <button id="remove-bg-btn" class="secondary-btn text-danger">移除</button>
+            </div>
+            <div class="opacity-control" style="margin-top: 10px;">
+              <div class="slider-header">
+                <label for="bg-opacity-slider">遮罩透明度</label>
+                <span id="bg-opacity-value">30%</span>
+              </div>
+              <input type="range" id="bg-opacity-slider" min="0" max="100" value="30">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="save-theme-btn" class="primary-btn">保存</button>
+            <button id="cancel-theme-btn" class="secondary-btn">取消</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-sync" class="settings-panel">
+        <div class="panel-header">
+          <h3>云端同步设置</h3>
+        </div>
+        <p class="panel-desc">配置 Supabase 或 Cloudflare，启用数据多端同步功能。</p>
+
+        <div class="sync-status-card" id="sync-status-card">
+          <div class="status-indicator"></div>
+          <div class="status-info">
+            <h4 id="sync-status-title">未启用同步</h4>
+            <p id="sync-status-desc">目前使用本地扩展存储，数据不会跨设备同步。</p>
+          </div>
+          <button id="manual-sync-btn" class="secondary-btn" style="display: none;">手动同步</button>
+        </div>
+
+        <div class="tabs">
+          <div class="tab-btn active" data-tab="cf-sync">Cloudflare D1/R2</div>
+          <div class="tab-btn" data-tab="supabase-sync">Supabase</div>
+        </div>
+        <p id="sync-provider-exclusive-note" class="sync-provider-note">云端同步方式互斥：Cloudflare 与 Supabase 同一时间只能启用一种。</p>
+
+        <div class="tab-content">
+          <div id="cf-sync-panel" class="tab-pane active">
+            <p id="cf-provider-lock-hint" class="sync-provider-lock-hint" style="display:none;"></p>
+            <div class="sync-quick-start-card">
+              <div>
+                <h4>Cloudflare 资源准备</h4>
+                <p>先判断你是否已经有 Worker / D1 / R2 资源：已有则直接填写连接参数，没有则使用 Cloudflare API 自动创建。</p>
+              </div>
+              <div class="sync-mode-options" role="radiogroup" aria-label="Cloudflare 资源准备方式">
+                <label class="sync-inline-toggle" for="cf-resource-mode-existing">
+                  <input type="radio" id="cf-resource-mode-existing" name="cf-resource-mode" value="existing">
+                  <span>我已经有现成资源</span>
+                </label>
+                <label class="sync-inline-toggle" for="cf-resource-mode-create">
+                  <input type="radio" id="cf-resource-mode-create" name="cf-resource-mode" value="create" checked>
+                  <span>我还没有资源，自动创建</span>
+                </label>
+              </div>
+            </div>
+            <p id="cf-setup-status-text" class="sync-hint">还没有创建 Cloudflare 资源。若你已经有现成资源，可切换到“我已经有现成资源”并直接填写下方连接参数。</p>
+
+            <div id="cf-auto-setup-section" class="sync-service-card">
+              <div class="sync-service-card-header">
+                <div>
+                  <h4>自动创建资源</h4>
+                  <p class="sync-hint">填写 Cloudflare 账号参数，以及你想使用的 Worker / D1 / R2 名称。创建成功后，连接参数会自动回填到下方表单。</p>
+                </div>
+                <span id="cf-setup-badge" class="sync-status-badge is-idle">未创建</span>
+              </div>
+              <div class="sync-form-grid">
+                <div class="form-group">
+                  <label for="cf-account-id">Cloudflare Account ID</label>
+                  <input type="text" id="cf-account-id" placeholder="例如：1a2b3c4d5e6f...">
+                </div>
+                <div class="form-group">
+                  <label for="cf-api-token">Cloudflare API Token</label>
+                  <input type="password" id="cf-api-token" placeholder="用于创建 Worker / D1 / R2 的 Token">
+                </div>
+                <div class="form-group">
+                  <label for="cf-create-worker-name">Worker 服务名称</label>
+                  <input type="text" id="cf-create-worker-name" placeholder="默认：card-tab-sync">
+                </div>
+                <div class="form-group">
+                  <label for="cf-create-database-name">D1 Database 名称</label>
+                  <input type="text" id="cf-create-database-name" placeholder="默认：card-tab-db">
+                </div>
+                <div class="form-group">
+                  <label for="cf-create-bucket-name">R2 Bucket 名称</label>
+                  <input type="text" id="cf-create-bucket-name" placeholder="默认：card-tab-files">
+                </div>
+                <div class="form-group">
+                  <label for="cf-worker-access-token">同步 Worker 访问令牌</label>
+                  <input type="password" id="cf-worker-access-token" placeholder="留空则自动生成">
+                </div>
+              </div>
+              <label class="sync-checkbox-row" for="cf-save-api-token">
+                <input type="checkbox" id="cf-save-api-token">
+                <span>将 Cloudflare API Token 仅保存在本地，便于下次继续创建或修复资源</span>
+              </label>
+              <div class="form-actions">
+                <button id="cf-create-resources-btn" class="primary-btn">创建资源</button>
+                <button id="cf-initialize-setup-btn" class="secondary-btn">初始化数据</button>
+                <button id="cf-restore-setup-btn" class="secondary-btn">恢复缓存</button>
+                <button id="cf-clear-setup-cache-btn" class="secondary-btn text-danger">清空缓存</button>
+              </div>
+            </div>
+
+            <div class="sync-quick-actions">
+              <button id="cf-copy-worker-btn" class="secondary-btn">复制 Worker 模板</button>
+              <button id="cf-copy-init-sql-btn" class="secondary-btn">复制 D1 初始化 SQL</button>
+            </div>
+
+            <div class="sync-service-card">
+              <div class="sync-service-card-header">
+                <div>
+                  <h4>连接参数</h4>
+                  <p class="sync-hint">如果你已经有 Cloudflare 资源，可直接填写；如果上方自动创建成功，这里的参数也会自动回填。</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="cf-worker-url">Worker API URL</label>
+                <input type="text" id="cf-worker-url" placeholder="https://your-worker.workers.dev">
+              </div>
+              <div class="form-group">
+                <label for="cf-access-token">访问令牌 (Access Token - 可选)</label>
+                <input type="password" id="cf-access-token" placeholder="Worker 环境变量中配置的令牌">
+              </div>
+              <div class="sync-form-grid">
+                <div class="form-group">
+                  <label for="cf-worker-name">Worker 服务名称（可选）</label>
+                  <input type="text" id="cf-worker-name" placeholder="例如：card-tab-sync">
+                </div>
+                <div class="form-group">
+                  <label for="cf-database-id">D1 Database ID（可选）</label>
+                  <input type="text" id="cf-database-id" placeholder="用于本地缓存和展示">
+                </div>
+                <div class="form-group">
+                  <label for="cf-database-name">D1 Database 名称（可选）</label>
+                  <input type="text" id="cf-database-name" placeholder="例如：card-tab-db">
+                </div>
+                <div class="form-group">
+                  <label for="cf-bucket-name">R2 Bucket 名称（可选）</label>
+                  <input type="text" id="cf-bucket-name" placeholder="例如：card-tab-files">
+                </div>
+              </div>
+              <div class="form-actions" style="margin-top:20px;">
+                <button id="cf-test-btn" class="secondary-btn">测试连接</button>
+                <button id="cf-init-db-btn" class="secondary-btn">初始化数据</button>
+                <button id="cf-save-existing-btn" class="secondary-btn">保存参数</button>
+                <button id="cf-enable-btn" class="primary-btn">启用同步</button>
+                <button id="cf-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="supabase-sync-panel" class="tab-pane">
+            <p id="sb-provider-lock-hint" class="sync-provider-lock-hint" style="display:none;"></p>
+            <div class="sync-quick-actions">
+              <button id="sb-copy-init-sql-btn" class="secondary-btn">复制初始化 SQL</button>
+            </div>
+            <div class="form-group">
+              <label for="sb-url">Project URL</label>
+              <input type="text" id="sb-url" placeholder="https://your-project.supabase.co">
+            </div>
+            <div class="form-group">
+              <label for="sb-key">API Key (anon/public)</label>
+              <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+            </div>
+            <div class="form-actions" style="margin-top:20px;">
+              <button id="sb-test-btn" class="secondary-btn">测试连接</button>
+              <button id="sb-enable-btn" class="primary-btn">启用同步</button>
+              <button id="sb-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-data" class="settings-panel">
+        <div class="panel-header">
+          <h3>数据管理</h3>
+        </div>
+
+        <div class="data-actions-grid">
+          <div class="data-card">
+            <h4>本地数据导出</h4>
+            <p>将当前主题的书签和视图设置导出为 JSON 文件。</p>
+            <button id="export-data-btn" class="secondary-btn">导出数据</button>
+          </div>
+
+          <div class="data-card">
+            <h4>本地数据导入</h4>
+            <p>从 JSON 文件恢复数据，将覆盖当前主题的内容。</p>
+            <input type="file" id="import-file-input" accept=".json" style="display:none;">
+            <button id="import-data-btn" class="secondary-btn">导入数据</button>
+          </div>
+
+          <div class="data-card">
+            <h4>清空当前主题数据</h4>
+            <p>删除当前工作空间的所有分类和快捷方式（危险操作）。</p>
+            <button id="clear-data-btn" class="secondary-btn text-danger">清空数据</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-about" class="settings-panel">
+        <div class="panel-header">
+          <h3>关于 Card Tab</h3>
+        </div>
+        <div class="about-content">
+          <div class="app-logo">
+            <span class="material-symbols-rounded" style="font-size: 48px; color: var(--primary-color);">grid_view</span>
+          </div>
+          <h2>Card Tab</h2>
+          <p>Version 1.0.6</p>
+          <p>一个支持多主题工作空间和双云端同步方案（Cloudflare D1/R2 / Supabase）的新标签页扩展。</p>
+
+          <div class="links" style="margin-top: 30px;">
+            <a href="https://github.com/EDaoren/card-tab" target="_blank" class="secondary-btn">GitHub 仓库</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/supabase.min.js"></script>
+  <script src="js/cf-client.js"></script>
+  <script src="js/cf-setup-manager.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/unified-data-manager.js"></script>
+  <script src="js/storage-adapter.js"></script>
+  <script src="js/sync-adapter.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/settings-ui.js"></script>
+  <script src="js/settings-init.js"></script>
+</body>
+</html>

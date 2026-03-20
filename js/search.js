@@ -8,6 +8,7 @@ class SearchManager {
     this.searchButton = document.querySelector('.search-button');
     this.searchEngineSelector = document.querySelector('.search-engine-selector');
     this.searchEngineIcon = document.querySelector('.search-engine-icon');
+    this.searchEngineDropdownMenu = document.querySelector('.search-engine-dropdown-menu');
     this.searchContainer = document.querySelector('.search-container');
     this.searchBox = document.querySelector('.search-box');
     this.categoriesContainer = document.getElementById('categories-container');
@@ -31,34 +32,43 @@ class SearchManager {
       {
         id: 'google',
         name: 'Google',
-        icon: 'https://www.google.com/favicon.ico',
+        icon: 'G',
+        iconType: 'badge',
+        badgeClass: 'search-engine-badge-google',
         url: 'https://www.google.com/search?q='
       },
       {
         id: 'bing',
         name: 'Bing',
-        icon: 'https://www.bing.com/favicon.ico',
+        icon: 'B',
+        iconType: 'badge',
+        badgeClass: 'search-engine-badge-bing',
         url: 'https://www.bing.com/search?q='
       },
       {
         id: 'baidu',
         name: '百度',
-        icon: 'https://www.baidu.com/favicon.ico',
+        icon: '百',
+        iconType: 'badge',
+        badgeClass: 'search-engine-badge-baidu',
         url: 'https://www.baidu.com/s?wd='
       },
       {
         id: 'ddg',
         name: 'DuckDuckGo',
-        icon: 'https://duckduckgo.com/favicon.ico',
+        icon: 'D',
+        iconType: 'badge',
+        badgeClass: 'search-engine-badge-ddg',
         url: 'https://duckduckgo.com/?q='
       }
     ];
 
     this.currentSearchEngine = 0; // 默认使用第一个（Default）
     this.isSearching = false;
-    this.loadPreferredSearchEngine();
+    this.renderSearchEngineOptions();
     this.bindEvents();
     this.updateSearchEngineIcon();
+    this.loadPreferredSearchEngine();
 
     // 检查Chrome Search API可用性
     //this.checkSearchAPIAvailability();
@@ -74,6 +84,48 @@ class SearchManager {
 
     // 插入到搜索框中，作为搜索框的一部分
     this.searchBox.appendChild(this.searchDropdown);
+  }
+
+  renderSearchEngineOptions() {
+    if (!this.searchEngineDropdownMenu) {
+      return;
+    }
+
+    this.searchEngineDropdownMenu.textContent = '';
+
+    this.searchEngines.forEach((engine) => {
+      const option = document.createElement('div');
+      option.className = 'search-engine-option';
+      option.dataset.engine = engine.id;
+
+      option.appendChild(this.createSearchEngineIconNode(engine, true));
+
+      const label = document.createElement('span');
+      label.textContent = engine.name;
+      option.appendChild(label);
+
+      this.searchEngineDropdownMenu.appendChild(option);
+    });
+  }
+
+  createSearchEngineIconNode(engine, isOption = false) {
+    if (engine.iconType === 'material') {
+      const icon = document.createElement('span');
+      icon.className = `${isOption ? '' : 'search-engine-icon '}material-symbols-rounded`.trim();
+      if (!isOption) {
+        icon.classList.add('search-engine-icon');
+      }
+      icon.textContent = engine.icon;
+      return icon;
+    }
+
+    const badge = document.createElement('span');
+    badge.className = `search-engine-badge ${engine.badgeClass || ''}`.trim();
+    if (!isOption) {
+      badge.classList.add('search-engine-icon');
+    }
+    badge.textContent = engine.icon;
+    return badge;
   }
 
   /**
@@ -123,16 +175,19 @@ class SearchManager {
       });
     }
 
-    // Search engine options click
-    const engineOptions = document.querySelectorAll('.search-engine-option');
-    engineOptions.forEach(option => {
-      option.addEventListener('click', (e) => {
+    if (this.searchEngineDropdownMenu) {
+      this.searchEngineDropdownMenu.addEventListener('click', (e) => {
+        const option = e.target.closest('.search-engine-option');
+        if (!option) {
+          return;
+        }
+
         e.stopPropagation();
         const engineId = option.dataset.engine;
         const engineIndex = this.searchEngines.findIndex(engine => engine.id === engineId);
         this.selectSearchEngine(engineIndex);
       });
-    });
+    }
 
     // Close dropdown when clicking outside
     document.addEventListener('click', () => {
@@ -250,46 +305,82 @@ class SearchManager {
    * Render search results in dropdown
    */
   renderSearchResults(results) {
+    this.searchDropdown.textContent = '';
+
     if (results.length === 0) {
-      this.searchDropdown.innerHTML = `
-        <div class="search-result-item no-results">
-          <span class="material-symbols-rounded">search_off</span>
-          <span>未找到匹配结果</span>
-        </div>
-      `;
+      const emptyState = document.createElement('div');
+      emptyState.className = 'search-result-item no-results';
+
+      const icon = document.createElement('span');
+      icon.className = 'material-symbols-rounded';
+      icon.textContent = 'search_off';
+
+      const text = document.createElement('span');
+      text.textContent = '未找到匹配结果';
+
+      emptyState.appendChild(icon);
+      emptyState.appendChild(text);
+      this.searchDropdown.appendChild(emptyState);
       return;
     }
 
-    this.searchDropdown.innerHTML = results.map(result => {
+    const fragment = document.createDocumentFragment();
+
+    results.forEach((result) => {
+      const item = document.createElement('div');
+      item.className = `search-result-item ${result.type}-result`;
+      item.dataset.type = result.type;
+
+      const icon = document.createElement('div');
+      icon.className = `result-icon ${result.type === 'category' ? 'category-icon' : 'shortcut-icon'}`;
+      icon.style.backgroundColor = result.type === 'category'
+        ? result.data.color
+        : (result.data.iconColor || '#4285f4');
+
       if (result.type === 'category') {
-        return `
-          <div class="search-result-item category-result" data-type="category" data-id="${result.data.id}">
-            <div class="result-icon category-icon" style="background-color: ${result.data.color}">
-              <span class="material-symbols-rounded">folder</span>
-            </div>
-            <div class="result-content">
-              <div class="result-title">${this.highlightText(result.data.name, result.query)}</div>
-              <div class="result-subtitle">分类 • ${result.data.shortcuts.length} 个快捷方式</div>
-            </div>
-          </div>
-        `;
+        item.dataset.id = result.data.id;
+
+        const folderIcon = document.createElement('span');
+        folderIcon.className = 'material-symbols-rounded';
+        folderIcon.textContent = 'folder';
+        icon.appendChild(folderIcon);
       } else {
-        return `
-          <div class="search-result-item shortcut-result" data-type="shortcut" data-url="${result.data.url}">
-            <div class="result-icon shortcut-icon" style="background-color: ${result.data.iconColor || '#4285f4'}">
-              ${result.data.iconType === 'favicon' && result.data.iconUrl ?
-                `<img src="${result.data.iconUrl}" alt="${result.data.name}" onerror="this.style.display='none'; this.parentNode.textContent='${result.data.name.charAt(0).toUpperCase()}'">` :
-                result.data.name.charAt(0).toUpperCase()
-              }
-            </div>
-            <div class="result-content">
-              <div class="result-title">${this.highlightText(result.data.name, result.query)}</div>
-              <div class="result-subtitle">${result.category.name} • ${result.data.url}</div>
-            </div>
-          </div>
-        `;
+        item.dataset.url = result.data.url;
+
+        if (result.data.iconType === 'favicon' && result.data.iconUrl) {
+          const image = document.createElement('img');
+          image.src = result.data.iconUrl;
+          image.alt = result.data.name;
+          image.addEventListener('error', () => {
+            icon.textContent = result.data.name.charAt(0).toUpperCase();
+          });
+          icon.appendChild(image);
+        } else {
+          icon.textContent = result.data.name.charAt(0).toUpperCase();
+        }
       }
-    }).join('');
+
+      const content = document.createElement('div');
+      content.className = 'result-content';
+
+      const title = document.createElement('div');
+      title.className = 'result-title';
+      title.appendChild(this.createHighlightedFragment(result.data.name, result.query));
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'result-subtitle';
+      subtitle.textContent = result.type === 'category'
+        ? `分类 • ${result.data.shortcuts.length} 个快捷方式`
+        : `${result.category.name} • ${result.data.url}`;
+
+      content.appendChild(title);
+      content.appendChild(subtitle);
+      item.appendChild(icon);
+      item.appendChild(content);
+      fragment.appendChild(item);
+    });
+
+    this.searchDropdown.appendChild(fragment);
 
     // 绑定点击事件
     this.bindSearchResultEvents();
@@ -330,9 +421,37 @@ class SearchManager {
   /**
    * Highlight matching text
    */
-  highlightText(text, query) {
-    const regex = new RegExp(`(${query})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
+  createHighlightedFragment(text, query) {
+    const fragment = document.createDocumentFragment();
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      fragment.appendChild(document.createTextNode(text));
+      return fragment;
+    }
+
+    const normalizedText = text.toLowerCase();
+    let searchStart = 0;
+    let matchIndex = normalizedText.indexOf(normalizedQuery, searchStart);
+
+    while (matchIndex !== -1) {
+      if (matchIndex > searchStart) {
+        fragment.appendChild(document.createTextNode(text.slice(searchStart, matchIndex)));
+      }
+
+      const mark = document.createElement('mark');
+      mark.textContent = text.slice(matchIndex, matchIndex + normalizedQuery.length);
+      fragment.appendChild(mark);
+
+      searchStart = matchIndex + normalizedQuery.length;
+      matchIndex = normalizedText.indexOf(normalizedQuery, searchStart);
+    }
+
+    if (searchStart < text.length) {
+      fragment.appendChild(document.createTextNode(text.slice(searchStart)));
+    }
+
+    return fragment;
   }
 
   /**
@@ -342,7 +461,7 @@ class SearchManager {
     this.hideSearchDropdown();
     this.searchInput.value = '';
     // Scroll to category or highlight it
-    const categoryElement = document.querySelector(`[data-id="${categoryId}"]`);
+    const categoryElement = document.querySelector(`.category-card[data-id="${categoryId}"]`);
     if (categoryElement) {
       categoryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       categoryElement.style.animation = 'highlight-pulse 2s ease-in-out';
@@ -498,20 +617,23 @@ class SearchManager {
    * @param {number} engineIndex - Index of the search engine
    */
   selectSearchEngine(engineIndex) {
+    if (engineIndex < 0 || engineIndex >= this.searchEngines.length) {
+      return;
+    }
+
     this.currentSearchEngine = engineIndex;
     this.updateSearchEngineIcon();
     this.updateActiveOption();
     this.closeDropdown();
 
-    // 保存用户选择
-    localStorage.setItem('preferredSearchEngine', this.currentSearchEngine);
+    this.savePreferredSearchEngine();
   }
 
   /**
    * Update active option in dropdown
    */
   updateActiveOption() {
-    const options = document.querySelectorAll('.search-engine-option');
+    const options = this.searchEngineDropdownMenu?.querySelectorAll('.search-engine-option') || [];
     const currentEngineId = this.searchEngines[this.currentSearchEngine].id;
     options.forEach((option) => {
       option.classList.toggle('active', option.dataset.engine === currentEngineId);
@@ -526,39 +648,57 @@ class SearchManager {
     if (iconElement) {
       const currentEngine = this.searchEngines[this.currentSearchEngine];
 
-      if (currentEngine.iconType === 'material') {
-        // 使用Material Icons
-        iconElement.innerHTML = '';
-        iconElement.className = 'material-symbols-rounded search-engine-icon';
-        iconElement.textContent = currentEngine.icon;
-        iconElement.style.color = '#9aa0a6';
-        iconElement.style.fontSize = '20px';
-        iconElement.title = `当前搜索引擎: ${currentEngine.name}`;
-      } else {
-        // 使用传统的img标签
-        iconElement.innerHTML = `<img src="${currentEngine.icon}" alt="${currentEngine.name}" title="当前搜索引擎: ${currentEngine.name}">`;
-      }
+      iconElement.replaceWith(this.createCurrentEngineIcon(currentEngine));
     }
     this.updateActiveOption();
+  }
+
+  createCurrentEngineIcon(engine) {
+    const iconNode = this.createSearchEngineIconNode(engine);
+    iconNode.title = `当前搜索引擎: ${engine.name}`;
+    return iconNode;
+  }
+
+  savePreferredSearchEngine() {
+    if (chrome?.storage?.sync) {
+      chrome.storage.sync.set({ preferredSearchEngine: this.currentSearchEngine });
+      return;
+    }
+
+    globalThis.__cardTabSearchPreferences = {
+      preferredSearchEngine: this.currentSearchEngine
+    };
   }
 
   /**
    * Load user's preferred search engine
    */
   loadPreferredSearchEngine() {
-    const saved = localStorage.getItem('preferredSearchEngine');
-    if (saved !== null) {
-      const savedIndex = parseInt(saved);
-      // 确保索引在有效范围内
-      if (savedIndex >= 0 && savedIndex < this.searchEngines.length) {
-        this.currentSearchEngine = savedIndex;
-      } else {
-        // 如果保存的索引无效，重置为默认
-        this.currentSearchEngine = 0;
-        localStorage.setItem('preferredSearchEngine', '0');
-      }
-      this.updateSearchEngineIcon();
+    if (chrome?.storage?.sync) {
+      chrome.storage.sync.get(['preferredSearchEngine'], (result) => {
+        this.applySavedSearchEngine(result.preferredSearchEngine);
+      });
+      return;
     }
+
+    this.applySavedSearchEngine(globalThis.__cardTabSearchPreferences?.preferredSearchEngine);
+  }
+
+  applySavedSearchEngine(savedIndex) {
+    if (savedIndex === undefined || savedIndex === null) {
+      this.updateSearchEngineIcon();
+      return;
+    }
+
+    const parsedIndex = parseInt(savedIndex, 10);
+    if (parsedIndex >= 0 && parsedIndex < this.searchEngines.length) {
+      this.currentSearchEngine = parsedIndex;
+    } else {
+      this.currentSearchEngine = 0;
+      this.savePreferredSearchEngine();
+    }
+
+    this.updateSearchEngineIcon();
   }
 
   /**

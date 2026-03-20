@@ -4,13 +4,13 @@
   <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
   <br>
   <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
-  <img src="https://img.shields.io/badge/Version-1.0.5-blue" alt="Version 1.0.6">
+  <img src="https://img.shields.io/badge/Version-1.0.6-blue" alt="Version 1.0.6">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License MIT">
 </div>
 
 一个现代化的、可自定义的Chrome浏览器新标签页，支持云端同步。
 
-**卡片标签页**通过简洁、有组织的界面改变您的新标签页体验，帮助您管理书签和快捷方式。功能包括可自定义主题、通过Supabase的云端同步，以及美观的卡片式设计。
+**卡片标签页**通过简洁、有组织的界面改变您的新标签页体验，帮助您管理书签和快捷方式。功能包括可自定义主题、通过 Supabase 或 Cloudflare D1/R2 的云端同步，以及美观的卡片式设计。
 
 ## 功能特点
 
@@ -20,7 +20,7 @@
 - **🎨 主题切换** - 6种主题可选，包括深色模式
 - **🖼️ 自定义背景** - 上传图片作为背景
 - **📱 视图切换** - 网格视图和列表视图
-- **☁️ 云端同步** - 可选择使用Supabase同步数据
+- **☁️ 云端同步** - 可选择使用 Supabase 或 Cloudflare D1/R2 同步数据
 - **🖱️ 右键添加** - 在任意网页右键快速添加快捷方式
 - **⚙️ 多配置管理** - 支持多个云端配置切换
 
@@ -60,7 +60,9 @@
 
 ### 云端同步设置
 
-多设备同步，配置Supabase云端同步：
+多设备同步时，可在设置页选择 **Cloudflare D1/R2** 或 **Supabase** 作为后端。
+
+#### 方案 A：Supabase
 
 #### 步骤1：创建Supabase项目
 
@@ -93,6 +95,19 @@
 4. 点击"测试连接"进行验证
 5. 点击"启用云端同步"开始同步
 
+#### 方案 B：Cloudflare D1/R2
+
+1. 在 Card Tab 设置页切换到 **Cloudflare D1/R2**。
+2. 使用页面顶部的 **Cloudflare 自动创建（推荐）**：
+   - 打开“启用自动创建”开关。
+   - 填写 `Account ID`、`API Token`、`基础名称`。
+   - 点击 **创建资源** 自动创建 Worker、D1、R2，并回填连接参数。
+   - 点击 **初始化数据** 完成建表。
+   - 点击 **启用同步** 即可开始使用。
+3. 如果你已经在 Cloudflare 上准备好了现有资源，也可以直接在“连接已有资源”区域填写 `Worker URL` 和 `Access Token` 后连接。
+4. 设置页会把 Worker URL、Worker 名称、D1 ID、D1 名称、R2 Bucket 名称缓存到本地，方便下次恢复和复制。
+5. 若你更喜欢走远程开通方案，仍可使用备用的外部开通服务，参考 `CLOUDFLARE_PROVISIONING_SERVICE.md`，服务模板位于 `workers/worker.js`。
+
 
 ## 技术栈
 
@@ -110,8 +125,8 @@
 - **chrome.runtime**: 后台脚本通信
 
 ### 云端集成
-- **Supabase**: PostgreSQL数据库
-- **Supabase Storage**: 背景图片文件存储
+- **Supabase**: PostgreSQL 数据库与 Storage
+- **Cloudflare D1/R2**: Worker API、D1 数据库与 R2 文件存储
 
 
 ## 开发
@@ -131,14 +146,14 @@ node build.js
 ## 隐私与安全
 
 - **本地优先**：默认情况下所有数据都存储在本地
-- **可选云端同步**：Supabase集成完全可选
-- **您的数据库**：使用云端同步时，数据存储在您自己的Supabase项目中
+- **可选云端同步**：Supabase 与 Cloudflare 集成都完全可选
+- **您的数据库**：使用云端同步时，数据存储在您自己的 Supabase 或 Cloudflare 资源中
 - **无追踪**：无分析、无数据收集、无第三方追踪
 - **开源**：完整源代码可供审查
 
 ## 重要说明
 
-- **个人使用**：每个人都创建自己的Supabase项目
+- **个人使用**：每个人都创建自己的 Supabase 项目或 Cloudflare Worker/D1/R2 资源
 - **主题ID**：为不同的主题配置使用不同的主题ID
 - **免费额度**：Supabase免费版本足够个人使用
 - **备份**：建议定期导出数据备份

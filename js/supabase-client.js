@@ -17,7 +17,7 @@ class SupabaseClient {
    * 生成配置哈希值，用于检测配置是否变化
    */
   generateConfigHash(config) {
-    return `${config.url}|${config.anonKey}|${config.userId}`;
+    return `${config.url}|${config.anonKey}`;
   }
 
   /**
@@ -61,7 +61,6 @@ class SupabaseClient {
       }
 
       this.config = config;
-      this.userId = config.userId;
       this.currentConfigHash = this.generateConfigHash(config);
 
       // 检查Supabase SDK是否已加载
@@ -133,6 +132,7 @@ class SupabaseClient {
 
     try {
       // 尝试查询数据表
+      // 测试用固定的查询条件
       const { data, error } = await this.client
         .from(this.tableName)
         .select('id')
@@ -162,30 +162,70 @@ class SupabaseClient {
   }
 
   /**
-   * 保存数据到Supabase
-   * @param {Object} data - 要保存的数据
+   * 列出所有主题元数据
+   * @param {string} userId - 用户 ID（默认 '1'）
+   * @returns {Array} 主题列表
    */
-  async saveData(data) {
+  async listThemes(userId = '1') {
+    if (!this.isConnected) {
+      throw new Error('Supabase 未连接');
+    }
+
+    try {
+      const { data, error } = await this.client
+        .from(this.tableName)
+        .select('theme_id, theme_name, theme_type, bg_image_url, bg_image_path, bg_opacity, is_active, updated_at')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      // Map keys to camelCase
+      return (data || []).map(row => ({
+        theme_id: row.theme_id,
+        theme_name: row.theme_name,
+        theme_type: row.theme_type,
+        bg_image_url: row.bg_image_url,
+        bg_image_path: row.bg_image_path,
+        bg_opacity: row.bg_opacity,
+        is_active: row.is_active,
+        updated_at: row.updated_at
+      }));
+    } catch (error) {
+      console.error('Supabase 获取主题列表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 保存特定主题的数据
+   */
+  async saveData(themeId, data, themeMeta = {}, userId = '1') {
     if (!this.isConnected) {
       throw new Error('Supabase未连接');
     }
 
     try {
       const record = {
-        user_id: this.userId,
+        user_id: userId,
+        theme_id: themeId,
+        theme_name: themeMeta.themeName || '',
+        theme_type: themeMeta.themeType || 'default',
+        bg_image_url: themeMeta.bgImageUrl || null,
+        bg_image_path: themeMeta.bgImagePath || null,
+        bg_opacity: themeMeta.bgOpacity ?? 30,
+        is_active: themeMeta.isActive ?? 0,
         data: data,
         updated_at: new Date().toISOString()
       };
 
-      // 使用 upsert 操作，更简洁和可靠
+      // 使用 upsert，基于 user_id 和 theme_id
       const { error } = await this.client
         .from(this.tableName)
         .upsert(record, {
-          onConflict: 'user_id'
+          onConflict: 'user_id,theme_id'
         });
 
       if (error) {
-        // 如果是连接相关错误，标记为未连接
         if (this.isConnectionError(error)) {
           this.isConnected = false;
           throw new Error(`Supabase连接失败: ${error.message}`);
@@ -193,7 +233,7 @@ class SupabaseClient {
         throw error;
       }
 
-      console.log('数据已保存到Supabase');
+      console.log('数据已保存到Supabase, themeId:', themeId);
     } catch (error) {
       console.error('Supabase保存失败:', error);
       throw error;
@@ -201,21 +241,21 @@ class SupabaseClient {
   }
 
   /**
-   * 从Supabase加载数据
+   * 从Supabase加载指定主题数据
    */
-  async loadData() {
+  async loadData(themeId, userId = '1') {
     if (!this.isConnected) {
       throw new Error('Supabase未连接');
     }
     try {
       const { data, error } = await this.client
         .from(this.tableName)
-        .select('data, updated_at')
-        .eq('user_id', this.userId)
-        .maybeSingle(); // 使用 maybeSingle() 而不是 single()
+        .select('*')
+        .eq('user_id', userId)
+        .eq('theme_id', themeId)
+        .maybeSingle();
 
       if (error) {
-        // 如果是连接相关错误，标记为未连接
         if (this.isConnectionError(error)) {
           this.isConnected = false;
           throw new Error(`Supabase连接失败: ${error.message}`);
@@ -223,12 +263,25 @@ class SupabaseClient {
         throw error;
       }
 
-      // 如果没有数据，返回 null
       if (!data) {
         return null;
       }
 
-      return data;
+      // 组装返回结构（符合 UnifiedDataManager 期望的格式）
+      const result = {
+        data: data.data,
+        themeMeta: {
+          themeName: data.theme_name,
+          themeType: data.theme_type,
+          bgImageUrl: data.bg_image_url,
+          bgImagePath: data.bg_image_path,
+          bgOpacity: data.bg_opacity,
+          isActive: data.is_active,
+          updatedAt: data.updated_at
+        }
+      };
+
+      return result;
     } catch (error) {
       console.error('Supabase加载失败:', error);
       throw error;
@@ -236,9 +289,9 @@ class SupabaseClient {
   }
 
   /**
-   * 删除用户数据
+   * 删除主题数据
    */
-  async deleteData() {
+  async deleteThemeData(themeId, userId = '1') {
     if (!this.isConnected) {
       throw new Error('Supabase未连接');
     }
@@ -246,13 +299,12 @@ class SupabaseClient {
     const { error } = await this.client
       .from(this.tableName)
       .delete()
-      .eq('user_id', this.userId);
+      .eq('user_id', userId)
+      .eq('theme_id', themeId);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('用户数据已从Supabase删除');
+    console.log(`主题 ${themeId} 已从Supabase删除`);
     return { success: true };
   }
 
@@ -355,33 +407,7 @@ class SupabaseClient {
     return data;
   }
 
-  /**
-   * 删除当前用户的数据
-   */
-  async deleteData() {
-    if (!this.isConnected) {
-      throw new Error('Supabase未连接');
-    }
 
-    try {
-      console.log('SupabaseClient: 删除用户数据:', this.userId);
-
-      const { error } = await this.client
-        .from('card_tab_data')
-        .delete()
-        .eq('user_id', this.userId);
-
-      if (error) {
-        console.error('SupabaseClient: 删除数据失败:', error);
-        throw error;
-      }
-
-      console.log('SupabaseClient: 用户数据删除成功');
-    } catch (error) {
-      console.error('SupabaseClient: 删除数据异常:', error);
-      throw error;
-    }
-  }
 
   /**
    * 检查客户端状态
@@ -478,10 +504,10 @@ class SupabaseClient {
    * 上传文件到Supabase Storage
    * @param {File} file - 要上传的文件
    * @param {string} bucket - 存储桶名称
-   * @param {string} path - 文件路径
+   * @param {string} themeId - 主题标识，用于隔离存储路径
    * @returns {Promise<Object>} 上传结果
    */
-  async uploadFile(file, bucket = 'backgrounds', path = null) {
+  async uploadFile(file, bucket = 'backgrounds', themeId = 'default') {
     if (!this.isConnected) {
       throw new Error('Supabase未连接');
     }
@@ -489,7 +515,7 @@ class SupabaseClient {
     try {
       // 生成文件路径，使用清理后的文件名
       const cleanFileName = this.sanitizeFileName(file.name);
-      const fileName = path || `${this.userId}/${Date.now()}_${cleanFileName}`;
+      const fileName = `${themeId}/${Date.now()}_${cleanFileName}`;
 
       // 上传文件
       const { data, error } = await this.client.storage
@@ -560,15 +586,23 @@ class SupabaseClient {
 -- =====================================================
 CREATE TABLE IF NOT EXISTS ${this.tableName} (
   id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE,
+  user_id TEXT NOT NULL DEFAULT '1',
+  theme_id TEXT NOT NULL,
+  theme_name TEXT DEFAULT '',
+  theme_type TEXT DEFAULT 'default',
+  bg_image_url TEXT,
+  bg_image_path TEXT,
+  bg_opacity INTEGER DEFAULT 30,
+  is_active INTEGER DEFAULT 0,
   data JSONB NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, theme_id)
 );
 
 -- 创建索引提升查询性能
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_user_id ON ${this.tableName}(user_id);
-CREATE INDEX IF NOT EXISTS idx_${this.tableName}_updated_at ON ${this.tableName}(updated_at);
+CREATE INDEX IF NOT EXISTS idx_${this.tableName}_theme_id ON ${this.tableName}(theme_id);
 
 -- 禁用行级安全策略（简化配置，适合个人使用）
 ALTER TABLE ${this.tableName} DISABLE ROW LEVEL SECURITY;

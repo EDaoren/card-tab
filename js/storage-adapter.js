@@ -26,7 +26,7 @@ class StorageAdapter {
 
     console.log('StorageAdapter: 初始化完成，当前数据:', {
       categoriesCount: this.data?.categories?.length || 0,
-      currentConfig: window.unifiedDataManager.getCurrentConfig()
+      currentTheme: window.unifiedDataManager.getCurrentTheme()
     });
 
     return this.data;
@@ -419,14 +419,13 @@ class StorageAdapter {
    * 直接存储指定键的数据
    */
   async set(data) {
-    // 这个方法用于主题设置等独立数据
-    // 暂时保持原有逻辑，后续可以集成到统一数据管理器
     return new Promise((resolve) => {
       if (chrome.storage && chrome.storage.sync) {
         chrome.storage.sync.set(data, resolve);
       } else {
+        globalThis.__cardTabFallbackStorage = globalThis.__cardTabFallbackStorage || {};
         Object.keys(data).forEach(key => {
-          localStorage.setItem(key, JSON.stringify(data[key]));
+          globalThis.__cardTabFallbackStorage[key] = data[key];
         });
         resolve();
       }
@@ -441,16 +440,15 @@ class StorageAdapter {
       if (chrome.storage && chrome.storage.sync) {
         chrome.storage.sync.get(keys, resolve);
       } else {
+        globalThis.__cardTabFallbackStorage = globalThis.__cardTabFallbackStorage || {};
         if (Array.isArray(keys)) {
           const result = {};
           keys.forEach(key => {
-            const value = localStorage.getItem(key);
-            result[key] = value ? JSON.parse(value) : undefined;
+            result[key] = globalThis.__cardTabFallbackStorage[key];
           });
           resolve(result);
         } else {
-          const value = localStorage.getItem(keys);
-          resolve({ [keys]: value ? JSON.parse(value) : undefined });
+          resolve({ [keys]: globalThis.__cardTabFallbackStorage[keys] });
         }
       }
     });
