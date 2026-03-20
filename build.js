@@ -27,7 +27,7 @@ const filesToInclude = [
   'README_EN.md',
   'CLOUDFLARE_PROVISIONING_SERVICE.md',
   'supabase-init.sql',
-  'cf-worker.js',
+  'cloudflare',
   'cf-d1-init.sql',
   'icons',
   'js',

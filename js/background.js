@@ -1,9 +1,9 @@
 try {
   importScripts(
-    'supabase.min.js',
-    'supabase-client.js',
-    'cf-client.js',
-    'unified-data-manager.js'
+    'vendor/supabase.min.js',
+    'core/supabase-client.js',
+    'core/cf-client.js',
+    'core/unified-data-manager.js'
   );
   console.log('Background: Data libraries loaded');
 } catch (error) {

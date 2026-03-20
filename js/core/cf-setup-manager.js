@@ -349,7 +349,8 @@ class CloudflareSetupManager {
   }
 
   async loadBundledSyncWorkerSource() {
-    const resourceUrl = chrome?.runtime?.getURL ? chrome.runtime.getURL('cf-worker.js') : 'cf-worker.js';
+    const workerTemplatePath = 'cloudflare/cf-worker.js';
+    const resourceUrl = chrome?.runtime?.getURL ? chrome.runtime.getURL(workerTemplatePath) : workerTemplatePath;
     const response = await fetch(resourceUrl, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error('读取同步 Worker 模板失败');

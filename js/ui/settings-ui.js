@@ -736,7 +736,7 @@ class SettingsUIManager {
 
     document.getElementById('cf-copy-worker-btn').addEventListener('click', async () => {
       try {
-        await this.copyBundledFileText('cf-worker.js', 'Worker 模板已复制到剪贴板');
+        await this.copyBundledFileText('cloudflare/cf-worker.js', 'Worker 模板已复制到剪贴板');
       } catch (error) {
         this.showMessage('复制失败: ' + error.message, 'error');
       }

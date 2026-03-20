@@ -61,15 +61,15 @@
 - 创建或复用一个 Worker。
 - 创建并绑定 D1 数据库。
 - 创建并绑定 R2 Bucket。
-- 写入 Worker 脚本内容，可直接复用仓库根目录的 `cf-worker.js`。
+- 写入 Worker 脚本内容，可直接复用仓库中的 `cloudflare/cf-worker.js`。
 - 调用 Worker 的 `/api/init` 完成 D1 建表。
 - 生成并回传 Worker 访问地址与访问令牌。
 
 ## 当前仓库已提供的配套文件
 
-- `cf-worker.js`：同步 Worker 模板
+- `cloudflare/cf-worker.js`：同步 Worker 模板
 - `cf-d1-init.sql`：D1 初始化 SQL
-- `js/cloud-provisioning.js`：扩展侧一键开通接入逻辑
+- `js/core/cf-setup-manager.js`：扩展侧一键开通与资源初始化逻辑
 - `settings.html`：服务地址配置、一键开通、模板复制入口
 - `workers/worker.js`：可部署的一键开通服务模板
 - `workers/README.md`：服务部署与使用说明
