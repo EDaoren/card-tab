@@ -23,13 +23,11 @@ class SyncAdapter {
             this.isCloudflareEnabled = currentTheme.type === 'cloudflare';
 
             if (this.isSupabaseEnabled) {
-                const result = await this.getFromChromeStorageSync(['supabase_config']);
-                this.currentSupabaseConfig = result.supabase_config;
+                this.currentSupabaseConfig = await window.unifiedDataManager.getProviderConfig('supabase');
             }
 
             if (this.isCloudflareEnabled) {
-                const result = await this.getFromChromeStorageSync(['cf_config']);
-                this.currentCloudflareConfig = result.cf_config;
+                this.currentCloudflareConfig = await window.unifiedDataManager.getProviderConfig('cloudflare');
             }
 
             console.log('SyncAdapter: 初始化完成', {
@@ -122,23 +120,11 @@ class SyncAdapter {
      * Chrome Storage Sync 操作
      */
     async getFromChromeStorageSync(keys) {
-        return new Promise((resolve) => {
-            if (chrome.storage && chrome.storage.sync) {
-                chrome.storage.sync.get(keys, resolve);
-            } else {
-                resolve({});
-            }
-        });
+        return window.unifiedDataManager.getFromChromeStorageSync(keys);
     }
 
     async setToChromeStorageSync(data) {
-        return new Promise((resolve) => {
-            if (chrome.storage && chrome.storage.sync) {
-                chrome.storage.sync.set(data, resolve);
-            } else {
-                resolve();
-            }
-        });
+        return window.unifiedDataManager.setToChromeStorageSync(data);
     }
 
     /**
@@ -162,8 +148,7 @@ class SyncAdapter {
      * 获取 Supabase 配置
      */
     async getSupabaseConfig() {
-        const result = await this.getFromChromeStorageSync(['supabase_config']);
-        return result.supabase_config;
+        return window.unifiedDataManager.getProviderConfig('supabase');
     }
 
     /**
@@ -258,8 +243,7 @@ class SyncAdapter {
      * 获取 Cloudflare 配置
      */
     async getCloudflareConfig() {
-        const result = await this.getFromChromeStorageSync(['cf_config']);
-        return result.cf_config;
+        return window.unifiedDataManager.getProviderConfig('cloudflare');
     }
 }
 

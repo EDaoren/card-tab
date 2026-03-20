@@ -107,16 +107,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // 尝试使用默认数据
       if (!window.unifiedDataManager.currentConfigData) {
-        window.unifiedDataManager.currentConfigData = {
+        window.unifiedDataManager.currentConfigData = window.unifiedDataManager.normalizeConfigData({
           categories: [],
-          settings: { viewMode: 'grid' },
           themeSettings: {
             theme: 'default',
             backgroundImageUrl: null,
             backgroundImagePath: null,
             backgroundOpacity: 30
           }
-        };
+        });
       }
 
       // 即使失败也要完成加载
@@ -202,14 +201,10 @@ async function handleSaveShortcutViaStorageManager(shortcutData) {
       const categories = currentData.categories || [];
       if (categories.length === 0) {
         // 如果没有分类，创建一个默认分类
-        const defaultCategory = {
+        const defaultCategory = window.unifiedDataManager.createCategoryRecord({
           id: `cat-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          name: '默认分类',
-          color: '#4285f4',
-          collapsed: false,
-          order: 0,
-          shortcuts: []
-        };
+          order: 0
+        });
         currentData.categories.push(defaultCategory);
         categoryId = defaultCategory.id;
         console.log('Created default category:', defaultCategory);
@@ -226,7 +221,7 @@ async function handleSaveShortcutViaStorageManager(shortcutData) {
     }
 
     // 准备快捷方式数据
-    const newShortcut = {
+    const newShortcut = window.unifiedDataManager.createShortcutRecord({
       id: `shortcut-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: shortcutData.name,
       url: shortcutData.url,
@@ -234,7 +229,7 @@ async function handleSaveShortcutViaStorageManager(shortcutData) {
       iconColor: shortcutData.iconColor || '#4285f4',
       iconUrl: shortcutData.iconUrl || '',
       order: Math.max(...category.shortcuts.map(s => s.order || 0), -1) + 1
-    };
+    });
 
     // 添加快捷方式到分类
     category.shortcuts.push(newShortcut);

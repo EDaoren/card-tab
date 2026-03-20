@@ -9,6 +9,7 @@ class UnifiedDataManager {
     STORAGE_KEYS = {
         APP_DATA: 'card_tab_app_data',          // 存储统地元数据（当前活跃主题、所有主题列表等）
         CONFIG_DATA: (themeId) => `cardTabData_${themeId}`, // 本地缓存特定主题的数据
+        CHROME_SYNC_DATA: (themeId) => `chrome_sync_${themeId}`,
         SUPABASE_CONFIG: 'supabase_config',     // Supabase 连接配置
         CF_CONFIG: 'cf_config'                  // Cloudflare 连接配置
     };
@@ -22,6 +23,43 @@ class UnifiedDataManager {
         this.cloudflareClient = null;
     }
 
+    createThemeRecord(options = {}) {
+        const now = new Date().toISOString();
+        const createdAt = options.createdAt || now;
+
+        return {
+            themeId: options.themeId,
+            themeName: options.themeName || options.themeId || '未命名主题',
+            themeType: options.themeType || 'default',
+            bgImageUrl: options.bgImageUrl ?? null,
+            bgImagePath: options.bgImagePath ?? null,
+            bgOpacity: options.bgOpacity ?? 30,
+            isActive: !!options.isActive,
+            type: options.type || 'chrome',
+            createdAt,
+            updatedAt: options.updatedAt || createdAt
+        };
+    }
+
+    createDefaultThemeRecord(overrides = {}) {
+        return this.createThemeRecord({
+            themeId: this.DEFAULT_THEME_ID,
+            themeName: '默认主题',
+            isActive: true,
+            type: 'chrome',
+            ...overrides
+        });
+    }
+
+    normalizeThemeRecord(theme, overrides = {}) {
+        return this.createThemeRecord({
+            ...theme,
+            ...overrides,
+            themeId: overrides.themeId ?? theme?.themeId,
+            themeName: overrides.themeName ?? theme?.themeName ?? theme?.displayName
+        });
+    }
+
     /**
      * 获取默认全局应用数据
      */
@@ -30,41 +68,92 @@ class UnifiedDataManager {
             version: '2.0.0', // 升级版本号表示数据结构变更
             currentThemeId: this.DEFAULT_THEME_ID,
             themes: {
-                [this.DEFAULT_THEME_ID]: {
-                    themeId: this.DEFAULT_THEME_ID,
-                    themeName: '默认主题',
-                    themeType: 'default',
-                    bgImageUrl: null,
-                    bgImagePath: null,
-                    bgOpacity: 30,
-                    isActive: true,
-                    type: 'chrome', // 'chrome', 'supabase', 'cloudflare'
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                }
+                [this.DEFAULT_THEME_ID]: this.createDefaultThemeRecord()
             }
         };
+    }
+
+    getDefaultSettings() {
+        return {
+            viewMode: 'grid'
+        };
+    }
+
+    createShortcutRecord(options = {}) {
+        return {
+            ...options,
+            id: options.id || `shortcut-${Date.now()}`,
+            name: options.name || '',
+            url: options.url || '',
+            iconType: options.iconType || 'letter',
+            iconColor: options.iconColor || '#4285f4',
+            iconUrl: options.iconUrl || '',
+            order: options.order ?? 0
+        };
+    }
+
+    createCategoryRecord(options = {}) {
+        const shortcuts = Array.isArray(options.shortcuts)
+            ? options.shortcuts.map((shortcut, index) => this.createShortcutRecord({
+                ...shortcut,
+                order: shortcut?.order ?? index
+            }))
+            : [];
+
+        return {
+            ...options,
+            id: options.id || `cat-${Date.now()}`,
+            name: options.name || '默认分类',
+            color: options.color || '#4285f4',
+            collapsed: options.collapsed ?? false,
+            order: options.order ?? 0,
+            shortcuts
+        };
+    }
+
+    normalizeSettings(settings = null) {
+        const normalizedSettings = {
+            ...this.getDefaultSettings(),
+            ...(settings || {})
+        };
+
+        if (!['grid', 'list'].includes(normalizedSettings.viewMode)) {
+            normalizedSettings.viewMode = 'grid';
+        }
+
+        return normalizedSettings;
+    }
+
+    createConfigDataRecord(options = {}) {
+        const categories = Array.isArray(options.categories)
+            ? options.categories.map((category, index) => this.createCategoryRecord({
+                ...category,
+                order: category?.order ?? index
+            }))
+            : [];
+
+        return {
+            ...options,
+            categories,
+            settings: this.normalizeSettings(options.settings)
+        };
+    }
+
+    normalizeConfigData(data = null, options = {}) {
+        const normalizedData = this.createConfigDataRecord(data || {});
+
+        if (options.ensureDefaultCategory && normalizedData.categories.length === 0) {
+            normalizedData.categories.push(this.createCategoryRecord({ order: 0 }));
+        }
+
+        return normalizedData;
     }
 
     /**
      * 获取指定主题的数据骨架
      */
     getDefaultConfigData() {
-        return {
-            categories: [
-                {
-                    id: `cat-${Date.now()}`,
-                    name: '默认分类',
-                    color: '#4285f4',
-                    collapsed: false,
-                    order: 0,
-                    shortcuts: []
-                }
-            ],
-            settings: {
-                viewMode: 'grid'
-            }
-        };
+        return this.normalizeConfigData(null, { ensureDefaultCategory: true });
     }
 
     /**
@@ -119,18 +208,12 @@ class UnifiedDataManager {
             if (!this.appData.themes) this.appData.themes = {};
             
             for (const [key, oldConfig] of Object.entries(this.appData.userConfigs)) {
-                this.appData.themes[key] = {
+                this.appData.themes[key] = this.createThemeRecord({
                     themeId: key,
                     themeName: oldConfig.displayName || key,
-                    themeType: 'default',
-                    bgImageUrl: null,
-                    bgImagePath: null,
-                    bgOpacity: 30,
                     isActive: key === this.appData.currentThemeId,
-                    type: oldConfig.type || 'chrome',
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
+                    type: oldConfig.type || 'chrome'
+                });
             }
             delete this.appData.userConfigs;
             changed = true;
@@ -152,21 +235,29 @@ class UnifiedDataManager {
             
             if (result && result[this.STORAGE_KEYS.APP_DATA]) {
                 this.appData = result[this.STORAGE_KEYS.APP_DATA];
-                // 确保有必要的字段
+
                 if (!this.appData.themes) {
-                    this.appData.themes = {
-                        [this.DEFAULT_THEME_ID]: {
-                            themeId: this.DEFAULT_THEME_ID,
-                            themeName: '默认主题',
-                            themeType: 'default',
-                            isActive: true,
-                            type: 'chrome'
-                        }
-                    };
+                    this.appData.themes = {};
                 }
-                if (!this.appData.currentThemeId) {
+
+                if (!this.appData.themes[this.DEFAULT_THEME_ID]) {
+                    this.appData.themes[this.DEFAULT_THEME_ID] = this.createDefaultThemeRecord();
+                }
+
+                if (!this.appData.currentThemeId || !this.appData.themes[this.appData.currentThemeId]) {
                     this.appData.currentThemeId = this.DEFAULT_THEME_ID;
                 }
+
+                const currentThemeId = this.appData.currentThemeId;
+                this.appData.themes = Object.fromEntries(
+                    Object.entries(this.appData.themes).map(([themeId, theme]) => [
+                        themeId,
+                        this.normalizeThemeRecord(theme, {
+                            themeId,
+                            isActive: themeId === currentThemeId
+                        })
+                    ])
+                );
             } else {
                 this.appData = this.getDefaultAppData();
                 await this.saveAppData();
@@ -194,40 +285,243 @@ class UnifiedDataManager {
      * 初始化云端客户端
      */
     async initCloudClients() {
-        // 1. 获取配置
-        const result = await this.getFromChromeStorageSync([
-            this.STORAGE_KEYS.SUPABASE_CONFIG,
-            this.STORAGE_KEYS.CF_CONFIG
-        ]);
-        
-        const supabaseConfig = result[this.STORAGE_KEYS.SUPABASE_CONFIG];
-        const cfConfig = result[this.STORAGE_KEYS.CF_CONFIG];
+        const providerTypes = ['supabase', 'cloudflare'];
 
-        // 2. 初始化 Supabase
-        if (supabaseConfig && supabaseConfig.enabled && typeof SupabaseClient !== 'undefined') {
+        for (const provider of providerTypes) {
+            if (!this.hasThemeType(provider)) {
+                this.disconnectProviderClient(provider);
+                continue;
+            }
+
             try {
-                if (!this.supabaseClient) {
-                    this.supabaseClient = new SupabaseClient();
-                }
-                await this.supabaseClient.initialize(supabaseConfig);
-                console.log('UnifiedDataManager: Supabase 客户端初始化成功');
+                await this.ensureProviderClient(provider);
+                console.log(`UnifiedDataManager: ${provider} 客户端初始化成功`);
             } catch (error) {
-                console.error('UnifiedDataManager: Supabase客户端初始化失败:', error);
+                console.error(`UnifiedDataManager: ${provider} 客户端初始化失败:`, error);
             }
         }
+    }
 
-        // 3. 初始化 Cloudflare
-        if (cfConfig && cfConfig.enabled && typeof CloudflareClient !== 'undefined') {
-            try {
-                if (!this.cloudflareClient) {
-                    this.cloudflareClient = new CloudflareClient();
-                }
-                await this.cloudflareClient.initialize(cfConfig);
-                console.log('UnifiedDataManager: Cloudflare 客户端初始化成功');
-            } catch (error) {
-                console.error('UnifiedDataManager: Cloudflare 客户端初始化失败:', error);
-            }
+    hasThemeType(type) {
+        return Object.values(this.appData?.themes || {}).some(theme => theme.type === type);
+    }
+
+    syncProviderClientsState() {
+        if (!this.hasThemeType('supabase')) {
+            this.disconnectProviderClient('supabase');
         }
+
+        if (!this.hasThemeType('cloudflare')) {
+            this.disconnectProviderClient('cloudflare');
+        }
+    }
+
+    getProviderConfigKey(provider) {
+        if (provider === 'supabase') {
+            return this.STORAGE_KEYS.SUPABASE_CONFIG;
+        }
+
+        if (provider === 'cloudflare') {
+            return this.STORAGE_KEYS.CF_CONFIG;
+        }
+
+        throw new Error(`不支持的云端提供商：${provider}`);
+    }
+
+    normalizeProviderConfig(provider, config) {
+        if (!config) {
+            return null;
+        }
+
+        const normalizedConfig = { ...config };
+        delete normalizedConfig.enabled;
+        return normalizedConfig;
+    }
+
+    hasValidProviderConfig(provider, config) {
+        const normalizedConfig = this.normalizeProviderConfig(provider, config);
+        if (!normalizedConfig) {
+            return false;
+        }
+
+        if (provider === 'supabase') {
+            return !!(normalizedConfig.url && normalizedConfig.anonKey);
+        }
+
+        if (provider === 'cloudflare') {
+            return !!normalizedConfig.workerUrl;
+        }
+
+        return false;
+    }
+
+    async getProviderConfig(provider) {
+        const key = this.getProviderConfigKey(provider);
+        const result = await this.getFromChromeStorageSync([key]);
+        return this.normalizeProviderConfig(provider, result[key]);
+    }
+
+    async saveProviderConfig(provider, config) {
+        const key = this.getProviderConfigKey(provider);
+        const normalizedConfig = this.normalizeProviderConfig(provider, config);
+
+        if (!this.hasValidProviderConfig(provider, normalizedConfig)) {
+            throw new Error(`${provider} 配置缺失或无效`);
+        }
+
+        await this.setToChromeStorageSync({ [key]: normalizedConfig });
+        return normalizedConfig;
+    }
+
+    disconnectProviderClient(provider) {
+        if (provider === 'supabase' && this.supabaseClient) {
+            this.supabaseClient.disconnect();
+            this.supabaseClient = null;
+        }
+
+        if (provider === 'cloudflare' && this.cloudflareClient) {
+            this.cloudflareClient.disconnect();
+            this.cloudflareClient = null;
+        }
+    }
+
+    async ensureProviderClient(provider, config = null) {
+        if (provider === 'chrome') {
+            return null;
+        }
+
+        const normalizedConfig = this.normalizeProviderConfig(provider, config || await this.getProviderConfig(provider));
+        if (!this.hasValidProviderConfig(provider, normalizedConfig)) {
+            throw new Error(`${provider} 配置缺失或无效`);
+        }
+
+        if (provider === 'supabase') {
+            if (typeof SupabaseClient === 'undefined') {
+                throw new Error('SupabaseClient 未加载');
+            }
+
+            if (!this.supabaseClient) {
+                this.supabaseClient = new SupabaseClient();
+            }
+
+            await this.supabaseClient.initialize(normalizedConfig);
+            return this.supabaseClient;
+        }
+
+        if (provider === 'cloudflare') {
+            if (typeof CloudflareClient === 'undefined') {
+                throw new Error('CloudflareClient 未加载');
+            }
+
+            if (!this.cloudflareClient) {
+                this.cloudflareClient = new CloudflareClient();
+            }
+
+            await this.cloudflareClient.initialize(normalizedConfig);
+            return this.cloudflareClient;
+        }
+
+        throw new Error(`不支持的云端提供商：${provider}`);
+    }
+
+    getProviderConfigInput(provider, cfConfig = null, supabaseConfig = null) {
+        if (provider === 'cloudflare') {
+            return cfConfig;
+        }
+
+        if (provider === 'supabase') {
+            return supabaseConfig;
+        }
+
+        throw new Error(`不支持的云端提供商：${provider}`);
+    }
+
+    async connectProvider(provider, cfConfig = null, supabaseConfig = null) {
+        const providerConfig = this.getProviderConfigInput(provider, cfConfig, supabaseConfig);
+        const savedConfig = await this.saveProviderConfig(provider, providerConfig);
+        await this.ensureProviderClient(provider, savedConfig);
+        return savedConfig;
+    }
+
+    async resolveThemeData(theme, { preferCache = true, useDefaultFallback = true } = {}) {
+        let data = null;
+
+        if (preferCache) {
+            data = await this.loadFromCache(theme.themeId);
+        }
+
+        if (!data) {
+            const provider = this.getThemeProvider(theme);
+            data = await provider.load();
+        }
+
+        if (!data && useDefaultFallback) {
+            data = this.getDefaultConfigData();
+        }
+
+        return data ? this.normalizeConfigData(data) : null;
+    }
+
+    async syncThemeDataWithProvider(theme, data) {
+        const normalizedData = this.normalizeConfigData(data);
+        const provider = this.getThemeProvider(theme);
+        await provider.save(normalizedData);
+        await this.saveToCache(theme.themeId, normalizedData);
+        return normalizedData;
+    }
+
+    async initializeCloudThemeData(theme) {
+        let data = await this.resolveThemeData(theme, {
+            preferCache: false,
+            useDefaultFallback: false
+        });
+
+        if (!data) {
+            data = this.getDefaultConfigData();
+            await this.syncThemeDataWithProvider(theme, data);
+            return data;
+        }
+
+        await this.saveToCache(theme.themeId, data);
+        return data;
+    }
+
+    getThemeProvider(theme) {
+        if (!theme) {
+            throw new Error('主题不存在');
+        }
+
+        if (theme.type === 'chrome') {
+            return {
+                load: () => this.loadFromChromeSync(theme.themeId),
+                save: (data) => this.saveToChromeSync(theme.themeId, data),
+                delete: () => this.clearChromeSync(theme.themeId)
+            };
+        }
+
+        if (theme.type === 'supabase') {
+            return {
+                load: () => this.loadFromSupabase(theme),
+                save: (data) => this.saveToSupabase(theme, data),
+                delete: async () => {
+                    const client = await this.ensureProviderClient('supabase');
+                    await client.deleteThemeData(theme.themeId);
+                }
+            };
+        }
+
+        if (theme.type === 'cloudflare') {
+            return {
+                load: () => this.loadFromCloudflare(theme),
+                save: (data) => this.saveToCloudflare(theme, data),
+                delete: async () => {
+                    const client = await this.ensureProviderClient('cloudflare');
+                    await client.deleteData(theme.themeId);
+                }
+            };
+        }
+
+        throw new Error(`不支持的主题类型：${theme.type}`);
     }
 
     /**
@@ -250,7 +544,7 @@ class UnifiedDataManager {
             if (!forceRefresh) {
                 const cachedData = await this.loadFromCache(currentThemeId);
                 if (cachedData) {
-                    this.currentConfigData = cachedData;
+                    this.currentConfigData = this.normalizeConfigData(cachedData);
                     console.log('UnifiedDataManager: 从缓存加载数据成功');
                     
                     // 异步触发后台更新
@@ -262,19 +556,13 @@ class UnifiedDataManager {
             }
 
             // 缓存未命中或强制刷新，从数据源读取
-            let data = null;
-            if (currentTheme.type === 'supabase') {
-                data = await this.loadFromSupabase(currentTheme);
-            } else if (currentTheme.type === 'cloudflare') {
-                data = await this.loadFromCloudflare(currentTheme);
-            } else {
-                data = await this.loadFromChromeSync(currentThemeId);
-            }
+            const provider = this.getThemeProvider(currentTheme);
+            const data = await provider.load();
 
             if (data) {
-                this.currentConfigData = data;
+                this.currentConfigData = this.normalizeConfigData(data);
                 // 更新缓存
-                await this.saveToCache(currentThemeId, data);
+                await this.saveToCache(currentThemeId, this.currentConfigData);
             } else {
                 this.currentConfigData = this.getDefaultConfigData();
                 await this.saveCurrentConfigData(this.currentConfigData);
@@ -295,12 +583,12 @@ class UnifiedDataManager {
      */
     async backgroundSyncFromCloud(theme) {
         try {
-            let cloudData = null;
-            if (theme.type === 'supabase') {
-                cloudData = await this.loadFromSupabase(theme);
-            } else if (theme.type === 'cloudflare') {
-                cloudData = await this.loadFromCloudflare(theme);
+            if (!theme || theme.type === 'chrome') {
+                return;
             }
+
+            const provider = this.getThemeProvider(theme);
+            const cloudData = await provider.load();
 
             if (cloudData) {
                 await this.saveToCache(theme.themeId, cloudData);
@@ -337,16 +625,11 @@ class UnifiedDataManager {
                 delete data._themeMeta; // 不要把元数据存进 data blob里
             }
 
-            const dataToSave = data || this.currentConfigData;
+            const dataToSave = this.normalizeConfigData(data || this.currentConfigData);
+            const provider = this.getThemeProvider(currentTheme);
 
             // 1. 写主存储
-            if (currentTheme.type === 'supabase') {
-                await this.saveToSupabase(currentTheme, dataToSave);
-            } else if (currentTheme.type === 'cloudflare') {
-                await this.saveToCloudflare(currentTheme, dataToSave);
-            } else {
-                await this.saveToChromeSync(currentThemeId, dataToSave);
-            }
+            await provider.save(dataToSave);
 
             // 2. 清缓存并重新写入（旁路缓存模式）
             await this.clearCache(currentThemeId);
@@ -415,20 +698,24 @@ class UnifiedDataManager {
     }
 
     async loadFromChromeSync(themeId) {
-        const key = `chrome_sync_${themeId}`;
+        const key = this.STORAGE_KEYS.CHROME_SYNC_DATA(themeId);
         const result = await this.getFromChromeStorageSync([key]);
         return result[key] || null;
     }
 
     async saveToChromeSync(themeId, data) {
-        const key = `chrome_sync_${themeId}`;
+        const key = this.STORAGE_KEYS.CHROME_SYNC_DATA(themeId);
         await this.setToChromeStorageSync({ [key]: data });
     }
 
+    async clearChromeSync(themeId) {
+        const key = this.STORAGE_KEYS.CHROME_SYNC_DATA(themeId);
+        await this.removeFromChromeStorageSync([key]);
+    }
+
     async loadFromSupabase(theme) {
-        if (!this.supabaseClient) throw new Error('SupabaseClient 未初始化');
-        
-        const result = await this.supabaseClient.loadData(theme.themeId);
+        const client = await this.ensureProviderClient('supabase');
+        const result = await client.loadData(theme.themeId);
         if (result && result.data) {
             // 同步远端的元数据到本地 appData
             this.updateThemeMetadataFromCloudResponse(theme.themeId, result);
@@ -438,14 +725,13 @@ class UnifiedDataManager {
     }
 
     async saveToSupabase(theme, data) {
-        if (!this.supabaseClient) throw new Error('SupabaseClient 未初始化');
-        await this.supabaseClient.saveData(theme.themeId, data, theme);
+        const client = await this.ensureProviderClient('supabase');
+        await client.saveData(theme.themeId, data, theme);
     }
 
     async loadFromCloudflare(theme) {
-        if (!this.cloudflareClient) throw new Error('CloudflareClient 未初始化');
-        
-        const result = await this.cloudflareClient.loadData(theme.themeId);
+        const client = await this.ensureProviderClient('cloudflare');
+        const result = await client.loadData(theme.themeId);
         if (result && result.data) {
             this.updateThemeMetadataFromCloudResponse(theme.themeId, result);
             return result.data;
@@ -454,8 +740,8 @@ class UnifiedDataManager {
     }
 
     async saveToCloudflare(theme, data) {
-        if (!this.cloudflareClient) throw new Error('CloudflareClient 未初始化');
-        await this.cloudflareClient.saveData(theme.themeId, data, theme);
+        const client = await this.ensureProviderClient('cloudflare');
+        await client.saveData(theme.themeId, data, theme);
     }
 
     /**
@@ -495,19 +781,14 @@ class UnifiedDataManager {
 
     async createLocalTheme(themeName, themeType = 'default', bgOpacity = 30) {
         const themeId = this.generateThemeId('theme');
-        const now = new Date().toISOString();
-        const theme = {
+        const theme = this.createThemeRecord({
             themeId,
             themeName,
             themeType,
-            bgImageUrl: null,
-            bgImagePath: null,
             bgOpacity,
             isActive: false,
-            type: 'chrome',
-            createdAt: now,
-            updatedAt: now
-        };
+            type: 'chrome'
+        });
 
         this.appData.themes[themeId] = theme;
         await this.saveAppData();
@@ -543,34 +824,14 @@ class UnifiedDataManager {
         await this.saveAppData();
 
         if (theme.type !== 'chrome') {
-            await this.initCloudClients();
-
             if (themeId === this.appData.currentThemeId) {
                 await this.saveCurrentConfigData({ ...this.currentConfigData });
             } else {
-                let dataToPersist = await this.loadFromCache(themeId);
-
-                if (!dataToPersist) {
-                    if (theme.type === 'supabase' && this.supabaseClient) {
-                        const cloudResponse = await this.supabaseClient.loadData(theme.themeId);
-                        dataToPersist = cloudResponse?.data || null;
-                    } else if (theme.type === 'cloudflare' && this.cloudflareClient) {
-                        const cloudResponse = await this.cloudflareClient.loadData(theme.themeId);
-                        dataToPersist = cloudResponse?.data || null;
-                    }
-                }
-
-                if (!dataToPersist) {
-                    dataToPersist = this.getDefaultConfigData();
-                }
-
-                if (theme.type === 'supabase') {
-                    await this.saveToSupabase(theme, dataToPersist);
-                } else if (theme.type === 'cloudflare') {
-                    await this.saveToCloudflare(theme, dataToPersist);
-                }
-
-                await this.saveToCache(themeId, dataToPersist);
+                const dataToPersist = await this.resolveThemeData(theme, {
+                    preferCache: true,
+                    useDefaultFallback: true
+                });
+                await this.syncThemeDataWithProvider(theme, dataToPersist);
             }
         }
 
@@ -617,39 +878,7 @@ class UnifiedDataManager {
             const dataToMigrate = this.currentConfigData || await this.loadCurrentConfigData();
             const now = new Date().toISOString();
 
-            if (provider === 'cloudflare') {
-                const newCfConfig = { ...cfConfig, enabled: true };
-
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: { enabled: false } });
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: newCfConfig });
-
-                if (!this.cloudflareClient) {
-                    this.cloudflareClient = new CloudflareClient();
-                }
-                await this.cloudflareClient.initialize(newCfConfig);
-
-                if (this.supabaseClient) {
-                    this.supabaseClient.disconnect();
-                    this.supabaseClient = null;
-                }
-            } else if (provider === 'supabase') {
-                const newSupabaseConfig = { ...supabaseConfig, enabled: true };
-
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: { enabled: false } });
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: newSupabaseConfig });
-
-                if (!this.supabaseClient) {
-                    this.supabaseClient = new SupabaseClient();
-                }
-                await this.supabaseClient.initialize(newSupabaseConfig);
-
-                if (this.cloudflareClient) {
-                    this.cloudflareClient.disconnect();
-                    this.cloudflareClient = null;
-                }
-            } else {
-                throw new Error(`不支持的云端提供商：${provider}`);
-            }
+            await this.connectProvider(provider, cfConfig, supabaseConfig);
 
             currentTheme.type = provider;
             if (themeName) {
@@ -657,6 +886,7 @@ class UnifiedDataManager {
             }
             currentTheme.updatedAt = now;
             await this.saveAppData();
+            this.syncProviderClientsState();
 
             await this.saveCurrentConfigData(dataToMigrate || this.getDefaultConfigData());
 
@@ -679,72 +909,23 @@ class UnifiedDataManager {
             console.log(`UnifiedDataManager: 添加云端主题 ${themeId} (provider: ${provider})`);
 
             // 1. 注册主题
-            this.appData.themes[themeId] = {
-                themeId: themeId,
-                themeName: themeName,
-                themeType: 'default',
-                bgImageUrl: null,
-                bgImagePath: null,
-                bgOpacity: 30,
+            this.appData.themes[themeId] = this.createThemeRecord({
+                themeId,
+                themeName,
                 isActive: false,
-                type: provider,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
+                type: provider
+            });
 
-            if (provider === 'cloudflare') {
-                const newCfConfig = { ...cfConfig, enabled: true };
-                
-                // 互斥禁用 supabase
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: { enabled: false } });
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: newCfConfig });
-
-                if (!this.cloudflareClient) this.cloudflareClient = new CloudflareClient();
-                await this.cloudflareClient.initialize(newCfConfig);
-
-                // 首次拉取云端数据，如果没有则写入默认骨架
-                const themeObj = this.appData.themes[themeId];
-                const cloudData = await this.loadFromCloudflare(themeObj);
-                
-                if (!cloudData) {
-                    await this.saveToCloudflare(themeObj, this.getDefaultConfigData());
-                    await this.saveToCache(themeId, this.getDefaultConfigData());
-                } else {
-                    await this.saveToCache(themeId, cloudData);
-                }
-
-                if (this.supabaseClient) {
-                    this.supabaseClient.disconnect();
-                    this.supabaseClient = null;
-                }
-            } else if (provider === 'supabase') {
-                // ... 与 cloudflare 类似
-                const newSupabaseConfig = { ...supabaseConfig, enabled: true };
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: { enabled: false } });
-                await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: newSupabaseConfig });
-
-                if (!this.supabaseClient) this.supabaseClient = new SupabaseClient();
-                await this.supabaseClient.initialize(newSupabaseConfig);
-
-                const themeObj = this.appData.themes[themeId];
-                const cloudData = await this.loadFromSupabase(themeObj);
-                
-                if (!cloudData) {
-                    await this.saveToSupabase(themeObj, this.getDefaultConfigData());
-                    await this.saveToCache(themeId, this.getDefaultConfigData());
-                } else {
-                    await this.saveToCache(themeId, cloudData);
-                }
-
-                if (this.cloudflareClient) {
-                    this.cloudflareClient.disconnect();
-                    this.cloudflareClient = null;
-                }
-            }
+            await this.connectProvider(provider, cfConfig, supabaseConfig);
+            await this.initializeCloudThemeData(this.appData.themes[themeId]);
 
             await this.saveAppData();
+            this.syncProviderClientsState();
             return this.appData.themes[themeId];
         } catch (error) {
+            delete this.appData.themes[themeId];
+            await this.clearCache(themeId).catch(() => {});
+            await this.clearChromeSync(themeId).catch(() => {});
             console.error(`UnifiedDataManager: 添加云端主题失败:`, error);
             throw error;
         }
@@ -765,23 +946,22 @@ class UnifiedDataManager {
             const theme = this.appData.themes[themeId];
             if (!theme) return;
 
-            // 尝试删除云端数据
-            if (theme.type === 'supabase' && this.supabaseClient) {
-                try {
-                    await this.supabaseClient.deleteThemeData(themeId);
-                } catch (e) { console.warn('云端删除失败', e); }
-            } else if (theme.type === 'cloudflare' && this.cloudflareClient) {
-                try {
-                    await this.cloudflareClient.deleteData(themeId);
-                } catch (e) { console.warn('云端删除失败', e); }
+            // 尝试删除主存储中的主题数据
+            try {
+                const provider = this.getThemeProvider(theme);
+                await provider.delete();
+            } catch (e) {
+                console.warn('主题主存储删除失败', e);
             }
 
-            // 清理缓存
+            // 清理缓存和 Chrome 同步残留
             await this.clearCache(themeId);
+            await this.clearChromeSync(themeId);
 
             // 移除元数据
             delete this.appData.themes[themeId];
             await this.saveAppData();
+            this.syncProviderClientsState();
 
             console.log(`UnifiedDataManager: 主题 ${themeId} 已删除`);
         } catch (error) {
@@ -808,12 +988,7 @@ class UnifiedDataManager {
                 await this.saveCurrentConfigData(dataToKeep || this.getDefaultConfigData());
             }
 
-            // 禁用云端配置
-            await this.setToChromeStorageSync({ [this.STORAGE_KEYS.SUPABASE_CONFIG]: { enabled: false } });
-            await this.setToChromeStorageSync({ [this.STORAGE_KEYS.CF_CONFIG]: { enabled: false } });
-
-            if (this.supabaseClient) { this.supabaseClient.disconnect(); this.supabaseClient = null; }
-            if (this.cloudflareClient) { this.cloudflareClient.disconnect(); this.cloudflareClient = null; }
+            this.syncProviderClientsState();
 
             console.log('UnifiedDataManager: 云端同步已禁用');
         } catch (error) {
@@ -873,6 +1048,16 @@ class UnifiedDataManager {
         return new Promise((resolve) => {
             if (chrome.storage && chrome.storage.sync) {
                 chrome.storage.sync.set(data, resolve);
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    async removeFromChromeStorageSync(keys) {
+        return new Promise((resolve) => {
+            if (chrome.storage && chrome.storage.sync) {
+                chrome.storage.sync.remove(keys, resolve);
             } else {
                 resolve();
             }

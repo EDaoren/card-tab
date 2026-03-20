@@ -22,6 +22,13 @@ async function ensureBackgroundDataManager() {
 }
 
 function createDefaultCategory() {
+  if (globalThis.unifiedDataManager?.createCategoryRecord) {
+    return globalThis.unifiedDataManager.createCategoryRecord({
+      color: DEFAULT_CATEGORY_COLOR,
+      order: 0
+    });
+  }
+
   return {
     id: `cat-${Date.now()}`,
     name: '默认分类',

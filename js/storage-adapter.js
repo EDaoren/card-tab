@@ -38,11 +38,12 @@ class StorageAdapter {
   updateDataFromUnified() {
     const currentData = window.unifiedDataManager.getCurrentConfigData();
     if (currentData) {
+      const normalizedData = window.unifiedDataManager.normalizeConfigData(currentData);
       this.data = {
-        categories: currentData.categories || [],
-        settings: currentData.settings || { viewMode: 'grid' }
+        categories: normalizedData.categories,
+        settings: normalizedData.settings
       };
-      this.fullData = currentData;
+      this.fullData = normalizedData;
     }
   }
 
@@ -130,14 +131,14 @@ class StorageAdapter {
   async addCategory(categoryData) {
     const maxOrder = Math.max(...this.data.categories.map(cat => cat.order || 0), -1);
     
-    const newCategory = {
+    const newCategory = window.unifiedDataManager.createCategoryRecord({
       id: this.generateId('cat'),
       name: categoryData.name,
       color: categoryData.color,
       collapsed: false,
       order: maxOrder + 1,
       shortcuts: []
-    };
+    });
 
     this.data.categories.push(newCategory);
     await this.saveToStorage();
@@ -182,7 +183,7 @@ class StorageAdapter {
 
     const maxOrder = Math.max(...category.shortcuts.map(shortcut => shortcut.order || 0), -1);
 
-    const newShortcut = {
+    const newShortcut = window.unifiedDataManager.createShortcutRecord({
       id: this.generateId('shortcut'),
       name: shortcutData.name,
       url: shortcutData.url,
@@ -190,7 +191,7 @@ class StorageAdapter {
       iconColor: shortcutData.iconColor || '#4285f4',
       iconUrl: shortcutData.iconUrl || '',
       order: maxOrder + 1
-    };
+    });
 
     category.shortcuts.push(newShortcut);
     await this.saveToStorage();
@@ -379,7 +380,7 @@ class StorageAdapter {
    * 获取设置
    */
   getSettings() {
-    return this.data?.settings || { viewMode: 'grid' };
+    return window.unifiedDataManager.normalizeSettings(this.data?.settings);
   }
 
   /**
@@ -402,8 +403,9 @@ class StorageAdapter {
       throw new Error('Invalid data format: missing categories');
     }
 
-    this.data.categories = importedData.categories;
-    this.data.settings = importedData.settings || { viewMode: 'grid' };
+    const normalizedData = window.unifiedDataManager.normalizeConfigData(importedData);
+    this.data.categories = normalizedData.categories;
+    this.data.settings = normalizedData.settings;
     
     await this.saveToStorage();
   }
@@ -419,6 +421,10 @@ class StorageAdapter {
    * 直接存储指定键的数据
    */
   async set(data) {
+    if (window.unifiedDataManager?.setToChromeStorageSync) {
+      return window.unifiedDataManager.setToChromeStorageSync(data);
+    }
+
     return new Promise((resolve) => {
       if (chrome.storage && chrome.storage.sync) {
         chrome.storage.sync.set(data, resolve);
@@ -436,6 +442,10 @@ class StorageAdapter {
    * 获取指定键的数据
    */
   async get(keys) {
+    if (window.unifiedDataManager?.getFromChromeStorageSync) {
+      return window.unifiedDataManager.getFromChromeStorageSync(keys);
+    }
+
     return new Promise((resolve) => {
       if (chrome.storage && chrome.storage.sync) {
         chrome.storage.sync.get(keys, resolve);
