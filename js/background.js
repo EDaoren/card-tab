@@ -3,6 +3,7 @@ try {
     'vendor/supabase.min.js',
     'core/supabase-client.js',
     'core/cf-client.js',
+    'core/sync-provider.js',
     'core/unified-data-manager.js'
   );
   console.log('Background: Data libraries loaded');

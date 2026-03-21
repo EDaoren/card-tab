@@ -1,69 +1,157 @@
 -- =====================================================
--- Card Tab Chrome扩展 - Supabase初始化脚本
--- Card Tab Chrome Extension - Supabase Setup Script
+-- Card Tab - Supabase BYOS setup
+-- Uses project-level API key access (no Supabase Auth required)
+-- Recommended: dedicate one project to Card Tab
 -- =====================================================
--- 请在Supabase项目的SQL编辑器中执行以下脚本
--- Execute this script in your Supabase project's SQL Editor
 
--- 1. 创建数据表 / Create Data Table
--- =====================================================
 CREATE TABLE IF NOT EXISTS card_tab_data (
-  id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL UNIQUE,
-  data JSONB NOT NULL,
+  id BIGSERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'card-tab',
+  theme_id TEXT NOT NULL DEFAULT 'default',
+  theme_name TEXT DEFAULT '',
+  theme_type TEXT DEFAULT 'default',
+  bg_image_url TEXT,
+  bg_image_path TEXT,
+  bg_opacity INTEGER DEFAULT 30,
+  is_active INTEGER DEFAULT 0,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, theme_id)
 );
 
--- 创建索引提升查询性能 / Create indexes for performance
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS theme_id TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS theme_name TEXT DEFAULT '';
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS theme_type TEXT DEFAULT 'default';
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS bg_image_url TEXT;
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS bg_image_path TEXT;
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS bg_opacity INTEGER DEFAULT 30;
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS is_active INTEGER DEFAULT 0;
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE card_tab_data ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+ALTER TABLE card_tab_data ALTER COLUMN user_id SET DEFAULT 'card-tab';
+ALTER TABLE card_tab_data ALTER COLUMN theme_id SET DEFAULT 'default';
+ALTER TABLE card_tab_data ALTER COLUMN theme_name SET DEFAULT '';
+ALTER TABLE card_tab_data ALTER COLUMN theme_type SET DEFAULT 'default';
+ALTER TABLE card_tab_data ALTER COLUMN bg_opacity SET DEFAULT 30;
+ALTER TABLE card_tab_data ALTER COLUMN is_active SET DEFAULT 0;
+ALTER TABLE card_tab_data ALTER COLUMN data SET DEFAULT '{}'::jsonb;
+ALTER TABLE card_tab_data ALTER COLUMN created_at SET DEFAULT NOW();
+ALTER TABLE card_tab_data ALTER COLUMN updated_at SET DEFAULT NOW();
+
+UPDATE card_tab_data
+SET user_id = COALESCE(NULLIF(user_id, ''), 'card-tab'),
+    theme_id = COALESCE(NULLIF(theme_id, ''), 'default');
+
+ALTER TABLE card_tab_data DROP CONSTRAINT IF EXISTS card_tab_data_user_id_key;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'card_tab_data_user_id_theme_id_key'
+  ) THEN
+    ALTER TABLE card_tab_data
+    ADD CONSTRAINT card_tab_data_user_id_theme_id_key UNIQUE (user_id, theme_id);
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_card_tab_data_user_id ON card_tab_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_card_tab_data_theme_id ON card_tab_data(theme_id);
 CREATE INDEX IF NOT EXISTS idx_card_tab_data_updated_at ON card_tab_data(updated_at);
 
--- 禁用行级安全策略（简化配置，适合个人使用）
--- Disable Row Level Security (simplified setup for personal use)
-ALTER TABLE card_tab_data DISABLE ROW LEVEL SECURITY;
+ALTER TABLE card_tab_data ENABLE ROW LEVEL SECURITY;
 
--- 2. 创建Storage存储桶 / Create Storage Bucket
--- =====================================================
--- 创建backgrounds桶（用于存储背景图片）
--- Create backgrounds bucket for storing background images
+DROP POLICY IF EXISTS "Users can read own card tab data" ON card_tab_data;
+DROP POLICY IF EXISTS "Users can insert own card tab data" ON card_tab_data;
+DROP POLICY IF EXISTS "Users can update own card tab data" ON card_tab_data;
+DROP POLICY IF EXISTS "Users can delete own card tab data" ON card_tab_data;
+DROP POLICY IF EXISTS "Card Tab can read data" ON card_tab_data;
+DROP POLICY IF EXISTS "Card Tab can insert data" ON card_tab_data;
+DROP POLICY IF EXISTS "Card Tab can update data" ON card_tab_data;
+DROP POLICY IF EXISTS "Card Tab can delete data" ON card_tab_data;
+
+CREATE POLICY "Card Tab can read data"
+ON card_tab_data
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+CREATE POLICY "Card Tab can insert data"
+ON card_tab_data
+FOR INSERT
+TO anon, authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Card Tab can update data"
+ON card_tab_data
+FOR UPDATE
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Card Tab can delete data"
+ON card_tab_data
+FOR DELETE
+TO anon, authenticated
+USING (true);
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'backgrounds',
   'backgrounds',
   true,
-  52428800,  -- 50MB限制 / 50MB limit
+  52428800,
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO NOTHING;
 
--- Storage桶已创建，使用默认权限设置
--- Storage bucket created with default permissions
+DROP POLICY IF EXISTS "Users can read own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can read background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can upload background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can update background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can delete background objects" ON storage.objects;
 
--- 3. 验证配置 / Verify Setup
--- =====================================================
--- 检查数据表是否创建成功 / Check if data table was created successfully
-SELECT 'Data table created successfully' as status
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_tab_data');
+CREATE POLICY "Card Tab can read background objects"
+ON storage.objects
+FOR SELECT
+TO anon, authenticated
+USING (
+  bucket_id = 'backgrounds'
+);
 
--- 检查存储桶是否创建成功 / Check if storage bucket was created successfully
-SELECT 'Storage bucket created successfully' as status
-WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
+CREATE POLICY "Card Tab can upload background objects"
+ON storage.objects
+FOR INSERT
+TO anon, authenticated
+WITH CHECK (
+  bucket_id = 'backgrounds'
+);
 
--- =====================================================
--- 配置完成！/ Setup Complete!
--- =====================================================
--- 现在您可以：/ Now you can:
--- 1. 返回Chrome扩展 / Return to Chrome extension
--- 2. 配置Supabase连接信息 / Configure Supabase connection
--- 3. 测试连接和同步功能 / Test connection and sync features
--- 4. 使用背景图片和多配置功能 / Use background images and multi-config features
---
--- 注意事项：/ Important Notes:
--- - 此配置适合个人使用，已禁用RLS简化设置
---   This setup is for personal use with RLS disabled for simplicity
--- - 数据通过user_id字段进行区分
---   Data is separated by user_id field
--- - 背景图片存储在backgrounds桶中
---   Background images are stored in the backgrounds bucket
--- - 如需更高安全性，请参考文档配置RLS策略
---   For higher security, refer to documentation for RLS setup
+CREATE POLICY "Card Tab can update background objects"
+ON storage.objects
+FOR UPDATE
+TO anon, authenticated
+USING (
+  bucket_id = 'backgrounds'
+)
+WITH CHECK (
+  bucket_id = 'backgrounds'
+);
+
+CREATE POLICY "Card Tab can delete background objects"
+ON storage.objects
+FOR DELETE
+TO anon, authenticated
+USING (
+  bucket_id = 'backgrounds'
+);
+
+SELECT 'Card Tab Supabase BYOS setup complete' AS status;

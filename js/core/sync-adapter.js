@@ -1,14 +1,10 @@
 /**
  * 同步适配器
- * 为现有的同步UI提供兼容接口，使其能够使用新的统一数据管理器
+ * 为现有的同步 UI 提供兼容接口，使其能够使用新的统一数据管理器。
  */
 
 class SyncAdapter {
     constructor() {
-        this.isSupabaseEnabled = false;
-        this.isCloudflareEnabled = false;
-        this.currentSupabaseConfig = null;
-        this.currentCloudflareConfig = null;
         this.lastSyncTime = null;
     }
 
@@ -17,23 +13,12 @@ class SyncAdapter {
      */
     async init() {
         try {
-            // 检查当前主题是否为云端主题
-            const currentTheme = window.unifiedDataManager.getCurrentTheme();
-            this.isSupabaseEnabled = currentTheme.type === 'supabase';
-            this.isCloudflareEnabled = currentTheme.type === 'cloudflare';
-
-            if (this.isSupabaseEnabled) {
-                this.currentSupabaseConfig = await window.unifiedDataManager.getProviderConfig('supabase');
-            }
-
-            if (this.isCloudflareEnabled) {
-                this.currentCloudflareConfig = await window.unifiedDataManager.getProviderConfig('cloudflare');
-            }
+            await window.unifiedDataManager.preloadProviderConfigs();
+            const status = this.getSyncStatus();
 
             console.log('SyncAdapter: 初始化完成', {
-                isSupabaseEnabled: this.isSupabaseEnabled,
-                isCloudflareEnabled: this.isCloudflareEnabled,
-                themeType: currentTheme.type
+                activeProvider: status.activeProvider,
+                themeType: status.currentThemeType
             });
         } catch (error) {
             console.error('SyncAdapter: 初始化失败:', error);
@@ -44,27 +29,28 @@ class SyncAdapter {
      * 获取同步状态
      */
     getSyncStatus() {
-        const currentTheme = window.unifiedDataManager.getCurrentTheme() || {
-            themeId: 'default',
-            type: 'chrome'
-        };
-        const isSupabaseEnabled = currentTheme.type === 'supabase';
-        const isCloudflareEnabled = currentTheme.type === 'cloudflare';
-
-        this.isSupabaseEnabled = isSupabaseEnabled;
-        this.isCloudflareEnabled = isCloudflareEnabled;
+        const status = window.unifiedDataManager.getSyncStatusSnapshot
+            ? window.unifiedDataManager.getSyncStatusSnapshot()
+            : {
+                isSupabaseEnabled: false,
+                isCloudflareEnabled: false,
+                isCloudEnabled: false,
+                activeProvider: 'none',
+                currentThemeId: 'default',
+                currentThemeName: '',
+                currentThemeType: 'chrome',
+                supabaseConfig: null,
+                cloudflareConfig: null,
+                providerCapabilities: {
+                    cloudSync: false,
+                    fileStorage: false,
+                    schemaMode: 'none'
+                }
+            };
 
         return {
-            isSupabaseEnabled,
-            isCloudflareEnabled,
-            isCloudEnabled: isSupabaseEnabled || isCloudflareEnabled,
-            activeProvider: isCloudflareEnabled ? 'cloudflare' : (isSupabaseEnabled ? 'supabase' : 'none'),
-            currentThemeId: currentTheme.themeId,
-            currentThemeName: currentTheme.themeName || '',
-            currentThemeType: currentTheme.type,
-            lastSyncTime: this.lastSyncTime,
-            supabaseConfig: this.currentSupabaseConfig,
-            cloudflareConfig: this.currentCloudflareConfig
+            ...status,
+            lastSyncTime: this.lastSyncTime
         };
     }
 
@@ -76,12 +62,6 @@ class SyncAdapter {
             console.log('SyncAdapter: 禁用云端同步');
 
             await window.unifiedDataManager.disableCloudSync();
-
-            // 更新状态
-            this.isSupabaseEnabled = false;
-            this.isCloudflareEnabled = false;
-            this.currentSupabaseConfig = null;
-            this.currentCloudflareConfig = null;
             this.lastSyncTime = null;
 
             console.log('SyncAdapter: 云端同步已禁用');
@@ -97,13 +77,12 @@ class SyncAdapter {
      */
     async syncData() {
         try {
-            if (!this.isSupabaseEnabled && !this.isCloudflareEnabled) {
+            const status = this.getSyncStatus();
+            if (!status.isCloudEnabled) {
                 throw new Error('云端同步未启用');
             }
 
             console.log('SyncAdapter: 开始手动同步');
-
-            // 重新加载当前配置数据（这会触发同步）
             await window.unifiedDataManager.loadCurrentConfigData(true);
 
             this.lastSyncTime = new Date().toISOString();
@@ -130,8 +109,8 @@ class SyncAdapter {
     /**
      * 兼容性方法：保存数据
      */
-    async saveData(data, options = {}) {
-        return await window.unifiedDataManager.saveCurrentConfigData(data);
+    async saveData(data) {
+        return window.unifiedDataManager.saveCurrentConfigData(data);
     }
 
     /**
@@ -144,15 +123,28 @@ class SyncAdapter {
         return window.unifiedDataManager.getCurrentConfigData();
     }
 
-    /**
-     * 获取 Supabase 配置
-     */
     async getSupabaseConfig() {
         return window.unifiedDataManager.getProviderConfig('supabase');
     }
 
+    async getCloudflareConfig() {
+        return window.unifiedDataManager.getProviderConfig('cloudflare');
+    }
+
+    getProviderCapabilities(provider) {
+        return window.unifiedDataManager.getProviderCapabilities(provider);
+    }
+
+    async testProviderConnection(provider, config = null) {
+        return window.unifiedDataManager.testProviderConnection(provider, config);
+    }
+
+    async initializeProviderSchema(provider, config = null) {
+        return window.unifiedDataManager.initializeProviderSchema(provider, config);
+    }
+
     /**
-     * 启用 Supabase 同步 (适配独立设置页面的逻辑通常会直接调用 UDM，但保留接口供兼容)
+     * 启用 Supabase 同步
      */
     async enableSupabaseSync(config, themeId = 'default-supabase', themeName = '云端主题') {
         try {
@@ -167,15 +159,11 @@ class SyncAdapter {
                 config,
                 themeName
             );
-            
-            this.isSupabaseEnabled = true;
-            this.isCloudflareEnabled = false;
-            this.currentSupabaseConfig = config;
-            this.currentCloudflareConfig = null;
+
             this.lastSyncTime = new Date().toISOString();
             return true;
         } catch (error) {
-            console.error('SyncAdapter: 启用Supabase失败', error);
+            console.error('SyncAdapter: 启用 Supabase 失败', error);
             throw error;
         }
     }
@@ -185,31 +173,24 @@ class SyncAdapter {
      */
     async enableCloudflareSync(config, themeId = 'default-cf', themeName = '云端主题') {
         try {
-            console.log('SyncAdapter: 启用 Cloudflare 同步', { themeId: themeId });
+            console.log('SyncAdapter: 启用 Cloudflare 同步', { themeId });
 
             const currentTheme = window.unifiedDataManager.getCurrentTheme();
             if (currentTheme?.type === 'supabase') {
                 throw new Error('当前已启用 Supabase 同步，请先禁用后再切换到 Cloudflare');
             }
 
-            const cfConfig = {
-                workerUrl: config.workerUrl,
-                accessToken: config.accessToken || ''
-            };
-
             await window.unifiedDataManager.promoteCurrentThemeToCloud(
                 'cloudflare',
-                cfConfig,
+                {
+                    workerUrl: config.workerUrl,
+                    accessToken: config.accessToken || ''
+                },
                 null,
                 themeName
             );
 
-            this.isCloudflareEnabled = true;
-            this.isSupabaseEnabled = false;
-            this.currentCloudflareConfig = cfConfig;
-            this.currentSupabaseConfig = null;
             this.lastSyncTime = new Date().toISOString();
-
             console.log('SyncAdapter: Cloudflare 同步已启用');
             return true;
         } catch (error) {
@@ -218,34 +199,17 @@ class SyncAdapter {
         }
     }
 
-    /**
-     * 禁用 Supabase 同步
-     */
     async disableSupabaseSync() {
-        return await this.disableCloudSync();
+        return this.disableCloudSync();
     }
 
-    /**
-     * 禁用 Cloudflare 同步
-     */
     async disableCloudflareSync() {
-        return await this.disableCloudSync();
+        return this.disableCloudSync();
     }
 
-    /**
-     * 手动同步
-     */
     async manualSync() {
-        return await this.syncData();
-    }
-
-    /**
-     * 获取 Cloudflare 配置
-     */
-    async getCloudflareConfig() {
-        return window.unifiedDataManager.getProviderConfig('cloudflare');
+        return this.syncData();
     }
 }
 
-// 创建全局实例，替换原有的 syncManager
 window.syncManager = new SyncAdapter();

@@ -76,24 +76,31 @@ For multi-device synchronization, you can optionally configure either **Cloudfla
 1. In your Supabase project dashboard, go to **Settings** → **API**
 2. Copy the following information:
    - **Project URL**: `https://your-project.supabase.co`
-   - **anon public key**: `eyJhb...`
+   - **anon/public key**: `eyJhb...`
+   - **Service Role Key**: used to create the Storage bucket automatically
+3. Generate a **Personal Access Token** in your Supabase account settings. Card Tab uses it to run the initialization SQL through the Supabase Management API.
 
-#### Step 3: Initialize Database
-
-1. Go to **SQL Editor** in your Supabase project
-2. Create a new query
-3. Copy and execute the following script: [supabase-init.sql](supabase-init.sql)
-
-#### Step 4: Configure Extension
+#### Step 3: Initialize Resources Inside Card Tab
 
 1. Open Card Tab in a new browser tab
-2. Click the **sync button** (⟲ icon) on the right side
-3. Fill in the configuration:
-   - **Supabase URL**: Your project URL from Step 2
-   - **API Key**: Your anon public key from Step 2
-   - **User ID**: A unique identifier (recommend using your email)
-4. Click "Test Connection" to verify
-5. Click "Enable Cloud Sync" to start syncing
+2. Click the **sync button** (⟲ icon) and switch to **Supabase**
+3. In the **Project Initialization** section, fill in:
+   - **Project URL**
+   - **Project Ref** (optional, auto-derived from the URL by default)
+   - **Service Role Key**
+   - **Personal Access Token**
+4. Click **Initialize Resources**. Card Tab will automatically:
+   - create / migrate the `card_tab_data` table
+   - create the `backgrounds` Storage bucket
+
+#### Step 4: Enable Sync
+
+1. In the **Connection Parameters** section, fill in:
+   - **Supabase URL**: your project URL from Step 2
+   - **API Key**: your anon/public key from Step 2
+2. Card Tab connects directly to your own Supabase project, so no extra Supabase account sign-in is required
+3. Click **Test Connection** to verify
+4. Click **Enable Cloud Sync** to start syncing
 
 #### Option B: Cloudflare D1/R2
 

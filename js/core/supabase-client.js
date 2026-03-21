@@ -1,6 +1,6 @@
 /**
- * Supabase客户端管理器
- * 处理与Supabase的连接和数据同步
+ * Supabase client for Card Tab.
+ * Handles project connectivity, BYOS API-key sync, and Storage uploads.
  */
 
 class SupabaseClient {
@@ -10,215 +10,267 @@ class SupabaseClient {
     this.config = null;
     this.tableName = 'card_tab_data';
     this.userId = null;
-    this.currentConfigHash = null; // 用于检测配置变化
+    this.currentConfigHash = null;
   }
 
-  /**
-   * 生成配置哈希值，用于检测配置是否变化
-   */
   generateConfigHash(config) {
-    return `${config.url}|${config.anonKey}`;
+    return `${config.url}|${config.anonKey}|${config.bucketName || 'backgrounds'}`;
   }
 
-  /**
-   * 检查是否需要重新初始化
-   */
+  normalizeProjectUrl(url) {
+    return String(url || '').trim().replace(/\/+$/, '');
+  }
+
+  createClientOptions() {
+    return {};
+  }
+
   needsReinitialization(config) {
     const newHash = this.generateConfigHash(config);
     return !this.client || this.currentConfigHash !== newHash;
   }
 
-  /**
-   * 初始化Supabase连接
-   * @param {Object} config - Supabase配置
-   * @param {string} config.url - Supabase项目URL
-   * @param {string} config.anonKey - Supabase匿名密钥
-   * @param {string} config.userId - 用户唯一标识
-   * @param {boolean} shouldTest - 是否测试连接（默认false，用于性能优化）
-   */
+  getProjectScopeId() {
+    return 'card-tab';
+  }
+
+  getBucketName() {
+    return String(this.config?.bucketName || 'backgrounds')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '-') || 'backgrounds';
+  }
+
+  resolveUserId(userId = null) {
+    const resolvedUserId = String(userId || this.userId || this.getProjectScopeId()).trim() || this.getProjectScopeId();
+    this.userId = resolvedUserId;
+    return resolvedUserId;
+  }
+
   async initialize(config, shouldTest = false) {
     try {
-      // 检查是否需要重新初始化
-      if (!this.needsReinitialization(config)) {
-        console.log('Supabase客户端配置未变化，跳过重新初始化');
-        if (shouldTest && this.isConnected) {
-          // 如果需要测试连接且当前已连接，直接返回成功
-          console.log('Supabase客户端已连接，跳过连接测试');
-          return true;
-        } else if (shouldTest) {
-          // 需要测试但未连接，执行连接测试
+      const normalizedConfig = {
+        ...config,
+        url: this.normalizeProjectUrl(config?.url),
+        anonKey: String(config?.anonKey || '').trim(),
+        bucketName: String(config?.bucketName || 'backgrounds')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9._-]/g, '-') || 'backgrounds'
+      };
+
+      if (!normalizedConfig.url || !normalizedConfig.anonKey) {
+        throw new Error('Supabase 配置不完整');
+      }
+
+      if (!this.needsReinitialization(normalizedConfig)) {
+        this.userId = this.getProjectScopeId();
+
+        if (shouldTest) {
           await this.testConnection();
-          console.log('Supabase连接测试成功');
-          return true;
         }
+
         return true;
       }
 
-      // 如果配置发生变化，先断开现有连接
+      if (!globalThis.supabase?.createClient) {
+        throw new Error('Supabase SDK未加载，请确保 supabase.min.js 已正确加载');
+      }
+
       if (this.client) {
-        console.log('Supabase配置已变化，断开现有连接');
         this.disconnect();
       }
 
-      this.config = config;
-      this.currentConfigHash = this.generateConfigHash(config);
-
-      // 检查Supabase SDK是否已加载
-      if (!globalThis.supabase) {
-        throw new Error('Supabase SDK未加载，请确保supabase.min.js已正确加载');
-      }
-
-      // 创建Supabase客户端
-      this.client = globalThis.supabase.createClient(config.url, config.anonKey);
+      this.config = normalizedConfig;
+      this.currentConfigHash = this.generateConfigHash(normalizedConfig);
+      this.client = globalThis.supabase.createClient(
+        normalizedConfig.url,
+        normalizedConfig.anonKey,
+        this.createClientOptions(normalizedConfig)
+      );
+      this.userId = this.getProjectScopeId();
+      this.isConnected = true;
 
       if (shouldTest) {
-        // 需要验证连接（配置切换、用户手动测试等场景）
         await this.testConnection();
-        console.log('Supabase客户端已初始化并验证连接成功');
-      } else {
-        // 快速初始化，延迟验证（页面加载等场景）
-        this.isConnected = true; // 乐观假设连接成功
-        console.log('Supabase客户端已初始化（延迟连接验证）');
       }
 
       return true;
     } catch (error) {
-      console.error('Supabase客户端初始化失败:', error);
+      console.error('Supabase client initialization failed:', error);
       this.isConnected = false;
       this.currentConfigHash = null;
       throw error;
     }
   }
 
-
-
-  /**
-   * 判断是否是连接相关错误
-   * @param {Object} error - 错误对象
-   * @returns {boolean} 是否是连接错误
-   */
   isConnectionError(error) {
-    if (!error) return false;
+    if (!error) {
+      return false;
+    }
 
-    // 常见的连接错误标识
     const connectionErrorCodes = ['PGRST116', '42P01', 'ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT'];
     const connectionErrorMessages = [
-      'relation', 'does not exist', 'network', 'connection', 'timeout',
-      'unreachable', 'refused', 'invalid', 'unauthorized'
+      'relation',
+      'does not exist',
+      'network',
+      'connection',
+      'timeout',
+      'unreachable',
+      'refused',
+      'invalid',
+      'unauthorized'
     ];
 
-    // 检查错误代码
     if (error.code && connectionErrorCodes.includes(error.code)) {
       return true;
     }
 
-    // 检查错误消息
     if (error.message) {
       const message = error.message.toLowerCase();
-      return connectionErrorMessages.some(keyword => message.includes(keyword));
+      return connectionErrorMessages.some((keyword) => message.includes(keyword));
     }
 
     return false;
   }
 
-  /**
-   * 测试Supabase连接（手动调用）
-   * 注意：此方法不在初始化时自动调用，只用于用户手动测试
-   */
+  async testProjectAccess() {
+    const projectUrl = this.normalizeProjectUrl(this.config?.url);
+    const anonKey = String(this.config?.anonKey || '').trim();
+    if (!projectUrl || !anonKey) {
+      throw new Error('Supabase 配置不完整');
+    }
+
+    const attempts = [
+      `${projectUrl}/auth/v1/settings`,
+      `${projectUrl}/rest/v1/`
+    ];
+    let lastError = null;
+
+    for (const endpoint of attempts) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            apikey: anonKey
+          }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Supabase API Key 无效或无权限');
+        }
+
+        if (!response.ok && response.status !== 404) {
+          const errorText = await response.text().catch(() => '');
+          throw new Error(errorText || `Supabase 项目连接失败 (${response.status})`);
+        }
+
+        this.isConnected = true;
+        return {
+          ok: true,
+          projectUrl
+        };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    this.isConnected = false;
+    throw lastError || new Error('Supabase 项目连接失败');
+  }
+
+  async testSchemaAccess() {
+    if (!this.client) {
+      throw new Error('Supabase 客户端未初始化');
+    }
+
+    const { error } = await this.client
+      .from(this.tableName)
+      .select('id')
+      .limit(1);
+
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01' || String(error.message || '').includes('relation')) {
+        throw new Error('数据表不存在，请先初始化资源');
+      }
+
+      throw new Error(`数据表访问失败: ${error.message}`);
+    }
+
+    return {
+      ok: true,
+      tableName: this.tableName
+    };
+  }
+
   async testConnection() {
     if (!this.client) {
-      throw new Error('Supabase客户端未初始化');
+      throw new Error('Supabase 客户端未初始化');
     }
 
     try {
-      // 尝试查询数据表
-      // 测试用固定的查询条件
-      const { data, error } = await this.client
-        .from(this.tableName)
-        .select('id')
-        .limit(1);
+      const project = await this.testProjectAccess();
+      await this.testSchemaAccess();
 
-      if (error) {
-        if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('does not exist')) {
-          // 表不存在
-          throw new Error('数据表不存在，请先在Supabase中创建表结构');
-        } else if (error.code === '42P01') {
-          // PostgreSQL: relation does not exist
-          throw new Error('数据表不存在，请先在Supabase中创建表结构');
-        } else {
-          // 其他错误
-          throw new Error(`数据库连接测试失败: ${error.message}`);
-        }
-      }
-
-      // 连接成功
-      this.isConnected = true;
-      console.log('Supabase连接测试成功');
+      return {
+        ...project,
+        scopeId: this.resolveUserId()
+      };
     } catch (error) {
       this.isConnected = false;
-      console.error('Supabase连接测试失败:', error);
+      console.error('Supabase connection test failed:', error);
       throw error;
     }
   }
 
-  /**
-   * 列出所有主题元数据
-   * @param {string} userId - 用户 ID（默认 '1'）
-   * @returns {Array} 主题列表
-   */
-  async listThemes(userId = '1') {
+  async listThemes(userId = null) {
+    if (!this.isConnected) {
+      throw new Error('Supabase 未连接');
+    }
+
+    const targetUserId = this.resolveUserId(userId);
+    const { data, error } = await this.client
+      .from(this.tableName)
+      .select('theme_id, theme_name, theme_type, bg_image_url, bg_image_path, bg_opacity, is_active, updated_at')
+      .eq('user_id', targetUserId)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data || []).map((row) => ({
+      theme_id: row.theme_id,
+      theme_name: row.theme_name,
+      theme_type: row.theme_type,
+      bg_image_url: row.bg_image_url,
+      bg_image_path: row.bg_image_path,
+      bg_opacity: row.bg_opacity,
+      is_active: row.is_active,
+      updated_at: row.updated_at
+    }));
+  }
+
+  async saveData(themeId, data, themeMeta = {}, userId = null) {
     if (!this.isConnected) {
       throw new Error('Supabase 未连接');
     }
 
     try {
-      const { data, error } = await this.client
-        .from(this.tableName)
-        .select('theme_id, theme_name, theme_type, bg_image_url, bg_image_path, bg_opacity, is_active, updated_at')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      
-      // Map keys to camelCase
-      return (data || []).map(row => ({
-        theme_id: row.theme_id,
-        theme_name: row.theme_name,
-        theme_type: row.theme_type,
-        bg_image_url: row.bg_image_url,
-        bg_image_path: row.bg_image_path,
-        bg_opacity: row.bg_opacity,
-        is_active: row.is_active,
-        updated_at: row.updated_at
-      }));
-    } catch (error) {
-      console.error('Supabase 获取主题列表失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 保存特定主题的数据
-   */
-  async saveData(themeId, data, themeMeta = {}, userId = '1') {
-    if (!this.isConnected) {
-      throw new Error('Supabase未连接');
-    }
-
-    try {
+      const targetUserId = this.resolveUserId(userId);
       const record = {
-        user_id: userId,
+        user_id: targetUserId,
         theme_id: themeId,
         theme_name: themeMeta.themeName || '',
         theme_type: themeMeta.themeType || 'default',
         bg_image_url: themeMeta.bgImageUrl || null,
         bg_image_path: themeMeta.bgImagePath || null,
         bg_opacity: themeMeta.bgOpacity ?? 30,
-        is_active: themeMeta.isActive ?? 0,
-        data: data,
+        is_active: themeMeta.isActive ? 1 : 0,
+        data,
         updated_at: new Date().toISOString()
       };
 
-      // 使用 upsert，基于 user_id 和 theme_id
       const { error } = await this.client
         .from(this.tableName)
         .upsert(record, {
@@ -228,37 +280,34 @@ class SupabaseClient {
       if (error) {
         if (this.isConnectionError(error)) {
           this.isConnected = false;
-          throw new Error(`Supabase连接失败: ${error.message}`);
+          throw new Error(`Supabase 连接失败: ${error.message}`);
         }
         throw error;
       }
-
-      console.log('数据已保存到Supabase, themeId:', themeId);
     } catch (error) {
-      console.error('Supabase保存失败:', error);
+      console.error('Supabase save failed:', error);
       throw error;
     }
   }
 
-  /**
-   * 从Supabase加载指定主题数据
-   */
-  async loadData(themeId, userId = '1') {
+  async loadData(themeId, userId = null) {
     if (!this.isConnected) {
-      throw new Error('Supabase未连接');
+      throw new Error('Supabase 未连接');
     }
+
     try {
+      const targetUserId = this.resolveUserId(userId);
       const { data, error } = await this.client
         .from(this.tableName)
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', targetUserId)
         .eq('theme_id', themeId)
         .maybeSingle();
 
       if (error) {
         if (this.isConnectionError(error)) {
           this.isConnected = false;
-          throw new Error(`Supabase连接失败: ${error.message}`);
+          throw new Error(`Supabase 连接失败: ${error.message}`);
         }
         throw error;
       }
@@ -267,8 +316,7 @@ class SupabaseClient {
         return null;
       }
 
-      // 组装返回结构（符合 UnifiedDataManager 期望的格式）
-      const result = {
+      return {
         data: data.data,
         themeMeta: {
           themeName: data.theme_name,
@@ -280,45 +328,41 @@ class SupabaseClient {
           updatedAt: data.updated_at
         }
       };
-
-      return result;
     } catch (error) {
-      console.error('Supabase加载失败:', error);
+      console.error('Supabase load failed:', error);
       throw error;
     }
   }
 
-  /**
-   * 删除主题数据
-   */
-  async deleteThemeData(themeId, userId = '1') {
+  async deleteThemeData(themeId, userId = null) {
     if (!this.isConnected) {
-      throw new Error('Supabase未连接');
+      throw new Error('Supabase 未连接');
     }
 
+    const targetUserId = this.resolveUserId(userId);
     const { error } = await this.client
       .from(this.tableName)
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .eq('theme_id', themeId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    console.log(`主题 ${themeId} 已从Supabase删除`);
     return { success: true };
   }
 
-  /**
-   * 查询所有数据（用于调试和管理）
-   */
-  async getAllData() {
+  async getAllData(userId = null) {
     if (!this.isConnected) {
-      throw new Error('Supabase未连接');
+      throw new Error('Supabase 未连接');
     }
 
+    const targetUserId = this.resolveUserId(userId);
     const { data, error } = await this.client
       .from(this.tableName)
       .select('*')
+      .eq('user_id', targetUserId)
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -328,120 +372,72 @@ class SupabaseClient {
     return data || [];
   }
 
-  /**
-   * 分页查询数据（用于配置管理）
-   * @param {number} page - 页码（从1开始）
-   * @param {number} pageSize - 每页数量
-   * @param {string} orderBy - 排序字段，默认为 'updated_at'
-   * @param {boolean} ascending - 是否升序，默认为false（降序）
-   */
-  async getDataWithPagination(page = 1, pageSize = 10, orderBy = 'updated_at', ascending = false) {
+  async getDataWithPagination(page = 1, pageSize = 10, orderBy = 'updated_at', ascending = false, userId = null) {
     if (!this.isConnected) {
-      throw new Error('Supabase未连接');
+      throw new Error('Supabase 未连接');
     }
 
-    try {
-      // 计算偏移量
-      const offset = (page - 1) * pageSize;
-
-      // 查询数据
-      const { data, error } = await this.client
-        .from(this.tableName)
-        .select('*')
-        .order(orderBy, { ascending })
-        .range(offset, offset + pageSize - 1);
-
-      if (error) {
-        throw error;
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('SupabaseClient: 分页查询失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取数据总数（用于分页计算）
-   */
-  async getDataCount() {
-    if (!this.isConnected) {
-      throw new Error('Supabase未连接');
-    }
-
-    try {
-      const { count, error } = await this.client
-        .from(this.tableName)
-        .select('*', { count: 'exact', head: true });
-
-      if (error) {
-        throw error;
-      }
-
-      return count || 0;
-    } catch (error) {
-      console.error('SupabaseClient: 获取数据总数失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 查询特定用户的数据（用于调试）
-   */
-  async getUserData(userId) {
-    if (!this.isConnected) {
-      throw new Error('Supabase未连接');
-    }
-
+    const targetUserId = this.resolveUserId(userId);
+    const offset = (page - 1) * pageSize;
     const { data, error } = await this.client
       .from(this.tableName)
       .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+      .eq('user_id', targetUserId)
+      .order(orderBy, { ascending })
+      .range(offset, offset + pageSize - 1);
 
     if (error) {
       throw error;
     }
 
-    return data;
+    return data || [];
   }
 
+  async getDataCount(userId = null) {
+    if (!this.isConnected) {
+      throw new Error('Supabase 未连接');
+    }
 
+    const targetUserId = this.resolveUserId(userId);
+    const { count, error } = await this.client
+      .from(this.tableName)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', targetUserId);
 
-  /**
-   * 检查客户端状态
-   */
+    if (error) {
+      throw error;
+    }
+
+    return count || 0;
+  }
+
+  async getUserData(userId = null) {
+    return this.getAllData(userId);
+  }
+
   getClientStatus() {
     return {
       isConnected: this.isConnected,
       hasClient: !!this.client,
-      currentConfig: this.config ? {
-        url: this.config.url,
-        userId: this.config.userId,
-        hasAnonKey: !!this.config.anonKey
-      } : null,
+      currentConfig: this.config
+        ? {
+            url: this.config.url,
+            hasAnonKey: !!this.config.anonKey,
+            bucketName: this.config.bucketName || 'backgrounds'
+          }
+        : null,
       configHash: this.currentConfigHash
     };
   }
 
-  /**
-   * 断开连接
-   */
   disconnect() {
     if (this.client) {
       try {
-        // 尝试清理 GoTrueClient 实例
-        if (this.client.auth && typeof this.client.auth.stopAutoRefresh === 'function') {
-          this.client.auth.stopAutoRefresh();
-        }
-
-        // 清理实时订阅
         if (this.client.removeAllChannels && typeof this.client.removeAllChannels === 'function') {
           this.client.removeAllChannels();
         }
       } catch (error) {
-        console.warn('Supabase客户端清理时出现警告:', error);
+        console.warn('Supabase client cleanup warning:', error);
       }
     }
 
@@ -450,12 +446,8 @@ class SupabaseClient {
     this.config = null;
     this.userId = null;
     this.currentConfigHash = null;
-    console.log('Supabase连接已断开并清理');
   }
 
-  /**
-   * 获取连接状态
-   */
   getConnectionStatus() {
     return {
       isConnected: this.isConnected,
@@ -464,35 +456,22 @@ class SupabaseClient {
     };
   }
 
-  /**
-   * 清理文件名，移除特殊字符和中文字符
-   * @param {string} fileName - 原始文件名
-   * @returns {string} 清理后的文件名
-   */
   sanitizeFileName(fileName) {
-    // 获取文件扩展名
     const lastDotIndex = fileName.lastIndexOf('.');
     const name = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
     const extension = lastDotIndex > 0 ? fileName.substring(lastDotIndex) : '';
 
-    // 清理文件名：
-    // 1. 移除或替换特殊字符
-    // 2. 中文字符转换为拼音或移除
-    // 3. 空格替换为下划线
-    // 4. 括号等特殊符号移除
     let cleanName = name
-      .replace(/[\u4e00-\u9fff]/g, '') // 移除中文字符
-      .replace(/[^\w\-_.]/g, '_')      // 特殊字符替换为下划线
-      .replace(/_{2,}/g, '_')          // 多个下划线合并为一个
-      .replace(/^_+|_+$/g, '')         // 移除开头和结尾的下划线
-      .toLowerCase();                  // 转换为小写
+      .replace(/[\u4e00-\u9fff]/g, '')
+      .replace(/[^\w\-_.]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase();
 
-    // 如果清理后的名称为空，使用默认名称
     if (!cleanName) {
       cleanName = 'image';
     }
 
-    // 限制文件名长度
     if (cleanName.length > 50) {
       cleanName = cleanName.substring(0, 50);
     }
@@ -500,155 +479,226 @@ class SupabaseClient {
     return cleanName + extension;
   }
 
-  /**
-   * 上传文件到Supabase Storage
-   * @param {File} file - 要上传的文件
-   * @param {string} bucket - 存储桶名称
-   * @param {string} themeId - 主题标识，用于隔离存储路径
-   * @returns {Promise<Object>} 上传结果
-   */
   async uploadFile(file, bucket = 'backgrounds', themeId = 'default') {
     if (!this.isConnected) {
-      throw new Error('Supabase未连接');
+      throw new Error('Supabase 未连接');
     }
 
-    try {
-      // 生成文件路径，使用清理后的文件名
-      const cleanFileName = this.sanitizeFileName(file.name);
-      const fileName = `${themeId}/${Date.now()}_${cleanFileName}`;
+    const scopeId = this.resolveUserId();
+    const cleanFileName = this.sanitizeFileName(file.name);
+    const fileName = `${scopeId}/${themeId}/${Date.now()}_${cleanFileName}`;
 
-      // 上传文件
-      const { data, error } = await this.client.storage
-        .from(bucket)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+    const { error } = await this.client.storage
+      .from(bucket)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || undefined
+      });
 
-      if (error) {
-        throw error;
-      }
-
-      // 获取公共URL
-      const { data: urlData } = this.client.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
-
-      return {
-        success: true,
-        path: fileName,
-        url: urlData.publicUrl
-      };
-    } catch (error) {
-      console.error('文件上传失败:', error);
+    if (error) {
       throw error;
     }
+
+    const { data: urlData } = this.client.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+
+    return {
+      success: true,
+      path: fileName,
+      url: urlData?.publicUrl || ''
+    };
   }
 
-  /**
-   * 删除Supabase Storage中的文件
-   * @param {string} bucket - 存储桶名称
-   * @param {string} path - 文件路径
-   * @returns {Promise<Object>} 删除结果
-   */
   async deleteFile(bucket = 'backgrounds', path) {
     if (!this.isConnected) {
-      throw new Error('Supabase未连接');
+      throw new Error('Supabase 未连接');
     }
 
-    try {
-      const { data, error } = await this.client.storage
-        .from(bucket)
-        .remove([path]);
-
-      if (error) {
-        throw error;
-      }
-
+    if (!path) {
       return { success: true };
-    } catch (error) {
-      console.error('文件删除失败:', error);
+    }
+
+    const { error } = await this.client.storage
+      .from(bucket)
+      .remove([path]);
+
+    if (error) {
       throw error;
     }
+
+    return { success: true };
   }
 
-  /**
-   * 生成数据表创建SQL
-   */
-  getTableCreationSQL() {
+  getTableCreationSQL(bucketName = 'backgrounds') {
+    const normalizedBucketName = String(bucketName || 'backgrounds')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '-') || 'backgrounds';
+
     return `
 -- =====================================================
--- Quick Tab Chrome扩展 - Supabase简化初始化脚本
+-- Card Tab - Supabase BYOS setup
+-- Uses project-level API key access (no Supabase Auth required)
+-- Recommended: dedicate one project to Card Tab
 -- =====================================================
--- 请在Supabase项目的SQL编辑器中执行以下脚本
 
--- 1. 创建数据表（禁用RLS以避免权限问题）
--- =====================================================
 CREATE TABLE IF NOT EXISTS ${this.tableName} (
-  id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL DEFAULT '1',
-  theme_id TEXT NOT NULL,
+  id BIGSERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'card-tab',
+  theme_id TEXT NOT NULL DEFAULT 'default',
   theme_name TEXT DEFAULT '',
   theme_type TEXT DEFAULT 'default',
   bg_image_url TEXT,
   bg_image_path TEXT,
   bg_opacity INTEGER DEFAULT 30,
   is_active INTEGER DEFAULT 0,
-  data JSONB NOT NULL,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, theme_id)
 );
 
--- 创建索引提升查询性能
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS theme_id TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS theme_name TEXT DEFAULT '';
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS theme_type TEXT DEFAULT 'default';
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS bg_image_url TEXT;
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS bg_image_path TEXT;
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS bg_opacity INTEGER DEFAULT 30;
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS is_active INTEGER DEFAULT 0;
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS data JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE ${this.tableName} ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+ALTER TABLE ${this.tableName} ALTER COLUMN user_id SET DEFAULT 'card-tab';
+ALTER TABLE ${this.tableName} ALTER COLUMN theme_id SET DEFAULT 'default';
+ALTER TABLE ${this.tableName} ALTER COLUMN theme_name SET DEFAULT '';
+ALTER TABLE ${this.tableName} ALTER COLUMN theme_type SET DEFAULT 'default';
+ALTER TABLE ${this.tableName} ALTER COLUMN bg_opacity SET DEFAULT 30;
+ALTER TABLE ${this.tableName} ALTER COLUMN is_active SET DEFAULT 0;
+ALTER TABLE ${this.tableName} ALTER COLUMN data SET DEFAULT '{}'::jsonb;
+ALTER TABLE ${this.tableName} ALTER COLUMN created_at SET DEFAULT NOW();
+ALTER TABLE ${this.tableName} ALTER COLUMN updated_at SET DEFAULT NOW();
+
+UPDATE ${this.tableName}
+SET user_id = COALESCE(NULLIF(user_id, ''), 'card-tab'),
+    theme_id = COALESCE(NULLIF(theme_id, ''), 'default');
+
+ALTER TABLE ${this.tableName} DROP CONSTRAINT IF EXISTS ${this.tableName}_user_id_key;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = '${this.tableName}_user_id_theme_id_key'
+  ) THEN
+    ALTER TABLE ${this.tableName}
+    ADD CONSTRAINT ${this.tableName}_user_id_theme_id_key UNIQUE (user_id, theme_id);
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_user_id ON ${this.tableName}(user_id);
 CREATE INDEX IF NOT EXISTS idx_${this.tableName}_theme_id ON ${this.tableName}(theme_id);
+CREATE INDEX IF NOT EXISTS idx_${this.tableName}_updated_at ON ${this.tableName}(updated_at);
 
--- 禁用行级安全策略（简化配置，适合个人使用）
-ALTER TABLE ${this.tableName} DISABLE ROW LEVEL SECURITY;
+ALTER TABLE ${this.tableName} ENABLE ROW LEVEL SECURITY;
 
--- 2. 创建Storage存储桶
--- =====================================================
--- 创建backgrounds桶（用于存储背景图片）
+DROP POLICY IF EXISTS "Users can read own card tab data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Users can insert own card tab data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Users can update own card tab data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Users can delete own card tab data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Card Tab can read data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Card Tab can insert data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Card Tab can update data" ON ${this.tableName};
+DROP POLICY IF EXISTS "Card Tab can delete data" ON ${this.tableName};
+
+CREATE POLICY "Card Tab can read data"
+ON ${this.tableName}
+FOR SELECT
+TO anon, authenticated
+USING (true);
+
+CREATE POLICY "Card Tab can insert data"
+ON ${this.tableName}
+FOR INSERT
+TO anon, authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Card Tab can update data"
+ON ${this.tableName}
+FOR UPDATE
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Card Tab can delete data"
+ON ${this.tableName}
+FOR DELETE
+TO anon, authenticated
+USING (true);
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
-  'backgrounds',
-  'backgrounds',
+  '${normalizedBucketName}',
+  '${normalizedBucketName}',
   true,
-  52428800,  -- 50MB限制
+  52428800,
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-) ON CONFLICT (id) DO NOTHING;
+)
+ON CONFLICT (id) DO NOTHING;
 
--- Storage桶已创建，使用默认权限设置
+DROP POLICY IF EXISTS "Users can read own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can read background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can upload background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can update background objects" ON storage.objects;
+DROP POLICY IF EXISTS "Card Tab can delete background objects" ON storage.objects;
 
--- 3. 验证配置
--- =====================================================
--- 检查数据表是否创建成功
-SELECT 'Data table created successfully' as status
-WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '${this.tableName}');
+CREATE POLICY "Card Tab can read background objects"
+ON storage.objects
+FOR SELECT
+TO anon, authenticated
+USING (
+  bucket_id = '${normalizedBucketName}'
+);
 
--- 检查存储桶是否创建成功
-SELECT 'Storage bucket created successfully' as status
-WHERE EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'backgrounds');
+CREATE POLICY "Card Tab can upload background objects"
+ON storage.objects
+FOR INSERT
+TO anon, authenticated
+WITH CHECK (
+  bucket_id = '${normalizedBucketName}'
+);
 
--- =====================================================
--- 配置完成！
--- =====================================================
--- 现在您可以：
--- 1. 返回Chrome扩展
--- 2. 配置Supabase连接信息
--- 3. 测试连接和同步功能
--- 4. 使用背景图片和多配置功能
---
--- 注意事项：
--- - 此配置适合个人使用，已禁用RLS简化设置
--- - 数据通过user_id字段进行区分
--- - 背景图片存储在backgrounds桶中
--- - 如需更高安全性，请参考文档配置RLS策略
+CREATE POLICY "Card Tab can update background objects"
+ON storage.objects
+FOR UPDATE
+TO anon, authenticated
+USING (
+  bucket_id = '${normalizedBucketName}'
+)
+WITH CHECK (
+  bucket_id = '${normalizedBucketName}'
+);
+
+CREATE POLICY "Card Tab can delete background objects"
+ON storage.objects
+FOR DELETE
+TO anon, authenticated
+USING (
+  bucket_id = '${normalizedBucketName}'
+);
+
+SELECT 'Card Tab Supabase BYOS setup complete' AS status;
     `.trim();
   }
 }
 
-// 创建全局实例
 const supabaseClient = new SupabaseClient();
+globalThis.SupabaseClient = SupabaseClient;
 globalThis.supabaseClient = supabaseClient;

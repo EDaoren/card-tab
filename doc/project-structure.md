@@ -21,7 +21,7 @@ card-tab/
 │   │   ├── sync-adapter.js         # 同步兼容层
 │   │   ├── supabase-client.js      # Supabase 客户端
 │   │   ├── cf-client.js            # Cloudflare 客户端
-│   │   └── cf-setup-manager.js     # Cloudflare 初始化逻辑
+│   │   └── cf-resource-manager.js     # Cloudflare 初始化逻辑
 │   ├── ui/
 │   │   ├── notification.js         # 提示系统
 │   │   ├── settings-ui.js          # 设置页逻辑

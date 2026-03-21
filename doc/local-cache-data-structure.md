@@ -12,7 +12,7 @@
 
 - `js/core/unified-data-manager.js:5`
 - `js/core/storage-adapter.js:43`
-- `js/core/cf-setup-manager.js:191`
+- `js/core/cf-resource-manager.js:191`
 - `js/features/search.js:662`
 
 > 狭义上说，项目里的“本地缓存”主要指 `chrome.storage.local` 里的 `cardTabData_${themeId}`。
@@ -270,7 +270,7 @@
 
 ## 3.6 Cloudflare 初始化缓存结构
 
-实现位于：`js/core/cf-setup-manager.js:191`
+实现位于：`js/core/cf-resource-manager.js:191`
 
 ### `card_tab_cf_setup_preferences`
 
@@ -283,11 +283,11 @@
 }
 ```
 
-来源：`js/core/cf-setup-manager.js:198`
+来源：`js/core/cf-resource-manager.js:198`
 
 ### `card_tab_cf_setup_profile`
 
-自动创建资源后的结构参考：`js/core/cf-setup-manager.js:480`
+自动创建资源后的结构参考：`js/core/cf-resource-manager.js:480`
 
 ```json
 {
@@ -307,7 +307,7 @@
 }
 ```
 
-手动保存/同步后的结构参考：`js/core/cf-setup-manager.js:521`
+手动保存/同步后的结构参考：`js/core/cf-resource-manager.js:521`
 
 ```json
 {

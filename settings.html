@@ -116,114 +116,151 @@
         <div class="tab-content">
           <div id="cf-sync-panel" class="tab-pane active">
             <p id="cf-provider-lock-hint" class="sync-provider-lock-hint" style="display:none;"></p>
-            <div class="sync-quick-start-card">
-              <div>
-                <h4>Cloudflare 资源准备</h4>
-                <p>先判断你是否已经有 Worker / D1 / R2 资源：已有则直接填写连接参数，没有则使用 Cloudflare API 自动创建。</p>
-              </div>
-              <div class="sync-mode-options" role="radiogroup" aria-label="Cloudflare 资源准备方式">
-                <label class="sync-inline-toggle" for="cf-resource-mode-existing">
-                  <input type="radio" id="cf-resource-mode-existing" name="cf-resource-mode" value="existing">
-                  <span>我已经有现成资源</span>
-                </label>
-                <label class="sync-inline-toggle" for="cf-resource-mode-create">
-                  <input type="radio" id="cf-resource-mode-create" name="cf-resource-mode" value="create" checked>
-                  <span>我还没有资源，自动创建</span>
-                </label>
-              </div>
-            </div>
-            <p id="cf-setup-status-text" class="sync-hint">还没有创建 Cloudflare 资源。若你已经有现成资源，可切换到“我已经有现成资源”并直接填写下方连接参数。</p>
-
-            <div id="cf-auto-setup-section" class="sync-service-card">
+            <div id="cf-connection-card" class="sync-service-card">
               <div class="sync-service-card-header">
                 <div>
-                  <h4>自动创建资源</h4>
-                  <p class="sync-hint">填写 Cloudflare 账号参数，以及你想使用的 Worker / D1 / R2 名称。创建成功后，连接参数会自动回填到下方表单。</p>
+                  <h4>3 步完成 Cloudflare 设置</h4>
                 </div>
                 <span id="cf-setup-badge" class="sync-status-badge is-idle">未创建</span>
               </div>
-              <div class="sync-form-grid">
-                <div class="form-group">
-                  <label for="cf-account-id">Cloudflare Account ID</label>
-                  <input type="text" id="cf-account-id" placeholder="例如：1a2b3c4d5e6f...">
+              <div class="sync-step-grid">
+                <div class="sync-step-item" data-cf-step="1">
+                  <span class="sync-step-number">1</span>
+                  <div class="sync-step-content">
+                    <strong>准备连接</strong>
+                    <span>已有 Worker 直接填 URL；没有就先创建。</span>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="cf-api-token">Cloudflare API Token</label>
-                  <input type="password" id="cf-api-token" placeholder="用于创建 Worker / D1 / R2 的 Token">
+                <div class="sync-step-item" data-cf-step="2">
+                  <span class="sync-step-number">2</span>
+                  <div class="sync-step-content">
+                    <strong>初始化数据库</strong>
+                    <span>拿到 Worker API URL 后再做这步。</span>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="cf-create-worker-name">Worker 服务名称</label>
-                  <input type="text" id="cf-create-worker-name" placeholder="默认：card-tab-sync">
-                </div>
-                <div class="form-group">
-                  <label for="cf-create-database-name">D1 Database 名称</label>
-                  <input type="text" id="cf-create-database-name" placeholder="默认：card-tab-db">
-                </div>
-                <div class="form-group">
-                  <label for="cf-create-bucket-name">R2 Bucket 名称</label>
-                  <input type="text" id="cf-create-bucket-name" placeholder="默认：card-tab-files">
-                </div>
-                <div class="form-group">
-                  <label for="cf-worker-access-token">同步 Worker 访问令牌</label>
-                  <input type="password" id="cf-worker-access-token" placeholder="留空则自动生成">
+                <div class="sync-step-item" data-cf-step="3">
+                  <span class="sync-step-number">3</span>
+                  <div class="sync-step-content">
+                    <strong>测试并启用</strong>
+                    <span>能连上就可以开启同步。</span>
+                  </div>
                 </div>
               </div>
-              <label class="sync-checkbox-row" for="cf-save-api-token">
-                <input type="checkbox" id="cf-save-api-token">
-                <span>将 Cloudflare API Token 仅保存在本地，便于下次继续创建或修复资源</span>
-              </label>
-              <div class="form-actions">
-                <button id="cf-create-resources-btn" class="primary-btn">创建资源</button>
-                <button id="cf-initialize-setup-btn" class="secondary-btn">初始化数据</button>
-                <button id="cf-restore-setup-btn" class="secondary-btn">恢复缓存</button>
-                <button id="cf-clear-setup-cache-btn" class="secondary-btn text-danger">清空缓存</button>
-              </div>
-            </div>
-
-            <div class="sync-quick-actions">
-              <button id="cf-copy-worker-btn" class="secondary-btn">复制 Worker 模板</button>
-              <button id="cf-copy-init-sql-btn" class="secondary-btn">复制 D1 初始化 SQL</button>
-            </div>
-
-            <div class="sync-service-card">
-              <div class="sync-service-card-header">
-                <div>
-                  <h4>连接参数</h4>
-                  <p class="sync-hint">如果你已经有 Cloudflare 资源，可直接填写；如果上方自动创建成功，这里的参数也会自动回填。</p>
+              <div class="sync-mode-selector">
+                <div class="sync-mode-selector-copy">
+                  <h5>Worker / D1 / R2 已经建好了吗？</h5>
+                  <p id="cf-flow-mode-text" class="sync-hint">已有 Worker 就选“已经建好，直接连接”。</p>
+                </div>
+                <div class="sync-mode-options" role="radiogroup" aria-label="Cloudflare 资源准备方式">
+                  <label class="sync-inline-toggle" for="cf-resource-mode-existing">
+                    <input type="radio" id="cf-resource-mode-existing" name="cf-resource-mode" value="existing" checked>
+                    <span>已经建好，直接连接</span>
+                  </label>
+                  <label class="sync-inline-toggle" for="cf-resource-mode-create">
+                    <input type="radio" id="cf-resource-mode-create" name="cf-resource-mode" value="create">
+                    <span>还没有，帮我初始化</span>
+                  </label>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="cf-worker-url">Worker API URL</label>
-                <input type="text" id="cf-worker-url" placeholder="https://your-worker.workers.dev">
+              <div id="cf-create-section" class="sync-inline-reveal" hidden>
+                <p id="cf-create-mode-hint" class="sync-hint">先创建 Worker，成功后会自动生成 Worker API URL。</p>
+                <div class="sync-form-grid">
+                  <div class="form-group">
+                    <label for="cf-account-id">Cloudflare Account ID</label>
+                    <input type="text" id="cf-account-id" placeholder="例如：1a2b3c4d5e6f...">
+                  </div>
+                  <div class="form-group">
+                    <label for="cf-api-token">Cloudflare API Token</label>
+                    <input type="password" id="cf-api-token" placeholder="用于创建 Worker / D1 / R2 的 Token">
+                  </div>
+                </div>
+                <details class="sync-advanced-details">
+                  <summary>创建时的默认值（一般不用改）</summary>
+                  <div class="sync-form-grid">
+                    <div class="form-group">
+                      <label for="cf-create-worker-name">Worker 服务名称</label>
+                      <input type="text" id="cf-create-worker-name" placeholder="默认：card-tab-sync">
+                    </div>
+                    <div class="form-group">
+                      <label for="cf-create-database-name">D1 Database 名称</label>
+                      <input type="text" id="cf-create-database-name" placeholder="默认：card-tab-db">
+                    </div>
+                    <div class="form-group">
+                      <label for="cf-create-bucket-name">R2 Bucket 名称</label>
+                      <input type="text" id="cf-create-bucket-name" placeholder="默认：card-tab-files">
+                    </div>
+                    <div class="form-group">
+                      <label for="cf-worker-access-token">同步 Worker 访问令牌</label>
+                      <input type="password" id="cf-worker-access-token" placeholder="留空则自动生成">
+                    </div>
+                  </div>
+                  <label class="sync-checkbox-row" for="cf-save-api-token">
+                    <input type="checkbox" id="cf-save-api-token">
+                    <span>将 Cloudflare API Token 仅保存在本地</span>
+                  </label>
+                </details>
+                <div class="form-actions sync-primary-actions" style="margin-top:16px;">
+                  <button id="cf-create-resources-btn" class="secondary-btn">创建 Worker</button>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="cf-access-token">访问令牌 (Access Token - 可选)</label>
-                <input type="password" id="cf-access-token" placeholder="Worker 环境变量中配置的令牌">
-              </div>
-              <div class="sync-form-grid">
-                <div class="form-group">
-                  <label for="cf-worker-name">Worker 服务名称（可选）</label>
-                  <input type="text" id="cf-worker-name" placeholder="例如：card-tab-sync">
-                </div>
-                <div class="form-group">
-                  <label for="cf-database-id">D1 Database ID（可选）</label>
-                  <input type="text" id="cf-database-id" placeholder="用于本地缓存和展示">
-                </div>
-                <div class="form-group">
-                  <label for="cf-database-name">D1 Database 名称（可选）</label>
-                  <input type="text" id="cf-database-name" placeholder="例如：card-tab-db">
-                </div>
-                <div class="form-group">
-                  <label for="cf-bucket-name">R2 Bucket 名称（可选）</label>
-                  <input type="text" id="cf-bucket-name" placeholder="例如：card-tab-files">
+              <div id="cf-connection-section" class="sync-inline-reveal">
+                <p id="cf-connection-mode-hint" class="sync-hint">已经有 Worker 就填这 2 项。</p>
+                <div class="sync-form-grid">
+                  <div class="form-group">
+                    <label for="cf-worker-url">Worker API URL</label>
+                    <input type="text" id="cf-worker-url" placeholder="https://your-worker.workers.dev">
+                  </div>
+                  <div class="form-group">
+                    <label for="cf-access-token">访问令牌 (Access Token - 可选)</label>
+                    <input type="password" id="cf-access-token" placeholder="Worker 环境变量中配置的令牌">
+                  </div>
                 </div>
               </div>
+              <div id="cf-schema-section" class="sync-inline-reveal" hidden>
+                <p id="cf-setup-status-text" class="sync-hint" hidden></p>
+                <p id="cf-init-mode-hint" class="sync-hint">拿到 Worker API URL 后，再初始化数据库。</p>
+                <div class="form-actions sync-primary-actions" style="margin-top:16px;">
+                  <button id="cf-init-db-btn" class="secondary-btn">初始化数据库</button>
+                </div>
+              </div>
+              <div id="cf-sync-section" class="sync-inline-reveal" hidden>
+                <p id="cf-sync-mode-hint" class="sync-hint">如果数据库已经建好，可以直接测试并启用同步。</p>
+                <div class="form-actions sync-primary-actions" style="margin-top:16px;">
+                  <button id="cf-test-btn" class="secondary-btn">测试连接</button>
+                  <button id="cf-enable-btn" class="primary-btn">启用同步</button>
+                  <button id="cf-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
+                </div>
+              </div>
+              <details class="sync-advanced-details">
+                <summary>高级选项（可选）</summary>
+                <p class="sync-hint">这些字段只用于本地记录和恢复，不影响主流程。</p>
+                <div class="sync-form-grid">
+                  <div class="form-group">
+                    <label for="cf-worker-name">Worker 服务名称（可选）</label>
+                    <input type="text" id="cf-worker-name" placeholder="例如：card-tab-sync">
+                  </div>
+                  <div class="form-group">
+                    <label for="cf-database-id">D1 Database ID（可选）</label>
+                    <input type="text" id="cf-database-id" placeholder="用于本地缓存和展示">
+                  </div>
+                  <div class="form-group">
+                    <label for="cf-database-name">D1 Database 名称（可选）</label>
+                    <input type="text" id="cf-database-name" placeholder="例如：card-tab-db">
+                  </div>
+                  <div class="form-group">
+                    <label for="cf-bucket-name">R2 Bucket 名称（可选）</label>
+                    <input type="text" id="cf-bucket-name" placeholder="例如：card-tab-files">
+                  </div>
+                </div>
+                <div class="form-actions" style="margin-top:16px;">
+                  <button id="cf-save-existing-btn" class="secondary-btn">保存草稿</button>
+                  <button id="cf-restore-setup-btn" class="secondary-btn">恢复缓存</button>
+                  <button id="cf-copy-worker-btn" class="secondary-btn">复制 Worker 模板</button>
+                  <button id="cf-copy-init-sql-btn" class="secondary-btn">复制 D1 初始化 SQL</button>
+                </div>
+              </details>
               <div class="form-actions" style="margin-top:20px;">
-                <button id="cf-test-btn" class="secondary-btn">测试连接</button>
-                <button id="cf-init-db-btn" class="secondary-btn">初始化数据</button>
-                <button id="cf-save-existing-btn" class="secondary-btn">保存参数</button>
-                <button id="cf-enable-btn" class="primary-btn">启用同步</button>
-                <button id="cf-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
+                <button id="cf-clear-setup-cache-btn" class="secondary-btn text-danger">清空本地缓存</button>
               </div>
             </div>
 
@@ -231,21 +268,102 @@
 
           <div id="supabase-sync-panel" class="tab-pane">
             <p id="sb-provider-lock-hint" class="sync-provider-lock-hint" style="display:none;"></p>
-            <div class="sync-quick-actions">
-              <button id="sb-copy-init-sql-btn" class="secondary-btn">复制初始化 SQL</button>
-            </div>
-            <div class="form-group">
-              <label for="sb-url">Project URL</label>
-              <input type="text" id="sb-url" placeholder="https://your-project.supabase.co">
-            </div>
-            <div class="form-group">
-              <label for="sb-key">API Key (anon/public)</label>
-              <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-            </div>
-            <div class="form-actions" style="margin-top:20px;">
-              <button id="sb-test-btn" class="secondary-btn">测试连接</button>
-              <button id="sb-enable-btn" class="primary-btn">启用同步</button>
-              <button id="sb-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
+
+            <div id="sb-connection-card" class="sync-service-card">
+              <div class="sync-service-card-header">
+                <div>
+                  <h4>3 步完成 Supabase 设置</h4>
+                </div>
+                <span id="sb-setup-badge" class="sync-status-badge is-idle">未初始化</span>
+              </div>
+              <div class="sync-step-grid">
+                <div class="sync-step-item" data-sb-step="1">
+                  <span class="sync-step-number">1</span>
+                  <div class="sync-step-content">
+                    <strong>先填 2 项</strong>
+                    <span>填 Project URL 和 API Key。</span>
+                  </div>
+                </div>
+                <div class="sync-step-item" data-sb-step="2">
+                  <span class="sync-step-number">2</span>
+                  <div class="sync-step-content">
+                    <strong>没建好再做这步</strong>
+                    <span>如果已建好资源，直接跳过。</span>
+                  </div>
+                </div>
+                <div class="sync-step-item" data-sb-step="3">
+                  <span class="sync-step-number">3</span>
+                  <div class="sync-step-content">
+                    <strong>测试并启用</strong>
+                    <span>能连上就可以开启同步。</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="sb-url">Project URL <span class="sync-label-chip is-required-daily">日常必填</span></label>
+                <input type="text" id="sb-url" placeholder="https://your-project.supabase.co">
+              </div>
+              <div class="form-group">
+                <label for="sb-key">API Key (publishable / anon) <span class="sync-label-chip is-required-daily">日常必填</span></label>
+                <input type="password" id="sb-key" placeholder="直接粘贴 anon / publishable key">
+              </div>
+              <div class="sync-mode-selector">
+                <div class="sync-mode-selector-copy">
+                  <h5>表和 Bucket 已经建好了吗？</h5>
+                  <p id="sb-flow-mode-text" class="sync-hint">还没建好就选“还没有，帮我初始化”。</p>
+                </div>
+                <div class="sync-mode-options">
+                  <label class="sync-inline-toggle" for="sb-project-state-existing">
+                    <input type="radio" id="sb-project-state-existing" name="sb-project-state" value="existing" checked>
+                    已经建好，直接连接
+                  </label>
+                  <label class="sync-inline-toggle" for="sb-project-state-setup">
+                    <input type="radio" id="sb-project-state-setup" name="sb-project-state" value="setup">
+                    还没有，帮我初始化
+                  </label>
+                </div>
+              </div>
+              <div id="sb-init-section" class="sync-inline-reveal" hidden>
+                <p id="sb-setup-status-text" class="sync-hint" hidden></p>
+                <p id="sb-init-mode-hint" class="sync-hint">Project Ref 自动识别，Bucket 默认是 backgrounds。</p>
+                <div class="form-group">
+                  <label for="sb-service-role-key">Service Role Key <span class="sync-label-chip is-init-only">仅初始化</span></label>
+                  <input type="password" id="sb-service-role-key" placeholder="直接粘贴 Service Role Key">
+                </div>
+                <div class="form-group">
+                  <label for="sb-management-token">Personal Access Token <span class="sync-label-chip is-init-only">仅初始化</span></label>
+                  <input type="password" id="sb-management-token" placeholder="直接粘贴 Personal Access Token">
+                </div>
+                <details class="sync-advanced-details">
+                  <summary>高级选项（一般不用改）</summary>
+                  <p class="sync-hint">Project Ref 会自动识别，Bucket 默认是 `backgrounds`。</p>
+                  <div class="sync-form-grid">
+                    <div class="form-group">
+                      <label for="sb-project-ref">Project Ref <span class="sync-label-chip is-optional">可选</span></label>
+                      <input type="text" id="sb-project-ref" placeholder="自动识别">
+                    </div>
+                    <div class="form-group">
+                      <label for="sb-bucket-name">Storage Bucket 名称 <span class="sync-label-chip is-optional">可选</span></label>
+                      <input type="text" id="sb-bucket-name" placeholder="默认 backgrounds">
+                    </div>
+                  </div>
+                  <label class="sync-checkbox-row" for="sb-save-admin-secrets">
+                    <input type="checkbox" id="sb-save-admin-secrets">
+                    把这两个密钥保存在本地（不推荐）
+                  </label>
+                  <div class="form-actions" style="margin-top:16px;">
+                    <button id="sb-save-setup-btn" class="secondary-btn">保存草稿</button>
+                    <button id="sb-copy-init-sql-btn" class="secondary-btn">复制 SQL（手动备用）</button>
+                  </div>
+                </details>
+              </div>
+              <div class="form-actions sync-primary-actions" style="margin-top:20px;">
+                <button id="sb-test-btn" class="secondary-btn">测试连接</button>
+                <button id="sb-init-resources-btn" class="secondary-btn">初始化连接</button>
+                <button id="sb-enable-btn" class="primary-btn">启用同步</button>
+                <button id="sb-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
+                <button id="sb-clear-setup-cache-btn" class="secondary-btn text-danger">清空本地缓存</button>
+              </div>
             </div>
           </div>
         </div>
@@ -300,8 +418,10 @@
 
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/core/cf-client.js"></script>
-  <script src="js/core/cf-setup-manager.js"></script>
+  <script src="js/core/cf-resource-manager.js"></script>
   <script src="js/core/supabase-client.js"></script>
+  <script src="js/core/supabase-resource-manager.js"></script>
+  <script src="js/core/sync-provider.js"></script>
   <script src="js/core/unified-data-manager.js"></script>
   <script src="js/core/storage-adapter.js"></script>
   <script src="js/core/sync-adapter.js"></script>

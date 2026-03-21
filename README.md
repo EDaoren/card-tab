@@ -73,27 +73,34 @@
 
 #### 步骤2：获取项目凭据
 
-1. 在Supabase项目仪表板中，进入 **Settings** → **API**
+1. 在 Supabase 项目仪表板中，进入 **Settings** → **API**
 2. 复制以下信息：
    - **项目URL**: `https://your-project.supabase.co`
-   - **匿名公钥**: `eyJhb...`
+   - **匿名公钥（anon/public）**: `eyJhb...`
+   - **Service Role Key**: 用于自动创建 Storage bucket
+3. 在你的 Supabase 账号后台生成一个 **Personal Access Token**，用于通过 Management API 自动执行初始化 SQL
 
-#### 步骤3：初始化数据库
+#### 步骤3：在扩展内初始化资源
 
-1. 在Supabase项目中进入 **SQL Editor**
-2. 创建新查询
-3. 复制并执行以下脚本：[supabase-init.sql](supabase-init.sql)
+1. 在新浏览器标签页中打开 Card Tab
+2. 点击右侧的**同步按钮**（⟲图标），切换到 **Supabase**
+3. 在“项目初始化”区域填写：
+   - **Project URL**
+   - **Project Ref**（可选，默认会从 URL 自动识别）
+   - **Service Role Key**
+   - **Personal Access Token**
+4. 点击 **初始化资源**，扩展会自动：
+   - 创建 / 迁移 `card_tab_data` 表
+   - 创建 `backgrounds` Storage bucket
 
-#### 步骤4：配置扩展
+#### 步骤4：启用同步
 
-1. 在新浏览器标签页中打开Card Tab
-2. 点击右侧的**同步按钮**（⟲图标）
-3. 填写配置信息：
+1. 在“连接参数”区域填写：
    - **Supabase URL**: 步骤2中的项目URL
-   - **匿名密钥**: 步骤2中的匿名公钥
-   - **用户标识**: 唯一标识符（建议使用您的邮箱）
-4. 点击"测试连接"进行验证
-5. 点击"启用云端同步"开始同步
+   - **API Key**: 步骤2中的匿名公钥
+2. Card Tab 会直接连接你自己的 Supabase 项目，不需要额外登录 Supabase 账号
+3. 点击 **测试连接** 进行验证
+4. 点击 **启用同步** 开始同步
 
 #### 方案 B：Cloudflare D1/R2
 
