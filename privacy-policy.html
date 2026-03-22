@@ -7,146 +7,132 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      line-height: 1.6;
-      max-width: 800px;
+      line-height: 1.7;
+      max-width: 840px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 24px;
       color: #333;
+      background: #f8f9fb;
     }
-    h1, h2 {
-      color: #4285f4;
+    h1, h2, h3 {
+      color: #2f6feb;
     }
     .container {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 28px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    ul {
+      padding-left: 20px;
+    }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Privacy Policy for Card Tab</h1>
-    <p>Last updated: <span id="last-updated">January 2, 2025</span></p>
+    <p>Last updated: <span id="last-updated">January 8, 2025</span></p>
 
-    <h2>Introduction</h2>
-    <p>Your privacy is important to us. This Privacy Policy explains how Card Tab ("we", "our", or "the extension") handles your data when you use our Chrome extension.</p>
-    
-    <h2>Information Collection and Use</h2>
-    <p>Card Tab is designed with privacy in mind. We collect minimal data necessary for the extension's functionality.</p>
+    <h2>Overview</h2>
+    <p>Card Tab is a new tab extension for managing shortcuts, categories, workspaces, and optional cloud sync. We do not run analytics, advertising, or tracking services, and we do not send your data to our own servers.</p>
 
-    <h3>Data We Collect</h3>
+    <h2>Data Stored by the Extension</h2>
     <ul>
-      <li><strong>Website URLs and Titles:</strong> When you add shortcuts via right-click menu or manual input</li>
-      <li><strong>Website Icons:</strong> Automatically fetched from public favicon services to improve visual experience</li>
-      <li><strong>User Preferences:</strong> Theme settings, layout preferences, and category organization</li>
-      <li><strong>Bookmark Data:</strong> Categories and shortcuts you create for your personal use</li>
-      <li><strong>Search Queries:</strong> Only for local bookmark search functionality - queries are not transmitted externally</li>
+      <li><strong>Shortcut data:</strong> shortcut names, URLs, categories, sort order, and icon settings that you create.</li>
+      <li><strong>Workspace settings:</strong> theme, background, view mode, search preference, and related UI settings.</li>
+      <li><strong>Optional cloud connection settings:</strong> Supabase and Cloudflare connection information you enter in settings.</li>
+      <li><strong>Optional setup credentials saved locally:</strong> if you choose to save them, Cloudflare API Token, Supabase Service Role Key, and Supabase Personal Access Token used for initialization may be stored locally on your device.</li>
     </ul>
 
-    <h3>Local Data Storage</h3>
-    <p>By default, all your data is stored locally using Chrome's storage APIs:</p>
+    <h2>Local Storage</h2>
+    <p>By default, Card Tab stores data locally using Chrome storage APIs.</p>
     <ul>
-      <li><strong>chrome.storage.local:</strong> Stores themes, layouts, and cached data</li>
-      <li><strong>chrome.storage.sync:</strong> Stores basic settings and default configuration (synced across your Chrome devices)</li>
+      <li><strong><code>chrome.storage.local</code>:</strong> local cache, workspace data, sync configuration, and optional saved setup credentials.</li>
+      <li><strong><code>chrome.storage.sync</code>:</strong> synchronized configuration data where applicable.</li>
     </ul>
 
-    <h3>Optional Cloud Sync</h3>
-    <p>You may optionally enable cloud synchronization using your own Supabase project:</p>
+    <h2>Optional Cloud Sync</h2>
+    <p>Cloud sync is optional. If you enable it, your data is stored in infrastructure that you control.</p>
     <ul>
-      <li>Data is stored in <strong>your own</strong> Supabase database that you create and control</li>
-      <li>We do not have access to your Supabase project or data</li>
-      <li>You provide your own Supabase credentials (URL and API key)</li>
-      <li>Background images may be stored in your Supabase storage bucket</li>
-      <li>Cloud sync is completely optional and can be disabled at any time</li>
+      <li><strong>Supabase:</strong> data is stored in your own Supabase project.</li>
+      <li><strong>Cloudflare:</strong> data is stored in your own Cloudflare Worker / D1 / R2 resources.</li>
+      <li>We do not own, receive, or store your synced shortcut data on our servers.</li>
     </ul>
 
-    <h3>Information We Do Not Collect</h3>
+    <h2>Website Data Access</h2>
+    <p>Card Tab does <strong>not</strong> inject scripts into all pages by default. A temporary script is injected only when you explicitly use the right-click “Add to Card Tab” action on a page or link.</p>
+    <p>When that happens, the extension may access only the minimum data needed to create the shortcut:</p>
     <ul>
-      <li>Personal identification information (name, email, etc.)</li>
-      <li>Complete browsing history</li>
-      <li>IP addresses for tracking purposes</li>
-      <li>Analytics or usage tracking data</li>
-      <li>External search queries (when using Chrome's default search engine)</li>
-      <li>Full website content (only titles and URLs you explicitly add)</li>
+      <li>current page URL or clicked link URL</li>
+      <li>current page title or link label</li>
+      <li>page favicon URL if available</li>
+    </ul>
+    <p>The extension does not read passwords, form inputs, page content, or browsing history for tracking.</p>
+
+    <h2>Search</h2>
+    <ul>
+      <li><strong>Local search:</strong> searching your saved shortcuts and categories happens locally inside the extension.</li>
+      <li><strong>Default browser search:</strong> when you use the default search option, the extension uses Chrome's Search API and respects your browser's default search engine.</li>
+      <li><strong>Other search engines:</strong> if you choose Google, Bing, 百度, or DuckDuckGo, your query is opened through that search engine's public URL.</li>
     </ul>
 
-    <h2>Search Functionality</h2>
-    <h3>Local Bookmark Search</h3>
-    <p>The extension provides real-time search functionality for your saved bookmarks and categories. All search operations are performed locally within the extension and do not transmit data externally.</p>
-
-    <h3>Default Search Engine Integration</h3>
-    <p>When you select "Default (由浏览器决定)" as your search option, the extension uses Chrome's Search API to respect your browser's default search engine settings. This ensures we do not modify or override your preferred search experience.</p>
-
-    <h3>Alternative Search Engines</h3>
-    <p>When you select specific search engines (Google, Bing, 百度, DuckDuckGo), search queries are opened in new tabs using the respective search engine's public search URL. We do not intercept or modify these search queries.</p>
-
-    <h2>Third-Party Services</h2>
-    <h3>Supabase (Optional)</h3>
-    <p>If you choose to enable cloud sync, the extension communicates with your personal Supabase project. Supabase's privacy policy applies to data stored in your project.</p>
-
-    <h3>Favicon Services</h3>
-    <p>The extension may fetch website icons from public favicon services (like Google's favicon API) to display attractive icons for your shortcuts. These requests only include the domain name of websites you've added.</p>
-
-    <h3>Chrome Search API</h3>
-    <p>When using the "Default" search option, the extension utilizes Chrome's built-in Search API to respect your browser's default search engine. No search data is processed or stored by our extension.</p>
-
-    <h3>No Analytics or Advertising</h3>
-    <p>We do not use any analytics, advertising, or tracking services.</p>
-    
-    <h2>Extension Permissions</h2>
-    <p>Our extension requests the following permissions and here's how we use them:</p>
+    <h2>Favicon Requests</h2>
+    <p>To display shortcut icons, Card Tab may request favicon images from:</p>
     <ul>
-      <li><strong>storage:</strong> To save your bookmarks, categories, and preferences locally</li>
-      <li><strong>activeTab:</strong> To capture page information when you add bookmarks via right-click menu</li>
-      <li><strong>contextMenus:</strong> To provide the right-click "Add to Card Tab" functionality</li>
-      <li><strong>search:</strong> To access Chrome's Search API for respecting your default search engine when using "Default" search option</li>
+      <li>the website itself, such as <code>/favicon.ico</code></li>
+      <li>Google favicon service</li>
+      <li>DuckDuckGo favicon service</li>
+      <li>Favicon Kit</li>
+    </ul>
+    <p>These requests include only the website domain needed to retrieve the icon.</p>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li><strong>storage:</strong> save your shortcuts, workspaces, settings, and optional cloud configuration.</li>
+      <li><strong>activeTab:</strong> access the current tab after your explicit action, used for right-click quick add.</li>
+      <li><strong>contextMenus:</strong> provide the “Add to Card Tab” right-click menu.</li>
+      <li><strong>search:</strong> use Chrome's Search API for the default search option.</li>
+      <li><strong>scripting:</strong> inject the quick-add script into the current page only when you trigger the right-click add action.</li>
     </ul>
 
-    <h3>Content Script and Host Permissions</h3>
-    <p>Card Tab injects a minimal script on all web pages (http://*/* and https://*/*) to enable the right-click menu functionality. This script:</p>
+    <h3>Host Permissions</h3>
+    <p>The extension also requests access to these remote APIs only for optional cloud sync features:</p>
     <ul>
-      <li><strong>Only activates when you use the right-click menu</strong> - The script remains dormant until you actively choose "Add to Card Tab"</li>
-      <li><strong>Reads only basic page information</strong> - When activated, it captures the current page title, URL, and favicon URL</li>
-      <li><strong>Creates a temporary modal dialog</strong> - Displays a form overlay for you to edit bookmark details before saving</li>
-      <li><strong>Does not access web page content</strong> - No form data, user inputs, or sensitive page content is accessed</li>
-      <li><strong>Does not run background tracking</strong> - The script does not monitor your browsing activity or send analytics</li>
-      <li><strong>Operates only on explicit user action</strong> - Data collection only occurs when you actively choose to add a bookmark</li>
-      <li><strong>Temporary operation</strong> - The modal and associated data are removed immediately after use</li>
-    </ul>
-    <p>This content script is essential for providing the convenient right-click bookmark functionality while maintaining strict privacy standards. The script only accesses publicly available page metadata (title, URL, favicon) and does not read any private or sensitive content from web pages.</p>
-
-    <h2>Data Security</h2>
-    <p>We implement appropriate security measures to protect your data:</p>
-    <ul>
-      <li>All data is stored locally by default</li>
-      <li>Cloud sync uses secure HTTPS connections</li>
-      <li>No data is transmitted to our servers</li>
-      <li>You maintain full control over your Supabase project and data</li>
-      <li>Search functionality respects Chrome's built-in security measures</li>
+      <li><code>https://api.cloudflare.com/*</code></li>
+      <li><code>https://api.supabase.com/*</code></li>
+      <li><code>https://*.supabase.co/*</code></li>
     </ul>
 
-    <h2>Your Rights and Choices</h2>
+    <h2>What We Do Not Collect</h2>
     <ul>
-      <li><strong>Data Control:</strong> You can export, import, or delete all your data at any time</li>
-      <li><strong>Cloud Sync:</strong> You can enable or disable cloud synchronization</li>
-      <li><strong>Data Portability:</strong> Export your data in JSON format</li>
-      <li><strong>Data Deletion:</strong> Uninstalling the extension removes all local data</li>
+      <li>analytics data</li>
+      <li>advertising identifiers</li>
+      <li>tracking cookies</li>
+      <li>personal information such as name or email</li>
+      <li>your full browsing history</li>
+      <li>page content unrelated to your explicit quick-add action</li>
     </ul>
 
-    <h2>Children's Privacy</h2>
-    <p>Our extension does not knowingly collect personal information from children under 13. The extension is designed for general productivity use and does not target children specifically.</p>
+    <h2>Your Control</h2>
+    <ul>
+      <li>You can export, import, or clear your data at any time.</li>
+      <li>You can disable cloud sync at any time.</li>
+      <li>You can remove locally saved cloud setup credentials from the settings page.</li>
+      <li>Uninstalling the extension removes local extension data from Chrome storage.</li>
+    </ul>
 
-    <h2>Changes to This Privacy Policy</h2>
-    <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "last updated" date. Continued use of the extension after changes constitutes acceptance of the updated policy.</p>
-
-    <h2>Contact Us</h2>
-    <p>If you have any questions about this Privacy Policy or our data practices, please contact us at: <a href="mailto:edaorenchan@gmail.com">edaorenchan@gmail.com</a></p>
+    <h2>Contact</h2>
+    <p>If you have any questions, contact: <a href="mailto:edaorenchan@gmail.com">edaorenchan@gmail.com</a></p>
   </div>
 
   <script>
-    // Set the current date
-    document.getElementById('last-updated').textContent = 'January 2, 2025';
+    document.getElementById('last-updated').textContent = 'January 8, 2025';
   </script>
 </body>
-</html> 
+</html>

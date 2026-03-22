@@ -2,187 +2,124 @@
 
 <div align="center">
   <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
-  <br>
-  <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
-  <img src="https://img.shields.io/badge/Version-1.0.6-blue" alt="Version 1.0.6">
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License MIT">
 </div>
 
-A modern, customizable new tab page for Chrome browser with cloud sync support.
+A clean, customizable Chrome / Edge new tab extension for managing frequently used sites and shortcuts in a card-based layout, with multi-workspace support and optional cloud sync.
 
-**Card Tab** transforms your new tab experience with a clean, organized interface for managing your bookmarks and shortcuts. Features include customizable themes, cloud synchronization via Supabase or Cloudflare D1/R2, and a beautiful card-based design.
+For the Chinese version, see `README.md`.
 
 ## Features
 
-- **📁 Category Management** - Create categories to organize shortcuts
-- **🎯 Drag & Drop** - Drag categories and shortcuts to reorder
-- **🔍 Quick Search** - Press `/` to search shortcuts
-- **🎨 Theme Options** - 6 themes available including dark mode
-- **🖼️ Custom Background** - Upload images as background
-- **📱 View Modes** - Grid view and list view
-- **☁️ Cloud Sync** - Optional Supabase or Cloudflare D1/R2 synchronization
-- **🖱️ Right-click Add** - Quick add shortcuts from any webpage
-- **⚙️ Multi-config** - Support multiple cloud configurations
+- Category management with drag-and-drop sorting
+- Grid view / list view
+- Press `/` to search shortcuts quickly
+- Custom themes and backgrounds
+- Right-click to add the current page quickly
+- Multiple workspace management
+- Optional Supabase / Cloudflare cloud sync
 
 ## Installation
 
-### From Chrome Web Store
+### Chrome Web Store
 
-1. Visit [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jaofegmijnalgabmjficlpfmmebepmbd?label=Chrome%20Web%20Store)](https://chrome.google.com/webstore/detail/jaofegmijnalgabmjficlpfmmebepmbd)
-2. Click "Add to Chrome" button
+- [Card Tab - Chrome Web Store](https://chrome.google.com/webstore/detail/jaofegmijnalgabmjficlpfmmebepmbd)
 
-### Manual Installation
+### Microsoft Edge
 
-1. Download the latest release from [Releases](../../releases)
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension folder
-5. Open a new tab to see Card Tab in action
+- Microsoft Edge is supported
+- Not yet published on Edge Add-ons
+- For now, build and extract `build/card-tab.zip`, then open `edge://extensions/` and load it manually
+
+### Manual Installation (Chrome)
+
+1. Download or clone this repository
+2. Open `chrome://extensions/`
+3. Enable **Developer mode**
+4. Click **Load unpacked**
+5. Select the repository root directory
 
 ## Quick Start
 
-### Basic Usage
+1. Create a category
+2. Add shortcuts to the category
+3. Press `/` to open search
+4. Right-click a shortcut to edit or delete it
+5. Manage workspaces, views, backgrounds, and sync in the settings page
 
-1. **Add Categories**: Click the "+" button in the floating menu
-2. **Add Shortcuts**: Click "+" in any category header, or right-click on any webpage and select "Card Tab 卡片式导航"
-3. **Customize**: Right-click shortcuts to edit or delete
-4. **Search**: Press "/" to focus search box, then type and press Enter
-5. **Themes**: Click the palette icon to change themes and backgrounds
-6. **Configuration Management**: Manage multiple cloud configurations in sync settings
+## Import Preset Data
 
-### Quick Import Shortcuts
-1. Download configuration file: [📂 Download top_shortcuts_24.json](top_shortcuts_24.json)
-2. Click **Cloud Sync**
-3. Click **Import Data**, select the downloaded `top_shortcuts_24.json` file
-4. Wait for import completion to load preset shortcut categories
+1. Download [`top_shortcuts_24.json`](top_shortcuts_24.json)
+2. Open the settings page
+3. Go to `Workspace` → choose a workspace → `Data Management`
+4. Click **Import Data** and select the file
 
-<img src="store-assets/screenshots/top_shortcuts.png" width="1000" alt="Project Interface Screenshot">
+<img src="store-assets/screenshots/top_shortcuts.png" width="1000" alt="Project screenshot">
 
-### Cloud Sync Setup
+## Cloud Sync
 
-For multi-device synchronization, you can optionally configure either **Cloudflare D1/R2** or **Supabase** in the settings page.
+- Cloud sync is optional; local storage is the default
+- The **Cloud Connections** page stores global connection profiles only
+- Sync is enabled or disabled inside each specific workspace
+- Two backends are supported: `Supabase` and `Cloudflare D1/R2`
 
-#### Option A: Supabase
+### Supabase: Getting the Required Values
 
-#### Step 1: Create Supabase Project
+1. Create a project in Supabase
+2. Open `Project Settings` → `API`, then copy:
+   - `Project URL`
+   - `API Key (publishable / anon)` — required for normal use
+   - `Service Role Key` — only needed for first-time initialization
+3. Create a `Personal Access Token` in your Supabase account settings — only needed for first-time initialization
 
-1. Visit [Supabase.com](https://supabase.com)
-2. Click "Start your project" and sign up
-3. Create a new project (free tier is sufficient)
-4. Wait for project initialization (2-3 minutes)
+### Supabase: Using It in Card Tab
 
-#### Step 2: Get Project Credentials
+1. Open `设置` → `云端连接` → `Supabase`
+2. Fill in `Project URL` and `API Key`
+3. If the table and Storage bucket are not ready yet, also fill in `Service Role Key` and `Personal Access Token`
+4. Click `检测状态` / `测试连接`; if setup is still needed, click `初始化连接`
+5. Go back to `工作空间` → target workspace → `云同步`, then click `启用同步`
 
-1. In your Supabase project dashboard, go to **Settings** → **API**
-2. Copy the following information:
-   - **Project URL**: `https://your-project.supabase.co`
-   - **anon/public key**: `eyJhb...`
-   - **Service Role Key**: used to create the Storage bucket automatically
-3. Generate a **Personal Access Token** in your Supabase account settings. Card Tab uses it to run the initialization SQL through the Supabase Management API.
+- If you already created the table and the `backgrounds` bucket manually, `Project URL` and `API Key` are usually enough.
 
-#### Step 3: Initialize Resources Inside Card Tab
+### Cloudflare: Getting the Required Values
 
-1. Open Card Tab in a new browser tab
-2. Click the **sync button** (⟲ icon) and switch to **Supabase**
-3. In the **Project Initialization** section, fill in:
-   - **Project URL**
-   - **Project Ref** (optional, auto-derived from the URL by default)
-   - **Service Role Key**
-   - **Personal Access Token**
-4. Click **Initialize Resources**. Card Tab will automatically:
-   - create / migrate the `card_tab_data` table
-   - create the `backgrounds` Storage bucket
+Card Tab supports two Cloudflare flows:
 
-#### Step 4: Enable Sync
+- `已经建好，直接连接`
+  - Prepare the `Worker API URL`
+  - If your Worker uses auth, also prepare the `Access Token`; it should match the Worker environment variable `ACCESS_TOKEN`
+- `还没有，帮我初始化`
+  - Get your `Account ID` from the Cloudflare Dashboard
+  - Create an `API Token` that can manage `Worker / D1 / R2` resources
+  - Use the default Worker / D1 / R2 names or customize them
+  - `同步 Worker 访问令牌` can be left empty and will be generated automatically
 
-1. In the **Connection Parameters** section, fill in:
-   - **Supabase URL**: your project URL from Step 2
-   - **API Key**: your anon/public key from Step 2
-2. Card Tab connects directly to your own Supabase project, so no extra Supabase account sign-in is required
-3. Click **Test Connection** to verify
-4. Click **Enable Cloud Sync** to start syncing
+### Cloudflare: Using It in Card Tab
 
-#### Option B: Cloudflare D1/R2
-
-1. Open Card Tab settings and switch to **Cloudflare D1/R2**.
-2. Use the **Cloudflare Auto Create (recommended)** flow at the top of the page:
-   - Enable the auto-create toggle.
-   - Fill in `Account ID`, `API Token`, and a `Base Name`.
-   - Click **Create Resources** to automatically create the Worker, D1 database, and R2 bucket.
-   - Click **Initialize Data** to create the tables.
-   - Click **Enable Sync** to start using Cloudflare sync.
-3. If you already have existing Cloudflare resources, you can instead fill in the `Worker URL` and `Access Token` in the “Connect Existing Resources” section.
-4. The settings page caches the Worker URL, Worker name, D1 ID, D1 name, and R2 bucket name locally so they can be restored and copied later.
-
-### Troubleshooting
-
-**Connection Issues:**
-1. **Check Network**: Ensure stable internet connection
-2. **Verify Credentials**: Double-check URL and API key
-3. **Check Database**: Ensure SQL script was executed successfully
-4. **Console Logs**: Press F12 to check for detailed error messages
-
-**Common Errors:**
-- **PGRST116**: Table doesn't exist - execute the SQL script
-- **401 Unauthorized**: Wrong API key or expired credentials
-- **403 Forbidden**: Permission denied - check database policies
-
-## Technologies
-
-### Frontend Technology
-- **HTML5 & CSS3**: Modern web standards with custom properties
-- **JavaScript ES6+**: Modular architecture with async/await
-- **Material Symbols**: Localized Google Material icon fonts
-- **Responsive Design**: Optimized for different screen sizes
-- **Offline First**: Fully offline-capable design architecture
-
-### Chrome Extension APIs
-- **chrome.storage**: Local and sync storage
-- **chrome.tabs**: New tab page override functionality
-- **chrome.contextMenus**: Right-click menu quick add
-
-### Cloud Integration
-- **Supabase**: PostgreSQL database and Storage
-- **Cloudflare D1/R2**: Worker API, D1 database and R2 file storage
+1. Open `设置` → `云端连接` → `Cloudflare`
+2. If you already have a Worker, fill in `Worker API URL` and `Access Token`
+3. If not, switch to `还没有，帮我初始化`, fill in `Account ID` and `API Token`, then click `创建 Worker`
+4. After the `Worker API URL` is ready, click `初始化数据库`
+5. Then run `检测状态` / `测试连接`
+6. Go back to `工作空间` → target workspace → `云同步`, then click `启用同步`
 
 ## Development
 
-### Building
+- This project is a static Chrome extension with no npm dependencies
+- Build command:
 
 ```bash
-# Package the extension
 node build.js
 ```
 
-The build script creates `card-tab.zip` ready for Chrome Web Store submission.
+- Package output: `build/card-tab.zip`
 
-> **Note**: This is a pure JavaScript Chrome extension with no npm dependencies. Simply run the build script with Node.js directly.
+## Privacy
 
-## Privacy & Security
-
-- **Local First**: All data stored locally by default
-- **Optional Cloud Sync**: Supabase and Cloudflare integrations are both optional
-- **Your Own Backend**: When using cloud sync, data goes to your own Supabase or Cloudflare resources
-- **No Tracking**: No analytics, no data collection, no third-party tracking
-- **Open Source**: Full source code available for review
-
-## Important Notes
-
-- **Personal Use**: Each person should create their own Supabase project or Cloudflare resources
-- **Theme ID**: Use different theme IDs for different theme configurations
-- **Free Tier**: Supabase free tier is sufficient for personal use
-- **Backup**: Regular data export is recommended
-
-## Final
-
-If you find it useful, please give it a Star to support us!
+- Local-first by default
+- No tracking, no analytics, no third-party data collection
+- When cloud sync is enabled, data is stored in your own Supabase or Cloudflare resources
 
 ## License
 
 [MIT License](LICENSE)
-
----
-
-<div align="center">
-  <p>Made with ❤️ for a better browsing experience</p>
-</div>

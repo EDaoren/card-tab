@@ -87,14 +87,37 @@ function extractDomainFromUrl(url) {
   }
 }
 
+function shouldInjectQuickAddScript(error) {
+  const message = String(error?.message || '');
+  return message.includes('Receiving end does not exist')
+    || message.includes('Could not establish connection');
+}
+
+async function ensureQuickAddScriptInjected(tabId) {
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ['js/content-script.js']
+  });
+}
+
 async function sendQuickAddMessage(tabId, pageInfo) {
   const categories = await loadCategoriesForContentScript();
-
-  await chrome.tabs.sendMessage(tabId, {
+  const payload = {
     action: 'showQuickAdd',
     pageInfo,
     categories
-  });
+  };
+
+  try {
+    await chrome.tabs.sendMessage(tabId, payload);
+  } catch (error) {
+    if (!shouldInjectQuickAddScript(error)) {
+      throw error;
+    }
+
+    await ensureQuickAddScriptInjected(tabId);
+    await chrome.tabs.sendMessage(tabId, payload);
+  }
 }
 
 function createContextMenus() {

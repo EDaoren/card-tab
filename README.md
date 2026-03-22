@@ -2,178 +2,124 @@
 
 <div align="center">
   <img src="icons/icon128.png" alt="Card Tab Logo" width="80">
-  <br>
-  <img src="https://img.shields.io/badge/Chrome-Extension-green" alt="Chrome Extension">
-  <img src="https://img.shields.io/badge/Version-1.0.6-blue" alt="Version 1.0.6">
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License MIT">
 </div>
 
-一个现代化的、可自定义的Chrome浏览器新标签页，支持云端同步。
+一个简洁、可自定义的 Chrome / Edge 新标签页扩展，用卡片方式管理常用网站与快捷方式，支持多工作空间与可选云同步。
 
-**卡片标签页**通过简洁、有组织的界面改变您的新标签页体验，帮助您管理书签和快捷方式。功能包括可自定义主题、通过 Supabase 或 Cloudflare D1/R2 的云端同步，以及美观的卡片式设计。
+英文说明见 `README_EN.md`。
 
-## 功能特点
+## 功能
 
-- **📁 分类管理** - 创建分类，将快捷方式分组整理
-- **🎯 拖拽排序** - 拖拽分类和快捷方式调整顺序
-- **🔍 快速搜索** - 按 `/` 键搜索快捷方式
-- **🎨 主题切换** - 6种主题可选，包括深色模式
-- **🖼️ 自定义背景** - 上传图片作为背景
-- **📱 视图切换** - 网格视图和列表视图
-- **☁️ 云端同步** - 可选择使用 Supabase 或 Cloudflare D1/R2 同步数据
-- **🖱️ 右键添加** - 在任意网页右键快速添加快捷方式
-- **⚙️ 多配置管理** - 支持多个云端配置切换
+- 分类管理与拖拽排序
+- 网格视图 / 列表视图
+- `/` 快速搜索快捷方式
+- 主题与背景自定义
+- 右键快速添加当前网页
+- 多工作空间管理
+- 可选 Supabase / Cloudflare 云同步
 
-## 安装方法
+## 安装
 
-### 从Chrome Web Store安装
+### Chrome Web Store
 
-1. 访问 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jaofegmijnalgabmjficlpfmmebepmbd?label=Chrome%20Web%20Store)](https://chrome.google.com/webstore/detail/jaofegmijnalgabmjficlpfmmebepmbd)
-2. 点击"添加到Chrome"按钮
+- [Card Tab - Chrome Web Store](https://chrome.google.com/webstore/detail/jaofegmijnalgabmjficlpfmmebepmbd)
 
-### 手动安装
+### Microsoft Edge
 
-1. 从[发布页面](../../releases)下载最新版本
-2. 打开Chrome浏览器并访问 `chrome://extensions/`
-3. 在右上角启用"开发者模式"
-4. 点击"加载已解压的扩展程序"并选择扩展文件夹
-5. 打开新标签页即可看到卡片标签页
+- 支持 Microsoft Edge 使用
+- 暂未上架 Edge Add-ons 商店
+- 当前请先构建并解压 `build/card-tab.zip`，再打开 `edge://extensions/` 手动加载
+
+### 本地安装（Chrome）
+
+1. 下载或克隆本仓库
+2. 打开 `chrome://extensions/`
+3. 开启“开发者模式”
+4. 点击“加载已解压的扩展程序”
+5. 选择仓库根目录
 
 ## 快速开始
 
-### 基本使用
+1. 新建分类
+2. 为分类添加快捷方式
+3. 按 `/` 打开搜索
+4. 右键快捷方式进行编辑或删除
+5. 在设置页管理工作空间、视图、背景和同步
 
-1. **添加分类**：点击悬浮菜单中的"+"按钮
-2. **添加快捷方式**：点击分类标题中的"+"按钮，或在网页上右键选择"Card Tab 卡片式导航"
-3. **自定义**：右键点击快捷方式进行编辑或删除
-4. **搜索**：按"/"聚焦搜索框，输入后按回车
-5. **主题**：点击调色板图标更改主题和背景
-6. **配置管理**：在同步设置中管理多个云端配置
+## 导入预设数据
 
-### 快速导入快捷方式
-1. 下载配置文件：[📂 下载 top_shortcuts_24.json](top_shortcuts_24.json)
-2. 点击 **云端同步**
-3. 点击 **导入数据**，选择刚刚下载的 `top_shortcuts_24.json` 文件
-4. 等待导入完成，即可加载预设快捷方式分类
+1. 下载 [`top_shortcuts_24.json`](top_shortcuts_24.json)
+2. 打开设置页
+3. 进入 `工作空间` → 选择工作空间 → `数据管理`
+4. 点击“导入数据”并选择该文件
 
 <img src="store-assets/screenshots/top_shortcuts.png" width="1000" alt="项目界面截图">
 
-### 云端同步设置
+## 云同步
 
-多设备同步时，可在设置页选择 **Cloudflare D1/R2** 或 **Supabase** 作为后端。
+- 云同步是可选功能，默认使用本地存储
+- “云端连接”页只保存全局连接资料
+- 是否启用同步，需要到具体工作空间中操作
+- 支持两种后端：`Supabase` 和 `Cloudflare D1/R2`
 
-#### 方案 A：Supabase
+### Supabase 参数获取
 
-#### 步骤1：创建Supabase项目
+1. 在 Supabase 创建项目
+2. 打开 `Project Settings` → `API`，获取：
+   - `Project URL`
+   - `API Key (publishable / anon)`：日常连接必填
+   - `Service Role Key`：仅首次初始化时需要
+3. 在 Supabase 账号设置里创建 `Personal Access Token`：仅首次初始化时需要
 
-1. 访问 [Supabase.com](https://supabase.com)
-2. 点击"Start your project"并注册
-3. 创建新项目（免费版本足够）
-4. 等待项目初始化（2-3分钟）
+### Supabase 使用步骤
 
-#### 步骤2：获取项目凭据
+1. 打开 `设置` → `云端连接` → `Supabase`
+2. 先填写 `Project URL` 和 `API Key`
+3. 如果表和 Storage Bucket 还没建好，再补充 `Service Role Key` 和 `Personal Access Token`
+4. 点击 `检测状态` / `测试连接`，需要初始化时再点 `初始化连接`
+5. 回到 `工作空间` → 目标工作空间 → `云同步`，点击 `启用同步`
 
-1. 在 Supabase 项目仪表板中，进入 **Settings** → **API**
-2. 复制以下信息：
-   - **项目URL**: `https://your-project.supabase.co`
-   - **匿名公钥（anon/public）**: `eyJhb...`
-   - **Service Role Key**: 用于自动创建 Storage bucket
-3. 在你的 Supabase 账号后台生成一个 **Personal Access Token**，用于通过 Management API 自动执行初始化 SQL
+- 如果你已经手动建好了数据表和 `backgrounds` Bucket，通常只填 `Project URL` 和 `API Key` 就够了。
 
-#### 步骤3：在扩展内初始化资源
+### Cloudflare 参数获取
 
-1. 在新浏览器标签页中打开 Card Tab
-2. 点击右侧的**同步按钮**（⟲图标），切换到 **Supabase**
-3. 在“项目初始化”区域填写：
-   - **Project URL**
-   - **Project Ref**（可选，默认会从 URL 自动识别）
-   - **Service Role Key**
-   - **Personal Access Token**
-4. 点击 **初始化资源**，扩展会自动：
-   - 创建 / 迁移 `card_tab_data` 表
-   - 创建 `backgrounds` Storage bucket
+Card Tab 支持两种 Cloudflare 接入方式：
 
-#### 步骤4：启用同步
+- `已经建好，直接连接`
+  - 准备 `Worker API URL`
+  - 如果 Worker 开启了鉴权，再准备 `Access Token`，它需要和 Worker 环境变量 `ACCESS_TOKEN` 一致
+- `还没有，帮我初始化`
+  - 在 Cloudflare Dashboard 获取 `Account ID`
+  - 创建一个可管理 `Worker / D1 / R2` 的 `API Token`
+  - 使用默认或自定义的 Worker / D1 / R2 名称
+  - `同步 Worker 访问令牌` 可留空，插件会自动生成
 
-1. 在“连接参数”区域填写：
-   - **Supabase URL**: 步骤2中的项目URL
-   - **API Key**: 步骤2中的匿名公钥
-2. Card Tab 会直接连接你自己的 Supabase 项目，不需要额外登录 Supabase 账号
-3. 点击 **测试连接** 进行验证
-4. 点击 **启用同步** 开始同步
+### Cloudflare 使用步骤
 
-#### 方案 B：Cloudflare D1/R2
-
-1. 在 Card Tab 设置页切换到 **Cloudflare D1/R2**。
-2. 使用页面顶部的 **Cloudflare 自动创建（推荐）**：
-   - 打开“启用自动创建”开关。
-   - 填写 `Account ID`、`API Token`、`基础名称`。
-   - 点击 **创建资源** 自动创建 Worker、D1、R2，并回填连接参数。
-   - 点击 **初始化数据** 完成建表。
-   - 点击 **启用同步** 即可开始使用。
-3. 如果你已经在 Cloudflare 上准备好了现有资源，也可以直接在“连接已有资源”区域填写 `Worker URL` 和 `Access Token` 后连接。
-4. 设置页会把 Worker URL、Worker 名称、D1 ID、D1 名称、R2 Bucket 名称缓存到本地，方便下次恢复和复制。
-
-
-## 技术栈
-
-### 前端技术
-- **HTML5 & CSS3**: 现代Web标准，使用自定义属性
-- **JavaScript ES6+**: 模块化架构，使用async/await
-- **Material Symbols**: 本地化的Google Material图标字体
-- **响应式设计**: 针对不同屏幕尺寸优化
-- **离线优先**: 完全离线可用的设计架构
-
-### Chrome扩展接口
-- **chrome.storage**: 本地和同步存储
-- **chrome.tabs**: 新标签页覆盖功能
-- **chrome.contextMenus**: 右键菜单快速添加
-- **chrome.runtime**: 后台脚本通信
-
-### 云端集成
-- **Supabase**: PostgreSQL 数据库与 Storage
-- **Cloudflare D1/R2**: Worker API、D1 数据库与 R2 文件存储
-
+1. 打开 `设置` → `云端连接` → `Cloudflare`
+2. 如果已有 Worker，直接填写 `Worker API URL` 和 `Access Token`
+3. 如果还没资源，切到“还没有，帮我初始化”，填写 `Account ID`、`API Token`，然后点击 `创建 Worker`
+4. 拿到 `Worker API URL` 后，点击 `初始化数据库`
+5. 再执行 `检测状态` / `测试连接`
+6. 回到 `工作空间` → 目标工作空间 → `云同步`，点击 `启用同步`
 
 ## 开发
 
-### 构建
+- 本项目是静态 Chrome 扩展，无 npm 依赖
+- 构建命令：
 
 ```bash
-# 打包扩展
 node build.js
 ```
 
-构建脚本会创建可用于Chrome Web Store提交的`card-tab.zip`文件。
+- 打包产物：`build/card-tab.zip`
 
-> **注意**: 本项目是纯 JavaScript Chrome 扩展，无需 npm 依赖，直接使用 Node.js 运行构建脚本即可。
+## 隐私
 
-
-## 隐私与安全
-
-- **本地优先**：默认情况下所有数据都存储在本地
-- **可选云端同步**：Supabase 与 Cloudflare 集成都完全可选
-- **您的数据库**：使用云端同步时，数据存储在您自己的 Supabase 或 Cloudflare 资源中
-- **无追踪**：无分析、无数据收集、无第三方追踪
-- **开源**：完整源代码可供审查
-
-## 重要说明
-
-- **个人使用**：每个人都创建自己的 Supabase 项目或 Cloudflare Worker/D1/R2 资源
-- **主题ID**：为不同的主题配置使用不同的主题ID
-- **免费额度**：Supabase免费版本足够个人使用
-- **备份**：建议定期导出数据备份
-
-## 最后
-
-如果觉得好用，请点个Star支持一下吧！
+- 默认本地优先
+- 无追踪、无分析、无第三方数据收集
+- 使用云同步时，数据存储在你自己的 Supabase 或 Cloudflare 资源中
 
 ## 许可证
 
 [MIT License](LICENSE)
-
----
-
-<div align="center">
-  <p>为更好的浏览体验而制作 ❤️</p>
-</div>

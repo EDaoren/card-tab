@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Card Tab - 卡片式书签管理",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "专注于书签管理的新标签页扩展，提供卡片式分类整理、本地搜索、个性化主题定制和可选云端同步功能",
-  "permissions": ["storage", "activeTab", "contextMenus", "search"],
+  "permissions": ["storage", "activeTab", "contextMenus", "search", "scripting"],
   "host_permissions": [
     "https://api.cloudflare.com/*",
     "https://api.supabase.com/*",
@@ -12,14 +12,6 @@
   "background": {
     "service_worker": "js/background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["js/ui/notification.js", "js/content-script.js"],
-      "run_at": "document_end"
-    }
-  ],
-
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
