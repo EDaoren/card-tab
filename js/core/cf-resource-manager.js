@@ -566,6 +566,5 @@ class CloudflareResourceManager {
 }
 
 window.cloudflareResourceManager = new CloudflareResourceManager();
-window.cloudflareSetupManager = window.cloudflareResourceManager;
 
 

@@ -13,6 +13,18 @@ class SupabaseClient {
     this.currentConfigHash = null;
   }
 
+  static getSharedInstance() {
+    if (!(globalThis.supabaseClient instanceof SupabaseClient)) {
+      globalThis.supabaseClient = new SupabaseClient();
+    }
+
+    return globalThis.supabaseClient;
+  }
+
+  static getTableCreationSQL(bucketName = 'backgrounds') {
+    return SupabaseClient.getSharedInstance().getTableCreationSQL(bucketName);
+  }
+
   generateConfigHash(config) {
     return `${config.url}|${config.anonKey}|${config.bucketName || 'backgrounds'}`;
   }
@@ -22,7 +34,20 @@ class SupabaseClient {
   }
 
   createClientOptions() {
-    return {};
+    return {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    };
+  }
+
+  buildRestHeaders(apiKey) {
+    return {
+      apikey: apiKey,
+      Authorization: `Bearer ${apiKey}`
+    };
   }
 
   needsReinitialization(config) {
@@ -135,8 +160,19 @@ class SupabaseClient {
   }
 
   async testProjectAccess() {
-    const projectUrl = this.normalizeProjectUrl(this.config?.url);
-    const anonKey = String(this.config?.anonKey || '').trim();
+    try {
+      const result = await this.testProjectAccessWithConfig(this.config);
+      this.isConnected = true;
+      return result;
+    } catch (error) {
+      this.isConnected = false;
+      throw error;
+    }
+  }
+
+  async testProjectAccessWithConfig(config = null) {
+    const projectUrl = this.normalizeProjectUrl(config?.url || this.config?.url);
+    const anonKey = String(config?.anonKey || this.config?.anonKey || '').trim();
     if (!projectUrl || !anonKey) {
       throw new Error('Supabase 配置不完整');
     }
@@ -151,9 +187,7 @@ class SupabaseClient {
       try {
         const response = await fetch(endpoint, {
           method: 'GET',
-          headers: {
-            apikey: anonKey
-          }
+          headers: this.buildRestHeaders(anonKey)
         });
 
         if (response.status === 401 || response.status === 403) {
@@ -165,7 +199,6 @@ class SupabaseClient {
           throw new Error(errorText || `Supabase 项目连接失败 (${response.status})`);
         }
 
-        this.isConnected = true;
         return {
           ok: true,
           projectUrl
@@ -175,30 +208,77 @@ class SupabaseClient {
       }
     }
 
-    this.isConnected = false;
     throw lastError || new Error('Supabase 项目连接失败');
   }
 
   async testSchemaAccess() {
-    if (!this.client) {
+    if (!this.config) {
       throw new Error('Supabase 客户端未初始化');
     }
 
-    const { error } = await this.client
-      .from(this.tableName)
-      .select('id')
-      .limit(1);
+    return this.testSchemaAccessWithConfig(this.config);
+  }
 
-    if (error) {
-      if (error.code === 'PGRST116' || error.code === '42P01' || String(error.message || '').includes('relation')) {
+  async testSchemaAccessWithConfig(config = null) {
+    const projectUrl = this.normalizeProjectUrl(config?.url || this.config?.url);
+    const anonKey = String(config?.anonKey || this.config?.anonKey || '').trim();
+    if (!projectUrl || !anonKey) {
+      throw new Error('Supabase 配置不完整');
+    }
+
+    const response = await fetch(
+      `${projectUrl}/rest/v1/${this.tableName}?select=id&limit=1`,
+      {
+        method: 'GET',
+        headers: this.buildRestHeaders(anonKey)
+      }
+    );
+    const responseText = await response.text().catch(() => '');
+    let payload = null;
+
+    if (responseText) {
+      try {
+        payload = JSON.parse(responseText);
+      } catch (error) {
+        payload = null;
+      }
+    }
+
+    if (!response.ok) {
+      const errorMessage = payload?.message
+        || payload?.error_description
+        || payload?.details
+        || responseText
+        || `数据表访问失败 (${response.status})`;
+      const normalizedMessage = `${payload?.code || ''} ${errorMessage}`.toLowerCase();
+
+      if (
+        payload?.code === 'PGRST116'
+        || payload?.code === '42P01'
+        || payload?.code === 'PGRST205'
+        || normalizedMessage.includes('relation')
+        || normalizedMessage.includes('does not exist')
+      ) {
         throw new Error('数据表不存在，请先初始化资源');
       }
 
-      throw new Error(`数据表访问失败: ${error.message}`);
+      throw new Error(`数据表访问失败: ${errorMessage}`);
     }
 
     return {
       ok: true,
+      tableName: this.tableName
+    };
+  }
+
+  async testConnectionWithConfig(config) {
+    const project = await this.testProjectAccessWithConfig(config);
+    await this.testSchemaAccessWithConfig(config);
+
+    return {
+      ok: true,
+      projectUrl: project.projectUrl,
+      scopeId: this.getProjectScopeId(),
       tableName: this.tableName
     };
   }
@@ -699,6 +779,6 @@ SELECT 'Card Tab Supabase BYOS setup complete' AS status;
   }
 }
 
-const supabaseClient = new SupabaseClient();
+const supabaseClient = SupabaseClient.getSharedInstance();
 globalThis.SupabaseClient = SupabaseClient;
 globalThis.supabaseClient = supabaseClient;

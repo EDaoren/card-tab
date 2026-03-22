@@ -102,7 +102,8 @@ class UnifiedDataManager {
 
     getDefaultSettings() {
         return {
-            viewMode: 'grid'
+            viewMode: 'grid',
+            shortcutOpenMode: 'new-tab'
         };
     }
 
@@ -146,6 +147,10 @@ class UnifiedDataManager {
 
         if (!['grid', 'list'].includes(normalizedSettings.viewMode)) {
             normalizedSettings.viewMode = 'grid';
+        }
+
+        if (!['current-tab', 'new-tab'].includes(normalizedSettings.shortcutOpenMode)) {
+            normalizedSettings.shortcutOpenMode = 'new-tab';
         }
 
         return normalizedSettings;
@@ -506,7 +511,9 @@ class UnifiedDataManager {
 
         let client = this.getProviderClient(provider);
         if (!client) {
-            client = new ClientClass();
+            client = provider === 'supabase' && typeof ClientClass.getSharedInstance === 'function'
+                ? ClientClass.getSharedInstance()
+                : new ClientClass();
             this.setProviderClient(provider, client);
         }
 
@@ -604,6 +611,35 @@ class UnifiedDataManager {
         await provider.save(normalizedData);
         await this.saveToCache(theme.themeId, normalizedData);
         return normalizedData;
+    }
+
+    async updateThemeSettings(themeId, newSettings = {}) {
+        const theme = this.appData?.themes?.[themeId];
+        if (!theme) {
+            throw new Error(`主题 ${themeId} 不存在`);
+        }
+
+        const baseData = themeId === this.appData.currentThemeId
+            ? (this.currentConfigData || await this.loadCurrentConfigData())
+            : await this.resolveThemeData(theme, {
+                preferCache: true,
+                useDefaultFallback: true
+            });
+
+        const updatedData = this.normalizeConfigData({
+            ...(baseData || {}),
+            settings: {
+                ...(baseData?.settings || {}),
+                ...(newSettings || {})
+            }
+        });
+
+        if (themeId === this.appData.currentThemeId) {
+            await this.saveCurrentConfigData(updatedData);
+            return this.currentConfigData;
+        }
+
+        return this.syncThemeDataWithProvider(theme, updatedData);
     }
 
     async initializeCloudThemeData(theme) {

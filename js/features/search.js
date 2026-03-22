@@ -483,7 +483,13 @@ class SearchManager {
       }
 
       console.log('SearchManager: 打开URL:', url);
-      window.open(url, '_blank');
+      const shortcutOpenMode = window.storageManager?.getSettings?.().shortcutOpenMode || 'new-tab';
+
+      if (shortcutOpenMode === 'current-tab') {
+        window.location.href = url;
+      } else {
+        window.open(url, '_blank');
+      }
     } catch (error) {
       console.error('SearchManager: 打开URL失败:', error);
       // 降级：直接设置window.location

@@ -99,6 +99,34 @@
                 <div class="color-option" data-type="pink" title="粉色"></div>
               </div>
             </div>
+            <div class="form-group">
+              <label>快捷方式打开方式</label>
+              <p class="sync-hint workspace-setting-hint">设置首页点击快捷方式时，是在当前页打开还是新标签页打开。</p>
+              <div class="sync-mode-options" role="radiogroup" aria-label="快捷方式打开方式">
+                <label class="sync-inline-toggle" for="shortcut-open-mode-current">
+                  <input type="radio" id="shortcut-open-mode-current" name="shortcut-open-mode" value="current-tab">
+                  <span>当前页打开</span>
+                </label>
+                <label class="sync-inline-toggle" for="shortcut-open-mode-new-tab">
+                  <input type="radio" id="shortcut-open-mode-new-tab" name="shortcut-open-mode" value="new-tab" checked>
+                  <span>新标签页打开</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>视图方式</label>
+              <p class="sync-hint workspace-setting-hint">设置首页默认使用网格视图还是列表视图。</p>
+              <div class="sync-mode-options" role="radiogroup" aria-label="视图方式">
+                <label class="sync-inline-toggle" for="workspace-view-mode-grid">
+                  <input type="radio" id="workspace-view-mode-grid" name="workspace-view-mode" value="grid" checked>
+                  <span>网格视图</span>
+                </label>
+                <label class="sync-inline-toggle" for="workspace-view-mode-list">
+                  <input type="radio" id="workspace-view-mode-list" name="workspace-view-mode" value="list">
+                  <span>列表视图</span>
+                </label>
+              </div>
+            </div>
             <div class="form-group" id="bg-setting-group">
               <label for="bg-image-upload">背景图片 (仅云端工作空间可用)</label>
               <div id="bg-preview-area" class="bg-preview-area" role="button" tabindex="0" aria-label="选择背景图片">

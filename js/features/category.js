@@ -283,7 +283,15 @@ class CategoryManager {
     shortcutElement.href = shortcut.url || '#';
     shortcutElement.dataset.id = shortcut.id;
     shortcutElement.dataset.categoryId = categoryId;
-    shortcutElement.setAttribute('target', '_blank');
+
+    const shortcutOpenMode = window.storageManager?.getSettings?.().shortcutOpenMode || 'new-tab';
+    if (shortcutOpenMode === 'current-tab') {
+      shortcutElement.setAttribute('target', '_self');
+      shortcutElement.removeAttribute('rel');
+    } else {
+      shortcutElement.setAttribute('target', '_blank');
+      shortcutElement.setAttribute('rel', 'noopener noreferrer');
+    }
     
     // Create the shortcut icon based on the icon type
     const shortcutIcon = document.createElement('div');

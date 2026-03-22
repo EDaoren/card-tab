@@ -516,6 +516,8 @@ class SettingsUIManager {
     document.querySelector('.color-option[data-type="default"]')?.classList.add('selected');
     this.tempBgImageFile = null;
     this.showPreviewBg(null);
+    this.setShortcutOpenMode('new-tab');
+    this.setWorkspaceViewMode('grid');
     document.getElementById('bg-opacity-slider').value = 30;
     document.getElementById('bg-opacity-value').textContent = '30%';
 
@@ -542,6 +544,7 @@ class SettingsUIManager {
       document.getElementById('bg-setting-group').style.display = 'none';
     }
 
+    this.loadWorkspaceBasicSettings(themeId).catch(console.error);
     this.refreshWorkspaceDetailUI().catch(console.error);
   }
 
@@ -772,14 +775,81 @@ class SettingsUIManager {
       window.applyBackgroundImageToDOM(null, 30);
     }
   }
+
+  getShortcutOpenMode() {
+    return document.querySelector('input[name="shortcut-open-mode"]:checked')?.value || 'new-tab';
+  }
+
+  setShortcutOpenMode(mode = 'new-tab') {
+    const normalizedMode = ['current-tab', 'new-tab'].includes(mode) ? mode : 'new-tab';
+    const targetInput = document.querySelector(`input[name="shortcut-open-mode"][value="${normalizedMode}"]`);
+
+    if (targetInput) {
+      targetInput.checked = true;
+    }
+  }
+
+  getWorkspaceViewMode() {
+    return document.querySelector('input[name="workspace-view-mode"]:checked')?.value || 'grid';
+  }
+
+  setWorkspaceViewMode(mode = 'grid') {
+    const normalizedMode = ['grid', 'list'].includes(mode) ? mode : 'grid';
+    const targetInput = document.querySelector(`input[name="workspace-view-mode"][value="${normalizedMode}"]`);
+
+    if (targetInput) {
+      targetInput.checked = true;
+    }
+  }
+
+  async loadWorkspaceBasicSettings(themeId = null) {
+    const requestedThemeId = themeId || null;
+    this.setShortcutOpenMode('new-tab');
+
+    if (!requestedThemeId) {
+      return;
+    }
+
+    const theme = window.unifiedDataManager?.appData?.themes?.[requestedThemeId];
+    if (!theme) {
+      return;
+    }
+
+    try {
+      const themeData = requestedThemeId === window.unifiedDataManager.appData.currentThemeId
+        ? (window.unifiedDataManager.getCurrentConfigData() || await window.unifiedDataManager.loadCurrentConfigData())
+        : await window.unifiedDataManager.resolveThemeData(theme, {
+          preferCache: true,
+          useDefaultFallback: true
+        });
+
+      if (this.editingThemeId !== requestedThemeId) {
+        return;
+      }
+
+      const settings = window.unifiedDataManager.normalizeSettings(themeData?.settings);
+      this.setShortcutOpenMode(settings.shortcutOpenMode);
+      this.setWorkspaceViewMode(settings.viewMode);
+    } catch (error) {
+      console.warn('加载工作空间基础设置失败:', error);
+
+      if (this.editingThemeId === requestedThemeId) {
+        this.setShortcutOpenMode('new-tab');
+        this.setWorkspaceViewMode('grid');
+      }
+    }
+  }
   
   async saveThemeForm() {
     const name = document.getElementById('theme-name-input').value.trim() || '未命名主题';
     const typeOpt = document.querySelector('.color-option.selected');
     const themeType = typeOpt ? typeOpt.getAttribute('data-type') : 'default';
     const opacity = parseInt(document.getElementById('bg-opacity-slider').value) || 30;
+    const shortcutOpenMode = this.getShortcutOpenMode();
+    const viewMode = this.getWorkspaceViewMode();
     const previewImage = document.getElementById('bg-preview-img');
     const hasPreviewImage = !!previewImage.getAttribute('src');
+    let savedThemeId = this.editingThemeId;
     
     try {
       if (this.editingThemeId) {
@@ -817,16 +887,27 @@ class SettingsUIManager {
         }
 
         await window.unifiedDataManager.updateThemeMetadata(this.editingThemeId, themeUpdates);
+        await window.unifiedDataManager.updateThemeSettings(this.editingThemeId, {
+          shortcutOpenMode,
+          viewMode
+        });
       } else {
-        await window.unifiedDataManager.createLocalTheme(name, themeType, opacity);
+        const newTheme = await window.unifiedDataManager.createLocalTheme(name, themeType, opacity);
+        savedThemeId = newTheme.themeId;
+        await window.unifiedDataManager.updateThemeSettings(savedThemeId, {
+          shortcutOpenMode,
+          viewMode
+        });
       }
+
+      window.storageManager?.updateDataFromUnified?.();
       
       this.showMessage('工作空间已保存', 'success');
       this.closeThemeForm();
       this.refreshThemesList();
       
       // Update UI if we edited current theme
-      if (this.editingThemeId === window.unifiedDataManager.appData.currentThemeId) {
+      if (savedThemeId === window.unifiedDataManager.appData.currentThemeId) {
          window.loadThemeSettings();
       }
       
@@ -1052,13 +1133,13 @@ class SettingsUIManager {
     return nextFormData;
   }
 
-  async ensureSupabaseClient(config = null) {
+  async ensureSupabaseClient(config = null, options = {}) {
     const targetConfig = config || this.getSupabaseSyncConfig();
     if (!targetConfig.url || !targetConfig.anonKey) {
       throw new Error('请先填写 Project URL 和 API Key（publishable / anon）');
     }
 
-    return window.unifiedDataManager.ensureProviderClient('supabase', targetConfig);
+    return window.unifiedDataManager.ensureProviderClient('supabase', targetConfig, options);
   }
 
   async persistCloudflareConnectionState(overrides = {}) {
@@ -1364,11 +1445,14 @@ class SettingsUIManager {
 
     await this.saveExistingSupabaseProjectProfile(false);
     const now = new Date().toISOString();
-    const tempClient = new SupabaseClient();
+    if (typeof SupabaseClient === 'undefined') {
+      throw new Error('SupabaseClient 未加载');
+    }
+
+    const tempClient = SupabaseClient.getSharedInstance();
 
     try {
-      await tempClient.initialize(config, false);
-      await tempClient.testProjectAccess();
+      await tempClient.testProjectAccessWithConfig(config);
     } catch (error) {
       await this.persistSupabaseConnectionState({
         initialized: false,
@@ -1384,7 +1468,7 @@ class SettingsUIManager {
     }
 
     try {
-      await tempClient.testSchemaAccess();
+      await tempClient.testSchemaAccessWithConfig(config);
       await this.persistSupabaseConnectionState({
         initialized: true,
         setupStatus: 'configured',
@@ -1984,7 +2068,7 @@ class SettingsUIManager {
     document.getElementById('sb-copy-init-sql-btn').addEventListener('click', async () => {
       try {
         const bucketName = document.getElementById('sb-bucket-name')?.value.trim() || 'backgrounds';
-        const sql = new SupabaseClient().getTableCreationSQL(bucketName);
+        const sql = SupabaseClient.getTableCreationSQL(bucketName);
         await this.copyTextToClipboard(sql, 'Supabase 初始化 SQL 已复制到剪贴板');
       } catch (error) {
         this.showMessage('复制失败: ' + error.message, 'error');
@@ -2336,8 +2420,6 @@ class SettingsUIManager {
     const sbTab = document.querySelector('.tab-btn[data-tab="supabase-sync"]');
     const cfPanel = document.getElementById('cf-sync-panel');
     const sbPanel = document.getElementById('supabase-sync-panel');
-    const activeProvider = status?.activeProvider || 'none';
-    const workspaceName = status?.currentThemeName || '当前工作空间';
 
     if (providerNote) {
       providerNote.textContent = '这里保存的是全局连接资料。是否启用 Cloudflare 或 Supabase，需要到具体工作空间中操作。';
@@ -2357,35 +2439,6 @@ class SettingsUIManager {
     sbTab?.classList.remove('is-locked-provider');
     cfPanel?.classList.remove('is-provider-locked');
     sbPanel?.classList.remove('is-provider-locked');
-
-    if (activeProvider === 'cloudflare') {
-      if (providerNote) {
-        providerNote.textContent = `当前工作空间「${workspaceName}」正在使用 Cloudflare 同步。这里仍可提前保存两套全局连接资料；若要切换到 Supabase，请回到该工作空间详情中操作。`;
-      }
-
-      if (sbHint) {
-        sbHint.style.display = 'block';
-        sbHint.textContent = `当前工作空间已启用 Cloudflare，同一时间只能绑定一种云同步。若要改用 Supabase，请先在「${workspaceName}」中关闭当前同步。`;
-      }
-
-      sbTab?.classList.add('is-locked-provider');
-      sbPanel?.classList.add('is-provider-locked');
-      return;
-    }
-
-    if (activeProvider === 'supabase') {
-      if (providerNote) {
-        providerNote.textContent = `当前工作空间「${workspaceName}」正在使用 Supabase 同步。这里仍可提前保存两套全局连接资料；若要切换到 Cloudflare，请回到该工作空间详情中操作。`;
-      }
-
-      if (cfHint) {
-        cfHint.style.display = 'block';
-        cfHint.textContent = `当前工作空间已启用 Supabase，同一时间只能绑定一种云同步。若要改用 Cloudflare，请先在「${workspaceName}」中关闭当前同步。`;
-      }
-
-      cfTab?.classList.add('is-locked-provider');
-      cfPanel?.classList.add('is-provider-locked');
-    }
   }
 
   async refreshSyncUI() {

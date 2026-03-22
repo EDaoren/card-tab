@@ -153,7 +153,7 @@ body.loaded {
   margin-bottom: 24px;
   font-size: 0.95rem;
   line-height: 1.5;
-  max-width: 560px;
+  max-width: 760px;
 }
 
 .sync-quick-start-card {
@@ -425,6 +425,16 @@ body.loaded {
   background: var(--hover-color, #f8f9fa);
   color: var(--text-secondary, #5f6368);
   cursor: default;
+}
+
+.workspace-setting-hint {
+  margin-bottom: 12px;
+}
+
+#workspace-tab-basic .form-group + .form-group {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border-color, #dadce0);
 }
 
 @media (max-width: 768px) {

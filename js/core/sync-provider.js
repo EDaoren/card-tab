@@ -115,9 +115,11 @@ class SupabaseSyncProvider extends BaseSyncProvider {
 
   async testConnection(config = null) {
     if (config) {
-      const tempClient = new SupabaseClient();
-      await tempClient.initialize(config, false);
-      return tempClient.testConnection();
+      if (typeof SupabaseClient === 'undefined') {
+        throw new Error('SupabaseClient 未加载');
+      }
+
+      return SupabaseClient.getSharedInstance().testConnectionWithConfig(config);
     }
 
     const client = await this.dataManager.ensureProviderClient('supabase');
@@ -125,7 +127,9 @@ class SupabaseSyncProvider extends BaseSyncProvider {
   }
 
   async initializeSchema(config = null) {
-    const sql = new SupabaseClient().getTableCreationSQL(config?.bucketName || 'backgrounds');
+    const sql = typeof SupabaseClient !== 'undefined'
+      ? SupabaseClient.getTableCreationSQL(config?.bucketName || 'backgrounds')
+      : '';
 
     if (typeof globalThis.supabaseResourceManager !== 'undefined') {
       return globalThis.supabaseResourceManager.initializeProjectResources({

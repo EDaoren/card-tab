@@ -287,17 +287,87 @@ class SupabaseResourceManager {
   }
 
   createServiceClient(projectUrl, serviceRoleKey) {
-    if (!globalThis.supabase) {
-      throw new Error('Supabase SDK 未加载');
-    }
+    const normalizedProjectUrl = this.normalizeProjectUrl(projectUrl);
+    const normalizedServiceRoleKey = String(serviceRoleKey || '').trim();
+    const request = async (path, init = {}) => {
+      const headers = new Headers(init.headers || {});
+      headers.set('apikey', normalizedServiceRoleKey);
+      headers.set('Authorization', `Bearer ${normalizedServiceRoleKey}`);
+      headers.set('Accept', 'application/json');
 
-    return globalThis.supabase.createClient(projectUrl, serviceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
+      if (init.body && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
       }
-    });
+
+      const response = await fetch(`${normalizedProjectUrl}/storage/v1${path}`, {
+        ...init,
+        headers
+      });
+      const text = await response.text().catch(() => '');
+      let payload = null;
+
+      if (text) {
+        try {
+          payload = JSON.parse(text);
+        } catch (error) {
+          payload = null;
+        }
+      }
+
+      if (!response.ok) {
+        const message = payload?.message
+          || payload?.error
+          || payload?.details
+          || text
+          || `Storage API 请求失败 (${response.status})`;
+        throw new Error(message);
+      }
+
+      return payload;
+    };
+
+    return {
+      storage: {
+        listBuckets: async () => {
+          try {
+            const data = await request('/bucket', { method: 'GET' });
+            return {
+              data: Array.isArray(data) ? data : [],
+              error: null
+            };
+          } catch (error) {
+            return {
+              data: null,
+              error
+            };
+          }
+        },
+        createBucket: async (bucketName, options = {}) => {
+          try {
+            const data = await request('/bucket', {
+              method: 'POST',
+              body: JSON.stringify({
+                id: bucketName,
+                name: bucketName,
+                public: !!options.public,
+                file_size_limit: options.fileSizeLimit,
+                allowed_mime_types: options.allowedMimeTypes
+              })
+            });
+
+            return {
+              data,
+              error: null
+            };
+          } catch (error) {
+            return {
+              data: null,
+              error
+            };
+          }
+        }
+      }
+    };
   }
 
   async testProjectConnection(config) {
@@ -358,12 +428,11 @@ class SupabaseResourceManager {
     }
 
     try {
-      const client = new SupabaseClient();
-      await client.initialize({
+      const client = SupabaseClient.getSharedInstance();
+      await client.testSchemaAccessWithConfig({
         url: config.url,
         anonKey: config.anonKey
-      }, false);
-      await client.testSchemaAccess();
+      });
       return true;
     } catch (error) {
       return false;
@@ -496,7 +565,7 @@ class SupabaseResourceManager {
 
     const sql = String(
       input.sql
-      || (typeof SupabaseClient !== 'undefined' ? new SupabaseClient().getTableCreationSQL() : '')
+      || (typeof SupabaseClient !== 'undefined' ? SupabaseClient.getTableCreationSQL() : '')
     ).trim();
     if (!sql) {
       throw new Error('初始化 SQL 为空');
