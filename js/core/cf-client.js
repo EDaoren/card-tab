@@ -110,14 +110,33 @@ class CloudflareClient {
     try {
       const result = await this._request('GET', '/api/ping');
       if (result && result.ok) {
+        await this.testSchemaAccess();
         this.isConnected = true;
-        console.log('CloudflareClient: 连接测试成功');
+        console.log('CloudflareClient: 连接与数据表测试成功');
+        return {
+          ok: true,
+          provider: 'cloudflare'
+        };
       } else {
         throw new Error('连接测试响应格式异常');
       }
     } catch (error) {
       this.isConnected = false;
       console.error('CloudflareClient: 连接测试失败:', error);
+      throw error;
+    }
+  }
+
+  async testSchemaAccess() {
+    try {
+      await this._request('GET', '/api/themes?user_id=1');
+      return { ok: true };
+    } catch (error) {
+      const errorMessage = String(error?.message || '');
+      if (errorMessage.includes('no such table') || errorMessage.includes('card_tab_data')) {
+        throw new Error('数据表不存在，请先初始化数据库');
+      }
+
       throw error;
     }
   }

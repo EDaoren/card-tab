@@ -467,6 +467,8 @@ class CloudflareResourceManager {
       bucketName: names.bucketName,
       workersSubdomain,
       initialized: false,
+      setupStatus: 'pending',
+      setupStatusText: '',
       createdAt: now,
       updatedAt: now
     };
@@ -496,8 +498,23 @@ class CloudflareResourceManager {
 
     const existingProfile = await this.getProfile();
     const now = new Date().toISOString();
+    const nextSource = input.source || existingProfile?.source || 'manual';
+    const nextInitialized = typeof input.initialized === 'boolean'
+      ? input.initialized
+      : !!existingProfile?.initialized;
+    const fallbackSetupStatus = nextInitialized
+      ? 'configured'
+      : String(existingProfile?.setupStatus || '').trim() || 'missing';
+    const nextSetupStatus = String(
+      input.setupStatus
+      ?? existingProfile?.setupStatus
+      ?? fallbackSetupStatus
+    ).trim() || fallbackSetupStatus;
+    const nextSetupStatusText = nextSetupStatus === 'error'
+      ? String(input.setupStatusText ?? existingProfile?.setupStatusText ?? '').trim()
+      : '';
     const nextProfile = {
-      source: input.source || existingProfile?.source || 'manual',
+      source: nextSource,
       accountId: String(input.accountId ?? existingProfile?.accountId ?? '').trim(),
       baseName: String(input.baseName ?? existingProfile?.baseName ?? '').trim(),
       workerName: String(input.workerName ?? existingProfile?.workerName ?? '').trim(),
@@ -511,9 +528,9 @@ class CloudflareResourceManager {
         ?? existingProfile?.workersSubdomain
         ?? this.extractWorkersSubdomain(workerUrl)
       ).trim(),
-      initialized: typeof input.initialized === 'boolean'
-        ? input.initialized
-        : !!existingProfile?.initialized,
+      initialized: nextInitialized,
+      setupStatus: nextSetupStatus,
+      setupStatusText: nextSetupStatusText,
       createdAt: existingProfile?.createdAt || now,
       updatedAt: now,
       lastInitializedAt: input.lastInitializedAt ?? existingProfile?.lastInitializedAt ?? null,
@@ -534,6 +551,8 @@ class CloudflareResourceManager {
     const nextProfile = {
       ...profile,
       initialized: true,
+      setupStatus: 'configured',
+      setupStatusText: '',
       lastInitializedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

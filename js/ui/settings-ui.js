@@ -6,9 +6,14 @@
 class SettingsUIManager {
   constructor() {
     this.currentPanel = 'panel-appearance';
+    this.currentWorkspaceTab = 'basic';
     this.editingThemeId = null;
     this.supabaseFlowModeOverride = null;
-    
+    this.workspaceVisibleCount = 12;
+    this.workspaceLoadStep = 12;
+    this.workspaceLoadObserver = null;
+    this.workspaceLoadPending = false;
+
     // 背景图片缓存
     this.tempBgImageFile = null;
   }
@@ -16,6 +21,7 @@ class SettingsUIManager {
   async init() {
     this.bindSidebarNav();
     this.bindAppearanceEvents();
+    this.bindWorkspaceDetailEvents();
     this.bindSyncEvents();
     this.bindSupabaseSecureEvents();
     this.bindDataEvents();
@@ -27,40 +33,59 @@ class SettingsUIManager {
     
     // 初始化面板数据
     this.refreshThemesList();
-    this.refreshSyncUI();
     await this.refreshCloudflareSetupUI();
     await this.refreshSupabaseSetupUI();
+    this.refreshSyncUI();
     // 应用当前主题的 CSS 以保持视觉统一 (已在 settings.html 中触发 initThemeSettings)
   }
 
   /* ---------------------- 侧边导航栏 ---------------------- */
   bindSidebarNav() {
     const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
-    const panels = document.querySelectorAll('.settings-panel');
     
     navItems.forEach(item => {
       item.addEventListener('click', () => {
         const targetId = item.getAttribute('data-target');
-        
-        // Update active classes
-        navItems.forEach(n => n.classList.remove('active'));
-        item.classList.add('active');
-        
-        panels.forEach(p => p.classList.remove('active'));
-        document.getElementById(targetId).classList.add('active');
-        
-        this.currentPanel = targetId;
+        this.showPanel(targetId);
       });
     });
+  }
+
+  showPanel(targetId) {
+    const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+    const panels = document.querySelectorAll('.settings-panel');
+
+    navItems.forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-target') === targetId);
+    });
+
+    panels.forEach(panel => {
+      panel.classList.toggle('active', panel.id === targetId);
+    });
+
+    this.currentPanel = targetId;
+
+    if (targetId === 'panel-appearance') {
+      this.refreshWorkspaceDetailUI().catch(console.error);
+    }
+  }
+
+  activateGlobalProviderTab(tabName) {
+    const targetTab = document.querySelector(`#panel-sync .tab-btn[data-tab="${tabName}"]`);
+    if (targetTab) {
+      targetTab.click();
+    }
   }
 
   /* ---------------------- 外观主题管理 ---------------------- */
   bindAppearanceEvents() {
     // 新建主题按钮
-    document.getElementById('create-theme-btn').addEventListener('click', () => {
+    document.getElementById('workspace-overview-manage-btn')?.addEventListener('click', () => {
       this.openThemeForm();
     });
-    
+
+    this.bindWorkspaceListEvents();
+
     // 颜色选择器
     document.querySelectorAll('.color-option').forEach(opt => {
       opt.addEventListener('click', (e) => {
@@ -140,134 +165,368 @@ class SettingsUIManager {
       window.loadThemeSettings();
     });
   }
-  
-  refreshThemesList() {
+  bindWorkspaceListEvents() {
     const container = document.getElementById('themes-list');
-    if (!container) return;
-    
-    const themes = window.unifiedDataManager.getAllThemes();
-    const currentThemeId = window.unifiedDataManager.appData.currentThemeId;
-    
-    container.innerHTML = '';
-    
-    // 排序：当前激活的在最前，之后按更新时间倒序
-    themes.sort((a, b) => {
-      if (a.themeId === currentThemeId) return -1;
-      if (b.themeId === currentThemeId) return 1;
-      return new Date(b.updatedAt) - new Date(a.updatedAt);
-    });
-    
-    themes.forEach(theme => {
-      const isCurrent = theme.themeId === currentThemeId;
-      const typeLabel = theme.type === 'chrome' ? '本地' : 
-                        theme.type === 'cloudflare' ? 'CF 云端' : 'Supabase';
 
-      const previewColorMap = {
-        default: '#f5f5f5',
-        dark: '#35363a',
-        blue: '#e8f0fe',
-        green: '#e6f4ea',
-        purple: '#f3e8fd',
-        pink: '#fce4ec'
-      };
-      const previewBackgroundColor = previewColorMap[theme.themeType] || previewColorMap.default;
-      const bgStyle = theme.bgImageUrl
-        ? `background-image: url(${theme.bgImageUrl}); background-color: ${previewBackgroundColor};`
-        : `background-color: ${previewBackgroundColor};`;
-      
-      const card = document.createElement('div');
-      card.className = `theme-card ${isCurrent ? 'active-theme' : ''}`;
-      card.innerHTML = `
-        <div class="theme-card-header">
-          <div>
-            <h4 class="theme-name">${theme.themeName || '未命名'}</h4>
-            <div class="theme-meta">
-              <span>${typeLabel}</span> • <span>${theme.themeType === 'default' ? '浅色' : theme.themeType}</span>
-            </div>
-          </div>
-          ${isCurrent ? '<span class="material-symbols-rounded" style="color:var(--primary-color)">check_circle</span>' : ''}
-        </div>
-        <div class="theme-preview-block" style="${bgStyle}"></div>
-        <div class="theme-actions">
-           ${!isCurrent ? `<button class="primary-btn use-theme-btn" data-id="${theme.themeId}">使用</button>` : ''}
-           <button class="secondary-btn edit-theme-btn" data-id="${theme.themeId}">编辑</button>
-           ${(!isCurrent && theme.themeId !== 'default') ? `<button class="secondary-btn text-danger delete-theme-btn" data-id="${theme.themeId}">删除</button>` : ''}
-        </div>
-      `;
-      container.appendChild(card);
-    });
-    
-    // 绑定卡片内按钮事件
-    container.querySelectorAll('.use-theme-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.target.getAttribute('data-id');
-        this.showMessage('正在切换工作空间...', 'info');
-        try {
-          await window.unifiedDataManager.switchTheme(id);
-          await window.syncManager.init();
-          this.refreshThemesList();
-          this.refreshSyncUI();
-          window.loadThemeSettings(); // 更新外层页面的背景/CSS
-          this.showMessage('已切换工作空间', 'success');
-        } catch (err) {
-          this.showMessage('切换失败: ' + err.message, 'error');
-        }
-      });
-    });
-    
-    container.querySelectorAll('.edit-theme-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.openThemeForm(e.target.getAttribute('data-id'));
-      });
-    });
-    
-    container.querySelectorAll('.delete-theme-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.target.getAttribute('data-id');
-        const confirmed = await window.notification.confirm('确定要删除此工作空间吗？此操作不可恢复。', {
-          title: '确认删除工作空间',
-          confirmText: '删除',
-          cancelText: '取消',
-          type: 'error'
-        });
+    this.setupWorkspaceInfiniteScroll();
 
-        if (!confirmed) {
+    container?.addEventListener('click', async (event) => {
+      const actionButton = event.target.closest('.use-theme-btn, .edit-theme-btn, .delete-theme-btn');
+      if (actionButton) {
+        const themeId = actionButton.getAttribute('data-id');
+        if (!themeId) {
           return;
         }
 
-        try {
-          await window.unifiedDataManager.deleteTheme(id);
-          this.refreshThemesList();
-          this.showMessage('主题已删除', 'success');
-        } catch(err) {
-          this.showMessage('删除失败: ' + err.message, 'error');
+        if (actionButton.classList.contains('use-theme-btn')) {
+          await this.switchWorkspaceFromList(themeId);
+          return;
         }
-      });
+
+        if (actionButton.classList.contains('edit-theme-btn')) {
+          this.openThemeForm(themeId);
+          return;
+        }
+
+        if (actionButton.classList.contains('delete-theme-btn')) {
+          await this.deleteWorkspaceFromList(themeId);
+        }
+        return;
+      }
+
+      const card = event.target.closest('.theme-card');
+      if (card?.dataset.id) {
+        this.openThemeForm(card.dataset.id);
+      }
+    });
+
+    container?.addEventListener('keydown', (event) => {
+      if (event.target.closest('button')) {
+        return;
+      }
+
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+
+      const card = event.target.closest('.theme-card');
+      if (!card?.dataset.id) {
+        return;
+      }
+
+      event.preventDefault();
+      this.openThemeForm(card.dataset.id);
     });
   }
-  
+
+  setupWorkspaceInfiniteScroll() {
+    const sentinel = document.getElementById('workspace-load-sentinel');
+    const scrollRoot = document.querySelector('.settings-content');
+
+    if (!sentinel || !scrollRoot || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    if (this.workspaceLoadObserver) {
+      this.workspaceLoadObserver.disconnect();
+    }
+
+    this.workspaceLoadObserver = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (!entry?.isIntersecting) {
+        return;
+      }
+
+      this.loadMoreWorkspaces();
+    }, {
+      root: scrollRoot,
+      rootMargin: '0px 0px 240px 0px',
+      threshold: 0
+    });
+
+    this.workspaceLoadObserver.observe(sentinel);
+  }
+
+  loadMoreWorkspaces() {
+    if (this.workspaceLoadPending || this.editingThemeId) {
+      return;
+    }
+
+    const totalItems = window.unifiedDataManager?.getAllThemes?.().length || 0;
+    if (this.workspaceVisibleCount >= totalItems) {
+      return;
+    }
+
+    this.workspaceLoadPending = true;
+    this.workspaceVisibleCount = Math.min(this.workspaceVisibleCount + this.workspaceLoadStep, totalItems);
+    this.refreshThemesList();
+    this.workspaceLoadPending = false;
+  }
+
+  async switchWorkspaceFromList(themeId) {
+    this.showMessage('正在切换工作空间...', 'info');
+
+    try {
+      await window.unifiedDataManager.switchTheme(themeId);
+      await window.syncManager.init();
+      this.refreshThemesList();
+      this.refreshSyncUI();
+      window.loadThemeSettings();
+      this.showMessage('已切换工作空间', 'success');
+    } catch (error) {
+      this.showMessage('切换失败: ' + error.message, 'error');
+    }
+  }
+
+  async deleteWorkspaceFromList(themeId) {
+    const confirmed = await window.notification.confirm('确定要删除此工作空间吗？此操作不可恢复。', {
+      title: '确认删除工作空间',
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'error'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await window.unifiedDataManager.deleteTheme(themeId);
+      this.refreshThemesList();
+      this.showMessage('工作空间已删除', 'success');
+    } catch (error) {
+      this.showMessage('删除失败: ' + error.message, 'error');
+    }
+  }
+
+  getSortedThemes(themes, currentThemeId) {
+    return [...themes].sort((a, b) => {
+      if (a.themeId === currentThemeId) return -1;
+      if (b.themeId === currentThemeId) return 1;
+
+      const updatedAtA = new Date(a.updatedAt || 0).getTime();
+      const updatedAtB = new Date(b.updatedAt || 0).getTime();
+      return updatedAtB - updatedAtA;
+    });
+  }
+
+  getVisibleWorkspaceCount(totalItems) {
+    if (totalItems <= 0) {
+      return 0;
+    }
+
+    const minimumVisibleCount = Math.max(this.workspaceVisibleCount, this.workspaceLoadStep);
+    const visibleCount = Math.min(minimumVisibleCount, totalItems);
+    this.workspaceVisibleCount = visibleCount;
+    return visibleCount;
+  }
+
+  updateWorkspaceLoadSentinel(totalItems, renderedCount) {
+    const sentinel = document.getElementById('workspace-load-sentinel');
+    if (!sentinel) {
+      return;
+    }
+
+    sentinel.hidden = !!this.editingThemeId || renderedCount >= totalItems;
+  }
+
+  createThemeCard(theme, currentThemeId) {
+    const isCurrent = theme.themeId === currentThemeId;
+    const typeLabel = theme.type === 'chrome'
+      ? '本地'
+      : (theme.type === 'cloudflare' ? 'CF 云端' : 'Supabase');
+    const previewColorMap = {
+      default: '#f5f5f5',
+      dark: '#35363a',
+      blue: '#e8f0fe',
+      green: '#e6f4ea',
+      purple: '#f3e8fd',
+      pink: '#fce4ec'
+    };
+    const previewBackgroundColor = previewColorMap[theme.themeType] || previewColorMap.default;
+    const bgStyle = theme.bgImageUrl
+      ? `background-image: url(${theme.bgImageUrl}); background-color: ${previewBackgroundColor};`
+      : `background-color: ${previewBackgroundColor};`;
+    const themeName = theme.themeName || '未命名';
+    const themeColorLabel = theme.themeType === 'default' ? '浅色' : (theme.themeType || '默认');
+
+    const card = document.createElement('div');
+    card.className = `theme-card ${isCurrent ? 'active-theme' : ''}`;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `打开工作空间 ${themeName} 的详情设置`);
+    card.dataset.id = theme.themeId;
+    card.innerHTML = `
+      <div class="theme-card-header">
+        <div>
+          <h4 class="theme-name">${themeName}</h4>
+          <div class="theme-meta">
+            <span>${typeLabel}</span> \u00b7 <span>${themeColorLabel}</span>
+          </div>
+        </div>
+        ${isCurrent ? '<span class="theme-card-state is-current">当前使用中</span>' : ''}
+      </div>
+      <div class="theme-preview-block" style="${bgStyle}"></div>
+      <div class="theme-card-hint">
+        <span class="material-symbols-rounded">arrow_forward</span>
+        <span>点击卡片可进入详情设置</span>
+      </div>
+      <div class="theme-actions">
+        ${!isCurrent ? `<button class="primary-btn use-theme-btn" data-id="${theme.themeId}">\u4f7f\u7528</button>` : ''}
+        <button class="secondary-btn edit-theme-btn" data-id="${theme.themeId}">设置</button>
+        ${(!isCurrent && theme.themeId !== 'default') ? `<button class="secondary-btn text-danger delete-theme-btn" data-id="${theme.themeId}">\u5220\u9664</button>` : ''}
+      </div>
+    `;
+
+    return card;
+  }
+
+  bindWorkspaceDetailEvents() {
+    document.querySelectorAll('.workspace-tab-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.switchWorkspaceDetailTab(button.dataset.workspaceTab || 'basic');
+      });
+    });
+
+    document.getElementById('switch-workspace-btn')?.addEventListener('click', async () => {
+      if (!this.editingThemeId) {
+        return;
+      }
+
+      const preservedTab = this.currentWorkspaceTab;
+
+      try {
+        await window.unifiedDataManager.switchTheme(this.editingThemeId);
+        await window.syncManager.init();
+        this.refreshThemesList();
+        this.refreshSyncUI();
+        await this.refreshCloudflareSetupUI();
+        await this.refreshSupabaseSetupUI();
+        window.loadThemeSettings();
+        this.openThemeForm(this.editingThemeId);
+        this.switchWorkspaceDetailTab(preservedTab);
+        this.showMessage('已切换到该工作空间', 'success');
+      } catch (error) {
+        this.showMessage('切换失败: ' + error.message, 'error');
+      }
+    });
+
+    document.getElementById('workspace-open-global-cf-btn')?.addEventListener('click', () => {
+      this.showPanel('panel-sync');
+      this.activateGlobalProviderTab('cf-sync');
+    });
+
+    document.getElementById('workspace-open-global-sb-btn')?.addEventListener('click', () => {
+      this.showPanel('panel-sync');
+      this.activateGlobalProviderTab('supabase-sync');
+    });
+
+    document.getElementById('workspace-disable-sync-btn')?.addEventListener('click', this.disableSyncHandler.bind(this));
+  }
+
+  switchWorkspaceDetailTab(tabName = 'basic') {
+    this.currentWorkspaceTab = tabName;
+
+    document.querySelectorAll('.workspace-tab-btn').forEach((button) => {
+      button.classList.toggle('active', button.dataset.workspaceTab === tabName);
+    });
+
+    document.querySelectorAll('.workspace-tab-pane').forEach((panel) => {
+      panel.classList.toggle('active', panel.id === `workspace-tab-${tabName}`);
+    });
+  }
+
+  refreshWorkspaceOverview(themes, currentThemeId) {
+    const title = document.getElementById('workspace-overview-title');
+    const desc = document.getElementById('workspace-overview-desc');
+    const count = document.getElementById('workspace-count-value');
+    const manageBtn = document.getElementById('workspace-overview-manage-btn');
+
+    if (!title || !desc || !count || !manageBtn) {
+      return;
+    }
+
+    count.textContent = String(themes.length);
+
+    const currentTheme = themes.find((theme) => theme.themeId === currentThemeId);
+    const syncModeMap = {
+      chrome: '本地模式',
+      cloudflare: 'Cloudflare 同步',
+      supabase: 'Supabase 同步'
+    };
+    const colorModeMap = {
+      default: '浅色',
+      dark: '暗色',
+      blue: '蓝色',
+      green: '绿色',
+      purple: '紫色',
+      pink: '粉色'
+    };
+
+    if (!currentTheme) {
+      title.textContent = '还没有可用工作空间';
+      desc.textContent = '先新建一个工作空间，再继续配置它的外观和同步。';
+      manageBtn.textContent = '新建工作空间';
+      return;
+    }
+
+    title.textContent = currentTheme.themeName || '未命名工作空间';
+    desc.textContent = `当前使用 ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}。`;
+    manageBtn.textContent = '新建工作空间';
+  }
+  refreshThemesList() {
+    const container = document.getElementById('themes-list');
+    if (!container) return;
+
+    const themes = window.unifiedDataManager.getAllThemes();
+    const currentThemeId = window.unifiedDataManager.appData.currentThemeId;
+    const sortedThemes = this.getSortedThemes(themes, currentThemeId);
+    const visibleCount = this.getVisibleWorkspaceCount(sortedThemes.length);
+    const visibleThemes = sortedThemes.slice(0, visibleCount);
+
+    container.innerHTML = '';
+
+    this.refreshWorkspaceOverview(sortedThemes, currentThemeId);
+
+    const fragment = document.createDocumentFragment();
+    visibleThemes.forEach((theme) => {
+      fragment.appendChild(this.createThemeCard(theme, currentThemeId));
+    });
+    container.appendChild(fragment);
+
+    this.updateWorkspaceLoadSentinel(sortedThemes.length, visibleThemes.length);
+  }
+
   openThemeForm(themeId = null) {
     this.editingThemeId = themeId;
     const form = document.getElementById('theme-edit-form');
+    const loadSentinel = document.getElementById('workspace-load-sentinel');
     document.getElementById('themes-list').style.display = 'none';
-    form.style.display = 'block';
-    
+    document.getElementById('workspace-overview-card').style.display = 'none';
+    if (loadSentinel) {
+      loadSentinel.hidden = true;
+    }
+    form.style.display = 'flex';
+    this.currentWorkspaceTab = 'basic';
+    this.switchWorkspaceDetailTab('basic');
+
     // Reset form
     document.getElementById('theme-name-input').value = '';
     document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
-    document.querySelector('.color-option[data-type="default"]').classList.add('selected');
+    document.querySelector('.color-option[data-type="default"]')?.classList.add('selected');
     this.tempBgImageFile = null;
     this.showPreviewBg(null);
     document.getElementById('bg-opacity-slider').value = 30;
     document.getElementById('bg-opacity-value').textContent = '30%';
-    
+
     // Populate if editing
     if (themeId) {
       const theme = window.unifiedDataManager.appData.themes[themeId];
       if (theme) {
         document.getElementById('theme-name-input').value = theme.themeName;
+        document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
         document.querySelector(`.color-option[data-type="${theme.themeType || 'default'}"]`)?.classList.add('selected');
-        
+
         if (theme.bgImageUrl) {
           this.showPreviewBg(theme.bgImageUrl);
         }
@@ -275,23 +534,226 @@ class SettingsUIManager {
           document.getElementById('bg-opacity-slider').value = theme.bgOpacity;
           document.getElementById('bg-opacity-value').textContent = `${theme.bgOpacity}%`;
         }
-        
-        // 云端功能判定
-        document.getElementById('bg-setting-group').style.display = 
+
+        document.getElementById('bg-setting-group').style.display =
           (theme.type === 'supabase' || theme.type === 'cloudflare') ? 'block' : 'none';
       }
     } else {
-      // Create new: we hide BG upload initially if they haven't picked a provider.
-      // But let's assume newly created themes are "chrome" (local) first, unless they are inside sync UI.
-      // Actually, since this is a global create button, we default to local chrome theme.
       document.getElementById('bg-setting-group').style.display = 'none';
     }
+
+    this.refreshWorkspaceDetailUI().catch(console.error);
   }
-  
+
   closeThemeForm() {
     document.getElementById('theme-edit-form').style.display = 'none';
+    document.getElementById('workspace-overview-card').style.display = 'flex';
     document.getElementById('themes-list').style.display = 'grid';
+    const loadSentinel = document.getElementById('workspace-load-sentinel');
+    if (loadSentinel) {
+      const totalThemes = window.unifiedDataManager?.getAllThemes?.().length || 0;
+      loadSentinel.hidden = totalThemes <= this.workspaceVisibleCount;
+    }
+    this.currentWorkspaceTab = 'basic';
+    this.switchWorkspaceDetailTab('basic');
     this.editingThemeId = null;
+  }
+
+  async refreshWorkspaceDetailUI() {
+    const form = document.getElementById('theme-edit-form');
+    if (!form || form.style.display === 'none') {
+      return;
+    }
+
+    const currentThemeId = window.unifiedDataManager.appData.currentThemeId;
+    const workspace = this.editingThemeId
+      ? window.unifiedDataManager.appData.themes[this.editingThemeId]
+      : null;
+    const isExistingWorkspace = !!workspace;
+    const isCurrentWorkspace = !!workspace && workspace.themeId === currentThemeId;
+    const cfConfig = this.getCloudflareSyncConfig();
+    const sbConfig = this.getSupabaseSyncConfig();
+    const [cfSetupState, sbSetupState] = await Promise.all([
+      window.cloudflareResourceManager?.getSetupState
+        ? window.cloudflareResourceManager.getSetupState().catch(() => null)
+        : Promise.resolve(null),
+      window.supabaseResourceManager?.getSetupState
+        ? window.supabaseResourceManager.getSetupState().catch(() => null)
+        : Promise.resolve(null)
+    ]);
+    const cfProfile = cfSetupState?.profile || null;
+    const sbProfile = sbSetupState?.profile || null;
+    const cfFlowMode = this.getCloudflareResourceMode(cfSetupState?.preferences || null);
+    const sbFlowMode = this.getSupabaseFlowMode(sbProfile);
+    const cfSetup = this.resolveCloudflareSetupState({ profile: cfProfile, config: cfConfig, flowMode: cfFlowMode });
+    const sbSetup = this.resolveSupabaseSetupState({ profile: sbProfile, config: sbConfig, flowMode: sbFlowMode });
+
+    const title = document.getElementById('workspace-detail-title');
+    const desc = document.getElementById('workspace-detail-desc');
+    const eyebrow = document.getElementById('workspace-detail-eyebrow');
+    const badge = document.getElementById('workspace-detail-badge');
+    const indicator = document.getElementById('workspace-detail-indicator');
+    const switchBtn = document.getElementById('switch-workspace-btn');
+    const inactiveNote = document.getElementById('workspace-sync-inactive-note');
+    const syncTitle = document.getElementById('workspace-sync-title');
+    const syncDesc = document.getElementById('workspace-sync-desc');
+    const dataNote = document.getElementById('workspace-data-note');
+    const manualBtn = document.getElementById('manual-sync-btn');
+    const disableBtn = document.getElementById('workspace-disable-sync-btn');
+    const cfEnableBtn = document.getElementById('cf-enable-btn');
+    const sbEnableBtn = document.getElementById('sb-enable-btn');
+    const exportBtn = document.getElementById('export-data-btn');
+    const importBtn = document.getElementById('import-data-btn');
+    const clearDataBtn = document.getElementById('clear-data-btn');
+    const bgSettingGroup = document.getElementById('bg-setting-group');
+
+    const applyBadge = (element, state, text) => {
+      if (!element) {
+        return;
+      }
+
+      element.classList.remove('is-ready', 'is-error', 'is-idle', 'is-pending');
+      element.textContent = text;
+      element.classList.add(state);
+    };
+
+    const cfStatusMeta = this.getUnifiedSetupStatusMeta(cfSetup.status);
+    const sbStatusMeta = this.getUnifiedSetupStatusMeta(sbSetup.status);
+
+    const syncModeLabel = !workspace
+      ? ''
+      : workspace.type === 'cloudflare'
+        ? 'Cloudflare 同步'
+        : workspace.type === 'supabase'
+          ? 'Supabase 同步'
+          : '本地模式';
+
+    if (eyebrow) {
+      eyebrow.textContent = '工作空间详情';
+    }
+
+    if (!isExistingWorkspace) {
+      title.textContent = '新建工作空间';
+      desc.textContent = '新工作空间 · 先保存基础设置，再配置云同步和数据管理。';
+      if (indicator) {
+        indicator.classList.remove('active');
+      }
+      applyBadge(badge, 'is-idle', '未保存');
+      switchBtn.style.display = 'none';
+      inactiveNote.style.display = 'none';
+      syncTitle.textContent = '请先保存工作空间';
+      syncDesc.textContent = '保存后，再回来选择使用已配置好的 Cloudflare 或 Supabase 连接。';
+      dataNote.textContent = '保存当前工作空间后，才能导入、导出或清空这份数据。';
+      bgSettingGroup.style.display = 'none';
+
+      [manualBtn, disableBtn, cfEnableBtn, sbEnableBtn, exportBtn, importBtn, clearDataBtn].forEach((button) => {
+        if (button) {
+          button.disabled = true;
+        }
+      });
+      if (manualBtn) {
+        manualBtn.style.display = 'none';
+      }
+      if (disableBtn) {
+        disableBtn.style.display = 'none';
+      }
+
+      applyBadge(document.getElementById('workspace-local-status'), 'is-idle', '保存后可用');
+      applyBadge(document.getElementById('workspace-cf-status'), cfStatusMeta.badgeClass, cfStatusMeta.label);
+      applyBadge(document.getElementById('workspace-sb-status'), sbStatusMeta.badgeClass, sbStatusMeta.label);
+      return;
+    }
+
+    title.textContent = workspace.themeName || '未命名工作空间';
+    if (indicator) {
+      indicator.classList.toggle('active', isCurrentWorkspace);
+    }
+    desc.textContent = isCurrentWorkspace
+      ? `当前工作空间 · ${syncModeLabel}。你可以在下方继续配置外观、云同步和数据管理。`
+      : `非当前工作空间 · ${syncModeLabel}。基础设置可编辑；云同步和数据管理需先切换。`;
+
+    applyBadge(badge, isCurrentWorkspace ? 'is-ready' : 'is-pending', isCurrentWorkspace ? '当前使用中' : '需先切换');
+
+    if (switchBtn) {
+      switchBtn.style.display = isCurrentWorkspace ? 'none' : 'inline-flex';
+      switchBtn.textContent = '切换到该工作空间';
+    }
+
+    if (inactiveNote) {
+      inactiveNote.style.display = isCurrentWorkspace ? 'none' : 'block';
+      inactiveNote.textContent = '当前不是这个工作空间。你仍然可以修改基础设置，但云同步和数据管理需要先切换过去。';
+    }
+
+    if (bgSettingGroup) {
+      bgSettingGroup.style.display = (workspace.type === 'supabase' || workspace.type === 'cloudflare') ? 'block' : 'none';
+    }
+
+    if (workspace.type === 'cloudflare') {
+      syncTitle.textContent = '已启用 Cloudflare 同步';
+      syncDesc.textContent = 'Cloudflare 与 Supabase 只能二选一，不能同时启用。';
+    } else if (workspace.type === 'supabase') {
+      syncTitle.textContent = '已启用 Supabase 同步';
+      syncDesc.textContent = 'Cloudflare 与 Supabase 只能二选一，不能同时启用。';
+    } else {
+      syncTitle.textContent = '当前使用本地存储';
+      syncDesc.textContent = '可在下方选择已配置好的云端连接。';
+    }
+
+    dataNote.textContent = isCurrentWorkspace
+      ? '这里只管理当前工作空间的数据导入、导出和清空。'
+      : '要管理这个工作空间的数据，请先切换到它。';
+
+    applyBadge(document.getElementById('workspace-local-status'), workspace.type === 'chrome' ? 'is-ready' : 'is-idle', workspace.type === 'chrome' ? '当前模式' : '可切换');
+    applyBadge(document.getElementById('workspace-cf-status'), cfStatusMeta.badgeClass, cfStatusMeta.label);
+    applyBadge(document.getElementById('workspace-sb-status'), sbStatusMeta.badgeClass, sbStatusMeta.label);
+
+    const cfDesc = document.getElementById('workspace-cf-desc');
+    const sbDesc = document.getElementById('workspace-sb-desc');
+    if (cfDesc) {
+      if (cfSetup.status === 'configured') {
+        cfDesc.textContent = `已配置全局 Cloudflare 连接：${cfConfig.workerUrl || cfProfile?.workerUrl || ''}`;
+      } else if (cfSetup.status === 'pending' || cfSetup.status === 'error') {
+        cfDesc.textContent = cfSetup.text;
+      } else {
+        cfDesc.textContent = '先到“云端连接”里准备好 Cloudflare Worker。';
+      }
+    }
+    if (sbDesc) {
+      if (sbSetup.status === 'configured') {
+        sbDesc.textContent = `已配置全局 Supabase 连接：${sbConfig.url || sbProfile?.url || ''}`;
+      } else if (sbSetup.status === 'pending' || sbSetup.status === 'error') {
+        sbDesc.textContent = sbSetup.text;
+      } else {
+        sbDesc.textContent = '先到“云端连接”里准备好 Project URL 和 API Key。';
+      }
+    }
+
+    const canOperateWorkspace = isCurrentWorkspace;
+    if (manualBtn) {
+      manualBtn.style.display = canOperateWorkspace && workspace.type !== 'chrome' ? 'inline-flex' : 'none';
+      manualBtn.disabled = !canOperateWorkspace || workspace.type === 'chrome';
+    }
+    if (disableBtn) {
+      disableBtn.style.display = canOperateWorkspace && workspace.type !== 'chrome' ? 'inline-flex' : 'none';
+      disableBtn.disabled = !canOperateWorkspace || workspace.type === 'chrome';
+    }
+    if (cfEnableBtn) {
+      cfEnableBtn.disabled = !canOperateWorkspace || !cfSetup.canEnable || workspace.type === 'supabase';
+      cfEnableBtn.textContent = workspace.type === 'cloudflare' ? '当前已启用' : '启用同步';
+    }
+    if (sbEnableBtn) {
+      sbEnableBtn.disabled = !canOperateWorkspace || !sbSetup.canEnable || workspace.type === 'cloudflare';
+      sbEnableBtn.textContent = workspace.type === 'supabase' ? '当前已启用' : '启用同步';
+    }
+    if (exportBtn) {
+      exportBtn.disabled = !canOperateWorkspace;
+    }
+    if (importBtn) {
+      importBtn.disabled = !canOperateWorkspace;
+    }
+    if (clearDataBtn) {
+      clearDataBtn.disabled = !canOperateWorkspace;
+    }
   }
   
   showPreviewBg(urlOrData) {
@@ -359,7 +821,7 @@ class SettingsUIManager {
         await window.unifiedDataManager.createLocalTheme(name, themeType, opacity);
       }
       
-      this.showMessage('主题已保存', 'success');
+      this.showMessage('工作空间已保存', 'success');
       this.closeThemeForm();
       this.refreshThemesList();
       
@@ -430,7 +892,9 @@ class SettingsUIManager {
         databaseId: config.databaseId || document.getElementById('cf-database-id')?.value.trim() || '',
         databaseName: config.databaseName || document.getElementById('cf-database-name')?.value.trim() || '',
         bucketName: config.bucketName || document.getElementById('cf-bucket-name')?.value.trim() || '',
-        initialized: typeof config.initialized === 'boolean' ? config.initialized : undefined
+        initialized: typeof config.initialized === 'boolean' ? config.initialized : undefined,
+        setupStatus: 'configured',
+        setupStatusText: ''
       });
     }
 
@@ -454,7 +918,9 @@ class SettingsUIManager {
     if (window.supabaseResourceManager?.saveExistingProjectProfile) {
       await this.saveExistingSupabaseProjectProfile(false, {
         url: config.url,
-        lastConnectedAt: new Date().toISOString()
+        lastConnectedAt: new Date().toISOString(),
+        setupStatus: 'configured',
+        setupStatusText: ''
       });
 
       const schemaReady = await window.supabaseResourceManager.detectSchemaReady({
@@ -547,6 +1013,45 @@ class SettingsUIManager {
     };
   }
 
+  async syncProviderConfigCache(provider, config) {
+    if (!window.unifiedDataManager?.saveProviderConfig || !config) {
+      return null;
+    }
+
+    const normalizedConfig = provider === 'supabase'
+      ? {
+          url: String(config.url || '').trim(),
+          anonKey: String(config.anonKey || '').trim(),
+          bucketName: String(config.bucketName || 'backgrounds').trim() || 'backgrounds'
+        }
+      : {
+          workerUrl: String(config.workerUrl || '').trim(),
+          accessToken: String(config.accessToken || '').trim()
+        };
+
+    if (!window.unifiedDataManager.hasValidProviderConfig(provider, normalizedConfig)) {
+      return null;
+    }
+
+    return window.unifiedDataManager.saveProviderConfig(provider, normalizedConfig);
+  }
+
+  async syncSupabaseAdminSecretsCache(formData = null) {
+    if (!window.supabaseResourceManager) {
+      return null;
+    }
+
+    const nextFormData = formData || this.getSupabaseResourceFormData();
+    await window.supabaseResourceManager.savePreferences({
+      saveAdminSecrets: !!nextFormData.saveAdminSecrets
+    });
+    await window.supabaseResourceManager.setSavedAdminSecrets({
+      serviceRoleKey: nextFormData.serviceRoleKey,
+      managementToken: nextFormData.managementToken
+    }, !!nextFormData.saveAdminSecrets);
+    return nextFormData;
+  }
+
   async ensureSupabaseClient(config = null) {
     const targetConfig = config || this.getSupabaseSyncConfig();
     if (!targetConfig.url || !targetConfig.anonKey) {
@@ -613,7 +1118,7 @@ class SettingsUIManager {
       if (resolvedMode === 'setup') {
         modeText.textContent = '还没建好就选“还没有，帮我初始化”。';
       } else if (isInitialized) {
-        modeText.textContent = '已建好，直接测试或启用。';
+        modeText.textContent = '已建好，直接测试连接。';
       } else {
         modeText.textContent = '还没建好就选“还没有，帮我初始化”。';
       }
@@ -627,6 +1132,294 @@ class SettingsUIManager {
     this.updateSupabaseStepIndicator(currentStep);
   }
 
+  normalizeSetupStatus(status = '') {
+    if (status === 'configured' || status === 'ready') {
+      return 'configured';
+    }
+
+    if (status === 'pending') {
+      return 'pending';
+    }
+
+    if (status === 'error') {
+      return 'error';
+    }
+
+    return 'missing';
+  }
+
+  getUnifiedSetupStatusMeta(state = 'missing') {
+    const normalizedState = this.normalizeSetupStatus(state);
+
+    if (normalizedState === 'configured') {
+      return { badgeClass: 'is-ready', label: '已配置' };
+    }
+
+    if (normalizedState === 'pending') {
+      return { badgeClass: 'is-pending', label: '待初始化' };
+    }
+
+    if (normalizedState === 'error') {
+      return { badgeClass: 'is-error', label: '异常' };
+    }
+
+    return { badgeClass: 'is-idle', label: '未创建' };
+  }
+
+  isCloudflareSchemaMissingError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('数据表不存在')
+      || message.includes('no such table')
+      || message.includes('card_tab_data');
+  }
+
+  isSupabaseSchemaMissingError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('数据表不存在')
+      || message.includes('请先初始化资源')
+      || message.includes('relation')
+      || message.includes('42p01')
+      || message.includes('pgrst116');
+  }
+
+  resolveCloudflareSetupState(options = {}) {
+    const { profile = null, config = null, flowMode = 'existing' } = options;
+    const workerUrl = String(config?.workerUrl || profile?.workerUrl || '').trim();
+    const persistedStatus = this.normalizeSetupStatus(profile?.setupStatus || '');
+    const isCreateMode = flowMode === 'create' || profile?.source === 'auto';
+    const isInitialized = !!profile?.initialized || persistedStatus === 'configured';
+
+    if (!workerUrl) {
+      return {
+        status: 'missing',
+        text: flowMode === 'create' ? '下一步：先创建 Worker。' : '',
+        hasWorkerUrl: false,
+        isInitialized: false,
+        canEnable: false,
+        currentStep: 1
+      };
+    }
+
+    if (persistedStatus === 'error') {
+      return {
+        status: 'error',
+        text: String(profile?.setupStatusText || '最近一次检测失败，请修复后重试。').trim(),
+        hasWorkerUrl: true,
+        isInitialized,
+        canEnable: false,
+        currentStep: isCreateMode && !isInitialized ? 2 : 3
+      };
+    }
+
+    if (isInitialized) {
+      return {
+        status: 'configured',
+        text: '已检测到数据表，可直接启用同步。',
+        hasWorkerUrl: true,
+        isInitialized: true,
+        canEnable: true,
+        currentStep: 3
+      };
+    }
+
+    return {
+      status: 'pending',
+      text: isCreateMode
+        ? '连接已可用，下一步：初始化数据库。'
+        : '连接资料已填写。请先点“检测状态”或直接初始化数据库。',
+      hasWorkerUrl: true,
+      isInitialized: false,
+      canEnable: false,
+      currentStep: isCreateMode ? 2 : 2
+    };
+  }
+
+  resolveSupabaseSetupState(options = {}) {
+    const { profile = null, config = null, flowMode = 'existing' } = options;
+    const url = String(config?.url || profile?.url || '').trim();
+    const anonKey = String(config?.anonKey || profile?.anonKey || '').trim();
+    const hasBasicConfig = !!url && !!anonKey;
+    const persistedStatus = this.normalizeSetupStatus(profile?.setupStatus || '');
+    const isInitialized = !!profile?.initialized || persistedStatus === 'configured';
+
+    if (!hasBasicConfig) {
+      return {
+        status: 'missing',
+        text: '',
+        hasBasicConfig: false,
+        isInitialized: false,
+        canEnable: false,
+        currentStep: 1
+      };
+    }
+
+    if (persistedStatus === 'error') {
+      return {
+        status: 'error',
+        text: String(profile?.setupStatusText || '最近一次检测失败，请修复后重试。').trim(),
+        hasBasicConfig: true,
+        isInitialized,
+        canEnable: false,
+        currentStep: flowMode === 'setup' && !isInitialized ? 2 : 3
+      };
+    }
+
+    if (isInitialized) {
+      return {
+        status: 'configured',
+        text: '已检测到数据表，可直接启用同步。',
+        hasBasicConfig: true,
+        isInitialized: true,
+        canEnable: true,
+        currentStep: 3
+      };
+    }
+
+    return {
+      status: 'pending',
+      text: flowMode === 'setup'
+        ? '连接已可用，下一步：初始化资源。'
+        : '连接资料已填写。请先点“检测状态”确认数据表状态。',
+      hasBasicConfig: true,
+      isInitialized: false,
+      canEnable: false,
+      currentStep: flowMode === 'setup' ? 2 : 2
+    };
+  }
+
+  async detectCloudflareSetupStatus(showMessage = true) {
+    const config = this.getCloudflareSyncConfig();
+    if (!config.workerUrl) {
+      throw new Error('请先填写 Worker API URL');
+    }
+
+    const profile = await this.saveExistingCloudflareResourceProfile(false);
+    const now = new Date().toISOString();
+
+    try {
+      await window.cloudflareResourceManager.testWorkerConnection(profile);
+    } catch (error) {
+      await this.persistCloudflareConnectionState({
+        initialized: false,
+        setupStatus: 'error',
+        setupStatusText: `检测失败：${error.message}`
+      });
+      await this.refreshCloudflareSetupUI();
+      this.refreshSyncUI();
+      if (showMessage) {
+        this.showMessage('检测失败: ' + error.message, 'error');
+      }
+      return { status: 'error', error };
+    }
+
+    try {
+      const tempClient = new CloudflareClient();
+      await tempClient.initialize({
+        workerUrl: profile.workerUrl,
+        accessToken: profile.accessToken || ''
+      }, false);
+      await tempClient.testSchemaAccess();
+
+      await this.persistCloudflareConnectionState({
+        initialized: true,
+        setupStatus: 'configured',
+        setupStatusText: '',
+        lastConnectedAt: now
+      });
+      await this.refreshCloudflareSetupUI();
+      this.refreshSyncUI();
+      if (showMessage) {
+        this.showMessage('检测完成：当前状态为已配置', 'success');
+      }
+      return { status: 'configured' };
+    } catch (error) {
+      const isSchemaMissing = this.isCloudflareSchemaMissingError(error);
+      await this.persistCloudflareConnectionState({
+        initialized: false,
+        setupStatus: isSchemaMissing ? 'pending' : 'error',
+        setupStatusText: isSchemaMissing
+          ? '连接已可用，但未检测到数据表，请先初始化数据库。'
+          : `检测失败：${error.message}`,
+        lastConnectedAt: now
+      });
+      await this.refreshCloudflareSetupUI();
+      this.refreshSyncUI();
+      if (showMessage) {
+        this.showMessage(
+          isSchemaMissing ? '检测完成：当前状态为待初始化' : ('检测失败: ' + error.message),
+          isSchemaMissing ? 'info' : 'error'
+        );
+      }
+      return { status: isSchemaMissing ? 'pending' : 'error', error };
+    }
+  }
+
+  async detectSupabaseSetupStatus(showMessage = true) {
+    await this.syncSupabaseAdminSecretsCache();
+
+    const config = this.getSupabaseSyncConfig();
+    if (!config.url || !config.anonKey) {
+      throw new Error('请先填写完整的 Supabase 连接信息');
+    }
+
+    await this.saveExistingSupabaseProjectProfile(false);
+    const now = new Date().toISOString();
+    const tempClient = new SupabaseClient();
+
+    try {
+      await tempClient.initialize(config, false);
+      await tempClient.testProjectAccess();
+    } catch (error) {
+      await this.persistSupabaseConnectionState({
+        initialized: false,
+        setupStatus: 'error',
+        setupStatusText: `检测失败：${error.message}`
+      });
+      await this.refreshSupabaseSetupUI();
+      this.refreshSyncUI();
+      if (showMessage) {
+        this.showMessage('检测失败: ' + error.message, 'error');
+      }
+      return { status: 'error', error };
+    }
+
+    try {
+      await tempClient.testSchemaAccess();
+      await this.persistSupabaseConnectionState({
+        initialized: true,
+        setupStatus: 'configured',
+        setupStatusText: '',
+        lastConnectedAt: now
+      });
+      this.supabaseFlowModeOverride = 'existing';
+      await this.refreshSupabaseSetupUI();
+      this.refreshSyncUI();
+      if (showMessage) {
+        this.showMessage('检测完成：当前状态为已配置', 'success');
+      }
+      return { status: 'configured' };
+    } catch (error) {
+      const isSchemaMissing = this.isSupabaseSchemaMissingError(error);
+      await this.persistSupabaseConnectionState({
+        initialized: false,
+        setupStatus: isSchemaMissing ? 'pending' : 'error',
+        setupStatusText: isSchemaMissing
+          ? '连接已可用，但未检测到数据表，请先初始化资源。'
+          : `检测失败：${error.message}`,
+        lastConnectedAt: now
+      });
+      await this.refreshSupabaseSetupUI();
+      this.refreshSyncUI();
+      if (showMessage) {
+        this.showMessage(
+          isSchemaMissing ? '检测完成：当前状态为待初始化' : ('检测失败: ' + error.message),
+          isSchemaMissing ? 'info' : 'error'
+        );
+      }
+      return { status: isSchemaMissing ? 'pending' : 'error', error };
+    }
+  }
+
   updateSupabaseSetupStatus(state, text) {
     const badge = document.getElementById('sb-setup-badge');
     const statusText = document.getElementById('sb-setup-status-text');
@@ -634,21 +1427,10 @@ class SettingsUIManager {
       return;
     }
 
+    const meta = this.getUnifiedSetupStatusMeta(state);
     badge.classList.remove('is-ready', 'is-error', 'is-idle', 'is-pending');
-
-    if (state === 'ready') {
-      badge.textContent = '已初始化';
-      badge.classList.add('is-ready');
-    } else if (state === 'pending') {
-      badge.textContent = '待初始化';
-      badge.classList.add('is-pending');
-    } else if (state === 'error') {
-      badge.textContent = '异常';
-      badge.classList.add('is-error');
-    } else {
-      badge.textContent = '未初始化';
-      badge.classList.add('is-idle');
-    }
+    badge.textContent = meta.label;
+    badge.classList.add(meta.badgeClass);
 
     statusText.textContent = text || '';
     statusText.hidden = !text;
@@ -660,9 +1442,45 @@ class SettingsUIManager {
     }
 
     const formData = this.getSupabaseResourceFormData();
-    const profile = await window.supabaseResourceManager.saveExistingProjectProfile({
+    const existingProfile = await window.supabaseResourceManager.getProfile();
+    const flowMode = this.getSupabaseFlowMode(existingProfile);
+    const hasStatusOverride = Object.prototype.hasOwnProperty.call(overrides, 'setupStatus');
+    const hasStatusTextOverride = Object.prototype.hasOwnProperty.call(overrides, 'setupStatusText');
+    const draftProfile = {
+      ...existingProfile,
       ...formData,
       ...overrides
+    };
+    const resolvedState = this.resolveSupabaseSetupState({
+      profile: draftProfile,
+      config: {
+        url: draftProfile.url,
+        anonKey: draftProfile.anonKey,
+        bucketName: draftProfile.bucketName
+      },
+      flowMode
+    });
+    const connectionChanged = String(existingProfile?.url || '').trim() !== String(draftProfile.url || '').trim()
+      || String(existingProfile?.anonKey || '').trim() !== String(draftProfile.anonKey || '').trim();
+    const nextSetupStatus = hasStatusOverride
+      ? overrides.setupStatus
+      : (connectionChanged
+        ? ((String(draftProfile.url || '').trim() && String(draftProfile.anonKey || '').trim()) ? 'pending' : 'missing')
+        : resolvedState.status);
+    const nextSetupStatusText = hasStatusTextOverride
+      ? overrides.setupStatusText
+      : (connectionChanged ? '' : (nextSetupStatus === 'error' ? resolvedState.text : ''));
+    const profile = await window.supabaseResourceManager.saveExistingProjectProfile({
+      ...formData,
+      ...overrides,
+      setupStatus: nextSetupStatus,
+      setupStatusText: nextSetupStatusText
+    });
+
+    await this.syncProviderConfigCache('supabase', {
+      url: profile.url,
+      anonKey: profile.anonKey,
+      bucketName: profile.bucketName || formData.bucketName || 'backgrounds'
     });
 
     if (showMessage) {
@@ -670,6 +1488,7 @@ class SettingsUIManager {
     }
 
     await this.refreshSupabaseSetupUI();
+    this.refreshSyncUI();
     return profile;
   }
 
@@ -761,7 +1580,7 @@ class SettingsUIManager {
     if (syncModeHint) {
       syncModeHint.textContent = isInitialized
         ? '现在可以测试连接并启用同步。'
-        : '如果数据库早就初始化过，也可以直接测试并启用同步。';
+        : '如果数据库早就初始化过，也可以直接测试连接。';
     }
 
     this.updateCloudflareStepIndicator(currentStep);
@@ -774,21 +1593,10 @@ class SettingsUIManager {
       return;
     }
 
+    const meta = this.getUnifiedSetupStatusMeta(state);
     badge.classList.remove('is-ready', 'is-error', 'is-idle', 'is-pending');
-
-    if (state === 'ready') {
-      badge.textContent = '已初始化';
-      badge.classList.add('is-ready');
-    } else if (state === 'pending') {
-      badge.textContent = '待初始化';
-      badge.classList.add('is-pending');
-    } else if (state === 'error') {
-      badge.textContent = '异常';
-      badge.classList.add('is-error');
-    } else {
-      badge.textContent = '未创建';
-      badge.classList.add('is-idle');
-    }
+    badge.textContent = meta.label;
+    badge.classList.add(meta.badgeClass);
 
     statusText.textContent = text || '';
     statusText.hidden = !text;
@@ -808,11 +1616,46 @@ class SettingsUIManager {
     }
 
     const formData = this.getCloudflareResourceFormData();
+    const existingProfile = await window.cloudflareResourceManager.getProfile();
     const mode = this.getCloudflareResourceMode();
+    const hasStatusOverride = Object.prototype.hasOwnProperty.call(overrides, 'setupStatus');
+    const hasStatusTextOverride = Object.prototype.hasOwnProperty.call(overrides, 'setupStatusText');
+    const nextSource = overrides.source || (mode === 'existing' ? 'manual' : existingProfile?.source || 'manual');
+    const draftProfile = {
+      ...existingProfile,
+      ...formData,
+      ...overrides,
+      source: nextSource
+    };
+    const resolvedState = this.resolveCloudflareSetupState({
+      profile: draftProfile,
+      config: {
+        workerUrl: draftProfile.workerUrl,
+        accessToken: draftProfile.accessToken
+      },
+      flowMode: mode
+    });
+    const connectionChanged = String(existingProfile?.workerUrl || '').trim() !== String(draftProfile.workerUrl || '').trim()
+      || String(existingProfile?.accessToken || '').trim() !== String(draftProfile.accessToken || '').trim();
+    const nextSetupStatus = hasStatusOverride
+      ? overrides.setupStatus
+      : (connectionChanged
+        ? (String(draftProfile.workerUrl || '').trim() ? 'pending' : 'missing')
+        : resolvedState.status);
+    const nextSetupStatusText = hasStatusTextOverride
+      ? overrides.setupStatusText
+      : (connectionChanged ? '' : (nextSetupStatus === 'error' ? resolvedState.text : ''));
     const profile = await window.cloudflareResourceManager.saveExistingResourceProfile({
       ...formData,
       ...(overrides.source ? {} : (mode === 'existing' ? { source: 'manual' } : {})),
-      ...overrides
+      ...overrides,
+      setupStatus: nextSetupStatus,
+      setupStatusText: nextSetupStatusText
+    });
+
+    await this.syncProviderConfigCache('cloudflare', {
+      workerUrl: profile.workerUrl,
+      accessToken: profile.accessToken || ''
     });
 
     if (showMessage) {
@@ -820,6 +1663,7 @@ class SettingsUIManager {
     }
 
     await this.refreshCloudflareSetupUI();
+    this.refreshSyncUI();
     return profile;
   }
 
@@ -846,17 +1690,28 @@ class SettingsUIManager {
     const workerAccessTokenInput = document.getElementById('cf-worker-access-token');
     const saveApiTokenCheckbox = document.getElementById('cf-save-api-token');
     const createBtn = document.getElementById('cf-create-resources-btn');
+    const detectBtn = document.getElementById('cf-detect-status-btn');
     const testBtn = document.getElementById('cf-test-btn');
     const initBtn = document.getElementById('cf-init-db-btn');
     const enableBtn = document.getElementById('cf-enable-btn');
     const resolvedWorkerUrl = profile?.workerUrl || syncStatus?.cloudflareConfig?.workerUrl || workerUrlInput?.value.trim() || '';
     const resolvedAccessToken = profile?.accessToken || syncStatus?.cloudflareConfig?.accessToken || accessTokenInput?.value.trim() || '';
-    const hasWorkerUrl = !!resolvedWorkerUrl;
-    const isInitialized = !!profile?.initialized;
-    const cfLocked = syncStatus?.isCloudEnabled && syncStatus?.activeProvider === 'supabase';
+    const cfSetup = this.resolveCloudflareSetupState({
+      profile,
+      config: {
+        workerUrl: resolvedWorkerUrl,
+        accessToken: resolvedAccessToken
+      },
+      flowMode
+    });
+    const hasWorkerUrl = cfSetup.hasWorkerUrl;
+    const isInitialized = cfSetup.isInitialized;
+    const cfLocked = false;
     const isCreateReady = flowMode === 'create' && profile?.source === 'auto' && hasWorkerUrl;
     const hasStepOneResult = flowMode === 'create' ? isCreateReady : hasWorkerUrl;
-    const currentStep = !hasStepOneResult ? 1 : (!isInitialized ? 2 : 3);
+    const currentStep = flowMode === 'create'
+      ? (!hasStepOneResult ? 1 : cfSetup.currentStep)
+      : (hasWorkerUrl ? 3 : 1);
 
     if (workerUrlInput) {
       workerUrlInput.value = resolvedWorkerUrl;
@@ -908,6 +1763,9 @@ class SettingsUIManager {
     if (createBtn) {
       createBtn.disabled = cfLocked;
     }
+    if (detectBtn) {
+      detectBtn.disabled = cfLocked || !hasStepOneResult;
+    }
     if (testBtn) {
       testBtn.disabled = cfLocked || !hasStepOneResult;
     }
@@ -915,29 +1773,12 @@ class SettingsUIManager {
       initBtn.disabled = cfLocked || !hasStepOneResult;
     }
     if (enableBtn) {
-      enableBtn.disabled = cfLocked || !hasStepOneResult || (profile?.source === 'auto' && !isInitialized);
+      enableBtn.disabled = cfLocked || !cfSetup.canEnable;
     }
 
-    if (!hasStepOneResult) {
-      if (flowMode === 'create') {
-        this.updateCloudflareSetupStatus('idle', '下一步：先创建 Worker。');
-      } else {
-        this.updateCloudflareSetupStatus('idle', '');
-      }
-      return;
-    }
+    this.updateCloudflareSetupStatus(cfSetup.status, cfSetup.text);
 
-    if (isInitialized) {
-      this.updateCloudflareSetupStatus('ready', '已就绪，可直接测试或启用。');
-      return;
-    }
-
-    if (profile?.source === 'auto' || flowMode === 'create') {
-      this.updateCloudflareSetupStatus('pending', 'Worker 已创建，下一步：初始化数据库。');
-      return;
-    }
-
-    this.updateCloudflareSetupStatus('pending', '如果数据库还没初始化，先做第 2 步；已经初始化过可直接测试并启用。');
+    this.refreshSyncUI();
   }
 
   async refreshSupabaseSetupUI() {
@@ -957,6 +1798,7 @@ class SettingsUIManager {
     const managementTokenInput = document.getElementById('sb-management-token');
     const saveAdminSecretsCheckbox = document.getElementById('sb-save-admin-secrets');
     const connectionHintText = document.getElementById('sb-auth-status-text');
+    const detectBtn = document.getElementById('sb-detect-status-btn');
     const testBtn = document.getElementById('sb-test-btn');
     const initBtn = document.getElementById('sb-init-resources-btn');
     const enableBtn = document.getElementById('sb-enable-btn');
@@ -987,15 +1829,22 @@ class SettingsUIManager {
       saveAdminSecretsCheckbox.checked = !!preferences.saveAdminSecrets;
     }
 
-    const resolvedKey = activeConfig.anonKey || keyInput?.value.trim() || '';
-    const hasProjectUrl = !!resolvedUrl;
-    const hasApiKey = !!resolvedKey;
-    const hasBasicConfig = hasProjectUrl && hasApiKey;
-    const isInitialized = !!profile?.initialized;
-    const sbLocked = syncStatus?.isCloudEnabled && syncStatus?.activeProvider === 'cloudflare';
+    const resolvedKey = profile?.anonKey || activeConfig.anonKey || keyInput?.value.trim() || '';
+    const sbLocked = false;
     const flowMode = this.getSupabaseFlowMode(profile);
+    const sbSetup = this.resolveSupabaseSetupState({
+      profile,
+      config: {
+        url: resolvedUrl,
+        anonKey: resolvedKey,
+        bucketName: profile?.bucketName || activeConfig.bucketName || defaultNames.bucketName
+      },
+      flowMode
+    });
+    const hasBasicConfig = sbSetup.hasBasicConfig;
+    const isInitialized = sbSetup.isInitialized;
     const allowDirectConnect = hasBasicConfig && (isInitialized || flowMode === 'existing');
-    const currentStep = !hasBasicConfig ? 1 : (!isInitialized && flowMode === 'setup' ? 2 : 3);
+    const currentStep = sbSetup.currentStep;
 
     if (keyInput) {
       keyInput.value = resolvedKey;
@@ -1011,6 +1860,9 @@ class SettingsUIManager {
       connectionHintText.textContent = '';
     }
 
+    if (detectBtn) {
+      detectBtn.disabled = sbLocked || !hasBasicConfig;
+    }
     if (testBtn) {
       testBtn.disabled = sbLocked || !allowDirectConnect;
     }
@@ -1018,44 +1870,27 @@ class SettingsUIManager {
       initBtn.disabled = sbLocked || flowMode !== 'setup';
     }
     if (enableBtn) {
-      enableBtn.disabled = sbLocked || !allowDirectConnect;
+      enableBtn.disabled = sbLocked || !sbSetup.canEnable;
     }
 
-    if (!hasProjectUrl) {
-      this.updateSupabaseSetupStatus('idle', '');
-      return;
-    }
+    this.updateSupabaseSetupStatus(sbSetup.status, sbSetup.text);
 
-    if (!hasApiKey) {
-      this.updateSupabaseSetupStatus('idle', '');
-      return;
-    }
-
-    if (!isInitialized && flowMode === 'setup') {
-      this.updateSupabaseSetupStatus('pending', '下一步：初始化资源。');
-      return;
-    }
-
-    if (!isInitialized) {
-      this.updateSupabaseSetupStatus('pending', '可直接测试连接；不通再切回“还没有，帮我初始化”。');
-      return;
-    }
-
-    this.updateSupabaseSetupStatus('ready', '已就绪，可直接测试或启用。');
+    this.refreshSyncUI();
   }
 
   /* ---------------------- 云端同步面板 ---------------------- */
   bindSyncEvents() {
     // 选项卡切换
-    const tabs = document.querySelectorAll('.tab-btn');
-    const panes = document.querySelectorAll('.tab-pane');
+    const syncPanel = document.getElementById('panel-sync');
+    const tabs = syncPanel?.querySelectorAll('.tab-btn[data-tab]') || [];
+    const panes = syncPanel?.querySelectorAll('.tab-content .tab-pane') || [];
     
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         tabs.forEach(t => t.classList.remove('active'));
         panes.forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
-        document.getElementById(`${tab.getAttribute('data-tab')}-panel`).classList.add('active');
+        document.getElementById(`${tab.getAttribute('data-tab')}-panel`)?.classList.add('active');
       });
     });
 
@@ -1088,7 +1923,19 @@ class SettingsUIManager {
         await this.refreshCloudflareSetupUI();
         this.showMessage(`Worker 创建成功：${profile.workerName}，下一步请初始化数据库。`, 'success');
       } catch (error) {
-        this.updateCloudflareSetupStatus('error', `创建失败：${error.message}`);
+        const existingProfile = await window.cloudflareResourceManager.getProfile().catch(() => null);
+        if (existingProfile) {
+          await window.cloudflareResourceManager.saveProfile({
+            ...existingProfile,
+            setupStatus: 'error',
+            setupStatusText: `创建失败：${error.message}`,
+            updatedAt: new Date().toISOString()
+          });
+          await this.refreshCloudflareSetupUI();
+          this.refreshSyncUI();
+        } else {
+          this.updateCloudflareSetupStatus('error', `创建失败：${error.message}`);
+        }
         this.showMessage('创建失败: ' + error.message, 'error');
       } finally {
         button.disabled = false;
@@ -1096,13 +1943,8 @@ class SettingsUIManager {
       }
     });
 
-    document.getElementById('cf-restore-setup-btn')?.addEventListener('click', async () => {
-      await this.refreshCloudflareSetupUI();
-      this.showMessage('已从本地缓存恢复 Cloudflare 资源信息', 'success');
-    });
-
     document.getElementById('cf-clear-setup-cache-btn')?.addEventListener('click', async () => {
-      const confirmed = await window.notification.confirm('确定要清空本地缓存的 Cloudflare 资源信息吗？这不会删除你在 Cloudflare 上已经创建的资源。', {
+      const confirmed = await window.notification.confirm('确定要清空本机保存的 Cloudflare 连接与初始化资料吗？这不会删除你在 Cloudflare 上已经创建的资源。', {
         title: '确认清空缓存',
         confirmText: '清空',
         cancelText: '取消',
@@ -1117,17 +1959,9 @@ class SettingsUIManager {
         await window.cloudflareResourceManager.clearSetupCache({ clearApiToken: true });
         await window.cloudflareResourceManager.savePreferences({ autoSetupEnabled: false, saveApiToken: false });
         await this.refreshCloudflareSetupUI();
-        this.showMessage('Cloudflare 本地缓存已清空', 'success');
+        this.showMessage('Cloudflare 本机连接资料已清空', 'success');
       } catch (error) {
         this.showMessage('清空失败: ' + error.message, 'error');
-      }
-    });
-
-    document.getElementById('cf-save-existing-btn')?.addEventListener('click', async () => {
-      try {
-        await this.saveExistingCloudflareResourceProfile(true);
-      } catch (error) {
-        this.showMessage('保存失败: ' + error.message, 'error');
       }
     });
 
@@ -1158,16 +1992,27 @@ class SettingsUIManager {
     });
 
     // Cloudflare Actions
+    document.getElementById('cf-detect-status-btn')?.addEventListener('click', async () => {
+      try {
+        await this.detectCloudflareSetupStatus(true);
+      } catch (error) {
+        this.showMessage('检测失败: ' + error.message, 'error');
+      }
+    });
+
     document.getElementById('cf-test-btn').addEventListener('click', async () => {
       const config = this.getCloudflareSyncConfig();
       if (!config.workerUrl) { return this.showMessage('请填写 Worker API URL', 'error'); }
-      
+
       try {
-        await window.syncManager.testProviderConnection('cloudflare', config);
-        await this.persistCloudflareConnectionState({
-          lastConnectedAt: new Date().toISOString()
-        });
-        this.showMessage('测试连接成功！', 'success');
+        const result = await this.detectCloudflareSetupStatus(false);
+        if (result.status === 'configured') {
+          this.showMessage('测试连接成功！', 'success');
+        } else if (result.status === 'pending') {
+          this.showMessage('连接可用，但数据表还没准备好，请先初始化数据库。', 'info');
+        } else {
+          this.showMessage('连接失败: ' + (result.error?.message || '未知错误'), 'error');
+        }
       } catch (err) {
         this.showMessage('连接失败: ' + err.message, 'error');
       }
@@ -1201,13 +2046,21 @@ class SettingsUIManager {
           databaseName: profile.databaseName,
           bucketName: profile.bucketName,
           initialized: true,
+          setupStatus: 'configured',
+          setupStatusText: '',
           lastInitializedAt: initializedAt,
           lastConnectedAt: initializedAt
         });
         await this.refreshCloudflareSetupUI();
         this.showMessage('Cloudflare 初始化成功！\n' + ((result?.results || result?.result?.results || []).join('\n') || '数据表已就绪'), 'success');
       } catch (err) {
-        this.updateCloudflareSetupStatus('error', `初始化失败：${err.message}`);
+        await this.persistCloudflareConnectionState({
+          initialized: false,
+          setupStatus: 'error',
+          setupStatusText: `初始化失败：${err.message}`
+        });
+        await this.refreshCloudflareSetupUI();
+        this.refreshSyncUI();
         this.showMessage('初始化失败: ' + err.message, 'error');
       } finally {
         button.disabled = false;
@@ -1219,8 +2072,10 @@ class SettingsUIManager {
       const config = this.getCloudflareSyncConfig();
       if (!config.workerUrl) { return this.showMessage('请填写 Worker API URL', 'error'); }
 
+      let profile = null;
+
       try {
-        const profile = await this.saveExistingCloudflareResourceProfile(false);
+        profile = await this.saveExistingCloudflareResourceProfile(false);
         if (profile.source === 'auto' && !profile.initialized) {
           throw new Error('资源已创建，但还未初始化，请先点击“初始化数据库”');
         }
@@ -1238,15 +2093,21 @@ class SettingsUIManager {
         });
         this.showMessage('Cloudflare 同步已启用！', 'success');
       } catch (err) {
+        await this.persistCloudflareConnectionState({
+          setupStatus: profile?.source === 'auto' && !profile?.initialized ? 'pending' : 'error',
+          setupStatusText: profile?.source === 'auto' && !profile?.initialized ? '' : `启用失败：${err.message}`
+        });
+        await this.refreshCloudflareSetupUI();
+        this.refreshSyncUI();
         this.showMessage('启用失败: ' + err.message, 'error');
       }
     });
-    
-    document.getElementById('cf-disable-btn').addEventListener('click', this.disableSyncHandler.bind(this));
+
 
     // Supabase actions
     document.getElementById('sb-save-setup-btn')?.addEventListener('click', async () => {
       try {
+        await this.syncSupabaseAdminSecretsCache();
         await this.saveExistingSupabaseProjectProfile(true);
       } catch (error) {
         this.showMessage('保存失败: ' + error.message, 'error');
@@ -1254,7 +2115,7 @@ class SettingsUIManager {
     });
 
     document.getElementById('sb-clear-setup-cache-btn')?.addEventListener('click', async () => {
-      const confirmed = await window.notification.confirm('确定要清空本地缓存的 Supabase 初始化信息吗？这不会删除你在 Supabase 上已有的项目、表和 Storage bucket。', {
+      const confirmed = await window.notification.confirm('确定要清空本机保存的 Supabase 连接与初始化资料吗？这不会删除你在 Supabase 上已有的项目、表和 Storage bucket。', {
         title: '确认清空缓存',
         confirmText: '清空',
         cancelText: '取消',
@@ -1269,9 +2130,17 @@ class SettingsUIManager {
         await window.supabaseResourceManager.clearSetupCache({ clearAdminSecrets: true });
         this.supabaseFlowModeOverride = 'setup';
         await this.refreshSupabaseSetupUI();
-        this.showMessage('Supabase 本地缓存已清空', 'success');
+        this.showMessage('Supabase 本机连接资料已清空', 'success');
       } catch (error) {
         this.showMessage('清空失败: ' + error.message, 'error');
+      }
+    });
+
+    document.getElementById('sb-detect-status-btn')?.addEventListener('click', async () => {
+      try {
+        await this.detectSupabaseSetupStatus(true);
+      } catch (error) {
+        this.showMessage('检测失败: ' + error.message, 'error');
       }
     });
 
@@ -1282,7 +2151,7 @@ class SettingsUIManager {
       button.textContent = '初始化中...';
 
       try {
-        const config = this.getSupabaseInitializationConfig();
+        const config = await this.syncSupabaseAdminSecretsCache(this.getSupabaseInitializationConfig());
         if (!config.url) {
           throw new Error('请填写 Project URL');
         }
@@ -1297,6 +2166,8 @@ class SettingsUIManager {
         const initializedAt = new Date().toISOString();
         await this.persistSupabaseConnectionState({
           initialized: true,
+          setupStatus: 'configured',
+          setupStatusText: '',
           projectRef: result?.profile?.projectRef || config.projectRef,
           bucketName: result?.profile?.bucketName || config.bucketName,
           lastInitializedAt: initializedAt,
@@ -1310,7 +2181,13 @@ class SettingsUIManager {
           : `Storage bucket ${result?.bucketResult?.bucketName || 'backgrounds'} 已存在`;
         this.showMessage(`Supabase 初始化成功：${bucketMessage}`, 'success');
       } catch (error) {
-        this.updateSupabaseSetupStatus('error', `初始化失败：${error.message}`);
+        await this.persistSupabaseConnectionState({
+          initialized: false,
+          setupStatus: 'error',
+          setupStatusText: `初始化失败：${error.message}`
+        });
+        await this.refreshSupabaseSetupUI();
+        this.refreshSyncUI();
         this.showMessage('初始化失败: ' + error.message, 'error');
       } finally {
         button.disabled = false;
@@ -1322,35 +2199,25 @@ class SettingsUIManager {
       const config = this.getSupabaseSyncConfig();
       if (!config.url || !config.anonKey) { return this.showMessage('请填写完整信息', 'error'); }
       try {
-         await window.syncManager.testProviderConnection('supabase', config);
-         await this.persistSupabaseConnectionState({
-           url: config.url,
-           projectRef: document.getElementById('sb-project-ref')?.value.trim() || '',
-           bucketName: document.getElementById('sb-bucket-name')?.value.trim() || '',
-           lastConnectedAt: new Date().toISOString()
-         });
-         this.showMessage('测试连接成功！', 'success');
+         const result = await this.detectSupabaseSetupStatus(false);
+         if (result.status === 'configured') {
+           this.showMessage('测试连接成功！', 'success');
+         } else if (result.status === 'pending') {
+           this.showMessage('连接可用，但数据表还没准备好，请先初始化资源。', 'info');
+         } else {
+           this.showMessage('测试失败: ' + (result.error?.message || '未知错误'), 'error');
+         }
       } catch (err) {
          this.showMessage('测试失败: ' + err.message, 'error');
       }
     });
 
-    document.getElementById('sb-enable-btn').addEventListener('click', async () => {
-      const config = this.getSupabaseSyncConfig();
-      if (!config.url || !config.anonKey) { return this.showMessage('请填写完整信息', 'error'); }
-
-      try {
-        await this.completeSupabaseSyncSetup({ url: config.url, anonKey: config.anonKey });
-        this.showMessage('Supabase 同步已启用！', 'success');
-      } catch (err) {
-        this.showMessage('启用失败: ' + err.message, 'error');
-      }
-    });
-    
-    document.getElementById('sb-disable-btn').addEventListener('click', this.disableSyncHandler.bind(this));
-    
-    document.getElementById('manual-sync-btn').addEventListener('click', async () => {
+    document.getElementById('manual-sync-btn')?.addEventListener('click', async () => {
       const btn = document.getElementById('manual-sync-btn');
+      if (!btn) {
+        return;
+      }
+
       btn.textContent = '同步中...';
       try {
         await window.syncManager.manualSync();
@@ -1385,23 +2252,16 @@ class SettingsUIManager {
       }
 
       try {
-        await this.ensureSupabaseClient(config);
-        await window.syncManager.testProviderConnection('supabase', config);
-        await this.persistSupabaseConnectionState({
-          url: config.url,
-          initialized: true,
-          projectRef: document.getElementById('sb-project-ref')?.value.trim()
-            || window.supabaseResourceManager?.deriveProjectRef(config.url)
-            || '',
-          bucketName: config.bucketName,
-          lastConnectedAt: new Date().toISOString()
-        });
-        this.supabaseFlowModeOverride = 'existing';
-        await this.refreshSupabaseSetupUI();
-        this.refreshSyncUI();
-        this.showMessage('测试连接成功', 'success');
+        const result = await this.detectSupabaseSetupStatus(false);
+        if (result.status === 'configured') {
+          this.supabaseFlowModeOverride = 'existing';
+          this.showMessage('测试连接成功', 'success');
+        } else if (result.status === 'pending') {
+          this.showMessage('连接可用，但数据表还没准备好，请先初始化资源。', 'info');
+        } else {
+          this.showMessage('测试失败: ' + (result.error?.message || '未知错误'), 'error');
+        }
       } catch (error) {
-        await this.refreshSupabaseSetupUI();
         this.showMessage('测试失败: ' + error.message, 'error');
       }
     });
@@ -1423,7 +2283,12 @@ class SettingsUIManager {
         await this.refreshSupabaseSetupUI();
         this.showMessage('Supabase 同步已启用！', 'success');
       } catch (error) {
+        await this.persistSupabaseConnectionState({
+          setupStatus: 'error',
+          setupStatusText: `启用失败：${error.message}`
+        });
         await this.refreshSupabaseSetupUI();
+        this.refreshSyncUI();
         this.showMessage('启用失败: ' + error.message, 'error');
       }
     });
@@ -1471,142 +2336,147 @@ class SettingsUIManager {
     const sbTab = document.querySelector('.tab-btn[data-tab="supabase-sync"]');
     const cfPanel = document.getElementById('cf-sync-panel');
     const sbPanel = document.getElementById('supabase-sync-panel');
-
-    const cfLocked = status.activeProvider === 'supabase';
-    const sbLocked = status.activeProvider === 'cloudflare';
+    const activeProvider = status?.activeProvider || 'none';
+    const workspaceName = status?.currentThemeName || '当前工作空间';
 
     if (providerNote) {
-      providerNote.textContent = status.isCloudEnabled
-        ? `当前已启用 ${status.activeProvider === 'cloudflare' ? 'Cloudflare' : 'Supabase'} 同步；Cloudflare 与 Supabase 互斥。如需切换，请先禁用当前同步。`
-        : '云端同步方式互斥：Cloudflare 与 Supabase 同一时间只能启用一种。';
+      providerNote.textContent = '这里保存的是全局连接资料。是否启用 Cloudflare 或 Supabase，需要到具体工作空间中操作。';
     }
 
     if (cfHint) {
-      cfHint.style.display = cfLocked ? 'block' : 'none';
-      cfHint.textContent = '当前已启用 Supabase 同步。若要改用 Cloudflare，请先点击“禁用同步”，再返回这里配置。';
+      cfHint.style.display = 'none';
+      cfHint.textContent = '';
     }
 
     if (sbHint) {
-      sbHint.style.display = sbLocked ? 'block' : 'none';
-      sbHint.textContent = '当前已启用 Cloudflare 同步。若要改用 Supabase，请先点击“禁用同步”，再返回这里配置。';
+      sbHint.style.display = 'none';
+      sbHint.textContent = '';
     }
 
-    cfTab?.classList.toggle('is-active-provider', status.activeProvider === 'cloudflare');
-    sbTab?.classList.toggle('is-active-provider', status.activeProvider === 'supabase');
-    cfTab?.classList.toggle('is-locked-provider', cfLocked);
-    sbTab?.classList.toggle('is-locked-provider', sbLocked);
-    cfPanel?.classList.toggle('is-provider-locked', cfLocked);
-    sbPanel?.classList.toggle('is-provider-locked', sbLocked);
+    cfTab?.classList.remove('is-locked-provider');
+    sbTab?.classList.remove('is-locked-provider');
+    cfPanel?.classList.remove('is-provider-locked');
+    sbPanel?.classList.remove('is-provider-locked');
 
-    this.setElementsDisabledByIds([
-      'cf-resource-mode-existing',
-      'cf-resource-mode-create',
-      'cf-account-id',
-      'cf-api-token',
-      'cf-create-worker-name',
-      'cf-create-database-name',
-      'cf-create-bucket-name',
-      'cf-worker-access-token',
-      'cf-save-api-token',
-      'cf-create-resources-btn',
-      'cf-initialize-setup-btn',
-      'cf-restore-setup-btn',
-      'cf-clear-setup-cache-btn',
-      'cf-worker-url',
-      'cf-access-token',
-      'cf-worker-name',
-      'cf-database-id',
-      'cf-database-name',
-      'cf-bucket-name',
-      'cf-test-btn',
-      'cf-init-db-btn',
-      'cf-save-existing-btn',
-      'cf-enable-btn'
-    ], cfLocked);
+    if (activeProvider === 'cloudflare') {
+      if (providerNote) {
+        providerNote.textContent = `当前工作空间「${workspaceName}」正在使用 Cloudflare 同步。这里仍可提前保存两套全局连接资料；若要切换到 Supabase，请回到该工作空间详情中操作。`;
+      }
 
-    this.setElementsDisabledByIds([
-      'sb-project-state-setup',
-      'sb-project-state-existing',
-      'sb-project-ref',
-      'sb-bucket-name',
-      'sb-service-role-key',
-      'sb-management-token',
-      'sb-save-admin-secrets',
-      'sb-save-setup-btn',
-      'sb-copy-init-sql-btn',
-      'sb-init-resources-btn',
-      'sb-clear-setup-cache-btn',
-      'sb-url',
-      'sb-key',
-      'sb-test-btn',
-      'sb-enable-btn'
-    ], sbLocked);
+      if (sbHint) {
+        sbHint.style.display = 'block';
+        sbHint.textContent = `当前工作空间已启用 Cloudflare，同一时间只能绑定一种云同步。若要改用 Supabase，请先在「${workspaceName}」中关闭当前同步。`;
+      }
+
+      sbTab?.classList.add('is-locked-provider');
+      sbPanel?.classList.add('is-provider-locked');
+      return;
+    }
+
+    if (activeProvider === 'supabase') {
+      if (providerNote) {
+        providerNote.textContent = `当前工作空间「${workspaceName}」正在使用 Supabase 同步。这里仍可提前保存两套全局连接资料；若要切换到 Cloudflare，请回到该工作空间详情中操作。`;
+      }
+
+      if (cfHint) {
+        cfHint.style.display = 'block';
+        cfHint.textContent = `当前工作空间已启用 Supabase，同一时间只能绑定一种云同步。若要改用 Cloudflare，请先在「${workspaceName}」中关闭当前同步。`;
+      }
+
+      cfTab?.classList.add('is-locked-provider');
+      cfPanel?.classList.add('is-provider-locked');
+    }
   }
 
-  refreshSyncUI() {
-    const status = window.syncManager.getSyncStatus();
+  async refreshSyncUI() {
+    try {
+      const status = window.syncManager.getSyncStatus();
     const cfCapabilities = window.syncManager.getProviderCapabilities('cloudflare');
     const cfSupportsSchemaInit = cfCapabilities?.schemaMode === 'remote';
-    const indicator = document.querySelector('.status-indicator');
+    const indicator = document.querySelector('#sync-status-card .status-indicator');
     const title = document.getElementById('sync-status-title');
     const desc = document.getElementById('sync-status-desc');
-    const manualBtn = document.getElementById('manual-sync-btn');
-    
-    // CF buttons
-    const cfEnable = document.getElementById('cf-enable-btn');
-    const cfDisable = document.getElementById('cf-disable-btn');
     const cfInit = document.getElementById('cf-init-db-btn');
-    
-    // SB buttons
-    const sbEnable = document.getElementById('sb-enable-btn');
-    const sbDisable = document.getElementById('sb-disable-btn');
-    
-    if (status.isCloudEnabled) {
-      indicator.classList.add('active');
-      title.textContent = `同步已启用 (${status.activeProvider})`;
-      desc.textContent = `当前活跃的云端工作空间：${status.currentThemeName || status.currentThemeId}`;
-      manualBtn.style.display = 'inline-block';
-      
-      if (status.activeProvider === 'cloudflare') {
-        cfEnable.style.display = 'none';
-        cfInit.style.display = cfSupportsSchemaInit ? 'inline-block' : 'none';
-        cfDisable.style.display = 'inline-block';
-        
-        sbEnable.style.display = 'inline-block';
-        sbDisable.style.display = 'none';
-        
-        if (status.cloudflareConfig) {
-          document.getElementById('cf-worker-url').value = status.cloudflareConfig.workerUrl || '';
-          document.getElementById('cf-access-token').value = status.cloudflareConfig.accessToken || '';
-        }
-      } else {
-        sbEnable.style.display = 'none';
-        sbDisable.style.display = 'inline-block';
-        
-        cfEnable.style.display = 'inline-block';
-        cfInit.style.display = cfSupportsSchemaInit ? 'inline-block' : 'none';
-        cfDisable.style.display = 'none';
-        
-        if (status.supabaseConfig) {
-          document.getElementById('sb-url').value = status.supabaseConfig.url || '';
-          document.getElementById('sb-key').value = status.supabaseConfig.anonKey || '';
-        }
-      }
-    } else {
-      indicator.classList.remove('active');
-      title.textContent = '未启用同步';
-      desc.textContent = '目前使用的是本地工作空间，数据不会跨端同步。';
-      manualBtn.style.display = 'none';
-      
-      cfEnable.style.display = 'inline-block';
-      cfDisable.style.display = 'none';
-      cfInit.style.display = cfSupportsSchemaInit ? 'inline-block' : 'none';
-      
-      sbEnable.style.display = 'inline-block';
-      sbDisable.style.display = 'none';
+
+    const workerUrlInput = document.getElementById('cf-worker-url');
+    const accessTokenInput = document.getElementById('cf-access-token');
+    const sbUrlInput = document.getElementById('sb-url');
+    const sbKeyInput = document.getElementById('sb-key');
+
+    const resolvedCfWorkerUrl = workerUrlInput?.value.trim() || status.cloudflareConfig?.workerUrl || '';
+    const resolvedCfAccessToken = accessTokenInput?.value.trim() || status.cloudflareConfig?.accessToken || '';
+    const resolvedSbUrl = sbUrlInput?.value.trim() || status.supabaseConfig?.url || '';
+    const resolvedSbKey = sbKeyInput?.value.trim() || status.supabaseConfig?.anonKey || '';
+
+    const [cfSetupState, sbSetupState] = await Promise.all([
+      window.cloudflareResourceManager?.getSetupState
+        ? window.cloudflareResourceManager.getSetupState().catch(() => null)
+        : Promise.resolve(null),
+      window.supabaseResourceManager?.getSetupState
+        ? window.supabaseResourceManager.getSetupState().catch(() => null)
+        : Promise.resolve(null)
+    ]);
+    const cfProfile = cfSetupState?.profile || null;
+    const sbProfile = sbSetupState?.profile || null;
+    const cfSetup = this.resolveCloudflareSetupState({
+      profile: cfProfile,
+      config: {
+        workerUrl: resolvedCfWorkerUrl,
+        accessToken: resolvedCfAccessToken
+      },
+      flowMode: this.getCloudflareResourceMode(cfSetupState?.preferences || null)
+    });
+    const sbSetup = this.resolveSupabaseSetupState({
+      profile: sbProfile,
+      config: {
+        url: resolvedSbUrl,
+        anonKey: resolvedSbKey,
+        bucketName: status.supabaseConfig?.bucketName || 'backgrounds'
+      },
+      flowMode: this.getSupabaseFlowMode(sbProfile)
+    });
+    const cfStatusMeta = this.getUnifiedSetupStatusMeta(cfSetup.status);
+    const sbStatusMeta = this.getUnifiedSetupStatusMeta(sbSetup.status);
+
+    if (indicator) {
+      indicator.classList.toggle('active', cfSetup.status !== 'missing' || sbSetup.status !== 'missing');
     }
 
-    this.updateSyncProviderMutualExclusionUI(status);
+    if (title) {
+      title.textContent = '全局连接状态';
+    }
+
+    if (desc) {
+      desc.textContent = `Cloudflare：${cfStatusMeta.label} · Supabase：${sbStatusMeta.label}`;
+    }
+
+    if (cfInit) {
+      cfInit.style.display = cfSupportsSchemaInit ? 'inline-block' : 'none';
+    }
+
+    if (status.cloudflareConfig) {
+      if (workerUrlInput) {
+        workerUrlInput.value = status.cloudflareConfig.workerUrl || '';
+      }
+      if (accessTokenInput) {
+        accessTokenInput.value = status.cloudflareConfig.accessToken || '';
+      }
+    }
+
+    if (status.supabaseConfig) {
+      if (sbUrlInput) {
+        sbUrlInput.value = status.supabaseConfig.url || '';
+      }
+      if (sbKeyInput) {
+        sbKeyInput.value = status.supabaseConfig.anonKey || '';
+      }
+    }
+
+      this.updateSyncProviderMutualExclusionUI(status);
+      this.refreshWorkspaceDetailUI().catch(console.error);
+    } catch (error) {
+      console.error('刷新全局连接状态失败:', error);
+    }
   }
 
   /* ---------------------- 数据管理 ---------------------- */
@@ -1658,8 +2528,14 @@ class SettingsUIManager {
       }
 
       try {
-        // 只需清空 categories，保留 settings
-        await window.storageManager.importData({ categories: [], settings: window.storageManager.getSettings() });
+        const currentConfigData = window.unifiedDataManager.getCurrentConfigData() || {};
+
+        // 只需清空 categories，保留其余工作空间结构与 settings
+        await window.storageManager.importData({
+          ...currentConfigData,
+          categories: [],
+          settings: window.storageManager.getSettings()
+        });
         this.showMessage('分类数据已清空', 'success');
       } catch(err) {
         this.showMessage('清空失败: ' + err.message, 'error');

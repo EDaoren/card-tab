@@ -21,16 +21,12 @@
 
       <nav class="sidebar-nav">
         <button class="nav-item active" data-target="panel-appearance">
-          <span class="material-symbols-rounded">palette</span>
-          <span>外观主题</span>
+          <span class="material-symbols-rounded">dashboard_customize</span>
+          <span>工作空间</span>
         </button>
         <button class="nav-item" data-target="panel-sync">
           <span class="material-symbols-rounded">cloud_sync</span>
-          <span>云端同步</span>
-        </button>
-        <button class="nav-item" data-target="panel-data">
-          <span class="material-symbols-rounded">database</span>
-          <span>数据管理</span>
+          <span>云端连接</span>
         </button>
         <button class="nav-item" data-target="panel-about">
           <span class="material-symbols-rounded">info</span>
@@ -42,76 +38,188 @@
     <main class="settings-content">
       <section id="panel-appearance" class="settings-panel active">
         <div class="panel-header">
-          <h3>主题工作空间</h3>
-          <button id="create-theme-btn" class="primary-btn">新建主题</button>
+          <h3>工作空间</h3>
         </div>
-        <p class="panel-desc">主题即工作空间。切换主题会随之切换对应的一套书签和视图设置。</p>
+        <p class="panel-desc">每个工作空间都有独立的书签、视图和同步状态。先在这里管理工作空间，再进入详情配置。</p>
 
+        <div id="workspace-overview-card" class="workspace-overview-card">
+          <div class="workspace-overview-main">
+            <span class="workspace-overview-eyebrow">当前工作空间</span>
+            <h4 id="workspace-overview-title">加载中...</h4>
+            <p id="workspace-overview-desc">这里显示当前正在使用的工作空间和同步状态。</p>
+          </div>
+          <div class="workspace-overview-meta">
+            <div class="workspace-overview-stat">
+              <strong id="workspace-count-value">0</strong>
+              <span>个工作空间</span>
+            </div>
+            <button id="workspace-overview-manage-btn" class="primary-btn" type="button">新建工作空间</button>
+          </div>
+        </div>
         <div id="themes-list" class="themes-grid"></div>
+        <div id="workspace-load-sentinel" class="workspace-load-sentinel" hidden aria-hidden="true"></div>
 
-        <div id="theme-edit-form" class="edit-form-container" style="display: none;">
-          <h4>编辑主题</h4>
-          <div class="form-group">
-            <label for="theme-name-input">主题名称</label>
-            <input type="text" id="theme-name-input" placeholder="例如：工作区 (暗色)">
-          </div>
-          <div class="form-group">
-            <label>色彩风格</label>
-            <div class="theme-color-selector">
-              <div class="color-option" data-type="default" title="默认 (浅色)"></div>
-              <div class="color-option" data-type="dark" title="暗色"></div>
-              <div class="color-option" data-type="blue" title="蓝色"></div>
-              <div class="color-option" data-type="green" title="绿色"></div>
-              <div class="color-option" data-type="purple" title="紫色"></div>
-              <div class="color-option" data-type="pink" title="粉色"></div>
+        <div id="theme-edit-form" class="workspace-detail-container" style="display: none;">
+          <div id="workspace-detail-status-card" class="sync-status-card workspace-detail-status-card">
+            <div id="workspace-detail-indicator" class="status-indicator"></div>
+            <div class="status-info">
+              <span id="workspace-detail-eyebrow" class="workspace-detail-eyebrow">工作空间详情</span>
+              <h4 id="workspace-detail-title">编辑工作空间</h4>
+              <p id="workspace-detail-desc">这里的操作只作用于当前工作空间。</p>
             </div>
-          </div>
-          <div class="form-group" id="bg-setting-group">
-            <label for="bg-image-upload">背景图片 (仅云端主题可用)</label>
-            <div id="bg-preview-area" class="bg-preview-area" role="button" tabindex="0" aria-label="选择背景图片">
-              <img id="bg-preview-img" src="" alt="预览" style="display:none;">
-              <div id="bg-placeholder" class="bg-placeholder">无背景图片</div>
-            </div>
-            <div class="bg-actions">
-              <input type="file" id="bg-image-upload" accept="image/*" style="display: none;">
-              <button id="upload-bg-btn" class="secondary-btn">上传图片</button>
-              <button id="remove-bg-btn" class="secondary-btn text-danger">移除</button>
-            </div>
-            <div class="opacity-control" style="margin-top: 10px;">
-              <div class="slider-header">
-                <label for="bg-opacity-slider">遮罩透明度</label>
-                <span id="bg-opacity-value">30%</span>
+            <div class="workspace-detail-meta">
+              <span id="workspace-detail-badge" class="sync-status-badge is-idle">未保存</span>
+              <div class="workspace-detail-actions">
+                <button id="cancel-theme-btn" class="secondary-btn">返回列表</button>
+                <button id="switch-workspace-btn" class="secondary-btn" style="display:none;">切换到该工作空间</button>
               </div>
-              <input type="range" id="bg-opacity-slider" min="0" max="100" value="30">
             </div>
           </div>
-          <div class="form-actions">
-            <button id="save-theme-btn" class="primary-btn">保存</button>
-            <button id="cancel-theme-btn" class="secondary-btn">取消</button>
+
+          <div class="tabs workspace-detail-tabs" role="tablist" aria-label="工作空间设置分组">
+            <button class="tab-btn workspace-tab-btn active" data-workspace-tab="basic" type="button">基础设置</button>
+            <button class="tab-btn workspace-tab-btn" data-workspace-tab="sync" type="button">云同步</button>
+            <button class="tab-btn workspace-tab-btn" data-workspace-tab="data" type="button">数据管理</button>
+          </div>
+
+          <div class="edit-form-container workspace-detail-content-card">
+            <div id="workspace-tab-basic" class="tab-pane workspace-tab-pane active">
+            <div class="form-group">
+              <label for="theme-name-input">工作空间名称</label>
+              <input type="text" id="theme-name-input" placeholder="例如：工作区 (暗色)">
+            </div>
+            <div class="form-group">
+              <label>色彩风格</label>
+              <div class="theme-color-selector">
+                <div class="color-option" data-type="default" title="默认 (浅色)"></div>
+                <div class="color-option" data-type="dark" title="暗色"></div>
+                <div class="color-option" data-type="blue" title="蓝色"></div>
+                <div class="color-option" data-type="green" title="绿色"></div>
+                <div class="color-option" data-type="purple" title="紫色"></div>
+                <div class="color-option" data-type="pink" title="粉色"></div>
+              </div>
+            </div>
+            <div class="form-group" id="bg-setting-group">
+              <label for="bg-image-upload">背景图片 (仅云端工作空间可用)</label>
+              <div id="bg-preview-area" class="bg-preview-area" role="button" tabindex="0" aria-label="选择背景图片">
+                <img id="bg-preview-img" src="" alt="预览" style="display:none;">
+                <div id="bg-placeholder" class="bg-placeholder">无背景图片</div>
+              </div>
+              <div class="bg-actions">
+                <input type="file" id="bg-image-upload" accept="image/*" style="display: none;">
+                <button id="upload-bg-btn" class="secondary-btn">上传图片</button>
+                <button id="remove-bg-btn" class="secondary-btn text-danger">移除</button>
+              </div>
+              <div class="opacity-control" style="margin-top: 10px;">
+                <div class="slider-header">
+                  <label for="bg-opacity-slider">遮罩透明度</label>
+                  <span id="bg-opacity-value">30%</span>
+                </div>
+                <input type="range" id="bg-opacity-slider" min="0" max="100" value="30">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button id="save-theme-btn" class="primary-btn">保存工作空间</button>
+            </div>
+          </div>
+
+          <div id="workspace-tab-sync" class="tab-pane workspace-tab-pane">
+            <div class="sync-status-card workspace-sync-status-card" id="workspace-sync-status-card">
+              <div class="workspace-sync-status-main">
+                <div class="status-indicator"></div>
+                <div class="status-info">
+                  <h4 id="workspace-sync-title">当前使用本地存储</h4>
+                  <p id="workspace-sync-desc">可在下方选择已配置好的云端连接。</p>
+                </div>
+              </div>
+              <button id="manual-sync-btn" class="secondary-btn workspace-sync-action-btn" style="display:none;">手动同步</button>
+            </div>
+            <p id="workspace-sync-inactive-note" class="sync-provider-lock-hint" style="display:none;"></p>
+
+            <div class="workspace-sync-grid">
+              <div class="sync-service-card workspace-provider-card">
+                <div class="workspace-provider-card-header">
+                  <h5>仅本地</h5>
+                  <span id="workspace-local-status" class="sync-status-badge is-idle">当前模式</span>
+                </div>
+                <p class="sync-hint">当前工作空间只保存在本机，不使用云端同步。</p>
+                <div class="form-actions">
+                  <button id="workspace-disable-sync-btn" class="secondary-btn text-danger">切回本地</button>
+                </div>
+              </div>
+
+              <div class="sync-service-card workspace-provider-card">
+                <div class="workspace-provider-card-header">
+                  <h5>Cloudflare</h5>
+                  <span id="workspace-cf-status" class="sync-status-badge is-idle">未创建</span>
+                </div>
+                <p id="workspace-cf-desc" class="sync-hint">先到“云端连接”里准备好 Cloudflare Worker。</p>
+                <div class="form-actions workspace-provider-actions">
+                  <button id="workspace-open-global-cf-btn" class="secondary-btn">前往连接</button>
+                  <button id="cf-enable-btn" class="primary-btn">启用同步</button>
+                </div>
+              </div>
+
+              <div class="sync-service-card workspace-provider-card">
+                <div class="workspace-provider-card-header">
+                  <h5>Supabase</h5>
+                  <span id="workspace-sb-status" class="sync-status-badge is-idle">未创建</span>
+                </div>
+                <p id="workspace-sb-desc" class="sync-hint">先到“云端连接”里准备好 Project URL 和 API Key。</p>
+                <div class="form-actions workspace-provider-actions">
+                  <button id="workspace-open-global-sb-btn" class="secondary-btn">前往连接</button>
+                  <button id="sb-enable-btn" class="primary-btn">启用同步</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="workspace-tab-data" class="tab-pane workspace-tab-pane">
+            <p id="workspace-data-note" class="sync-hint">这里只管理当前工作空间的数据导入、导出和清空。</p>
+            <div class="data-actions-grid">
+              <div class="data-card">
+                <h4>导出当前工作空间</h4>
+                <p>将当前工作空间的书签和视图设置导出为 JSON 文件。</p>
+                <button id="export-data-btn" class="secondary-btn">导出数据</button>
+              </div>
+
+              <div class="data-card">
+                <h4>导入到当前工作空间</h4>
+                <p>从 JSON 文件恢复数据，将覆盖当前工作空间的内容。</p>
+                <input type="file" id="import-file-input" accept=".json" style="display:none;">
+                <button id="import-data-btn" class="secondary-btn">导入数据</button>
+              </div>
+
+              <div class="data-card">
+                <h4>清空当前工作空间数据</h4>
+                <p>删除当前工作空间的所有分类和快捷方式（危险操作）。</p>
+                <button id="clear-data-btn" class="secondary-btn text-danger">清空数据</button>
+              </div>
+            </div>
+          </div>
           </div>
         </div>
       </section>
 
       <section id="panel-sync" class="settings-panel">
         <div class="panel-header">
-          <h3>云端同步设置</h3>
+          <h3>云端连接（全局）</h3>
         </div>
-        <p class="panel-desc">配置 Supabase 或 Cloudflare，启用数据多端同步功能。</p>
+        <p class="panel-desc">这里保存本机可用的 Cloudflare / Supabase 连接资料，供各个工作空间复用，不直接启用同步。</p>
 
         <div class="sync-status-card" id="sync-status-card">
           <div class="status-indicator"></div>
           <div class="status-info">
-            <h4 id="sync-status-title">未启用同步</h4>
-            <p id="sync-status-desc">目前使用本地扩展存储，数据不会跨设备同步。</p>
+            <h4 id="sync-status-title">全局连接状态</h4>
+            <p id="sync-status-desc">Cloudflare：未配置 · Supabase：未配置</p>
           </div>
-          <button id="manual-sync-btn" class="secondary-btn" style="display: none;">手动同步</button>
         </div>
 
         <div class="tabs">
-          <div class="tab-btn active" data-tab="cf-sync">Cloudflare D1/R2</div>
+          <div class="tab-btn active" data-tab="cf-sync">Cloudflare</div>
           <div class="tab-btn" data-tab="supabase-sync">Supabase</div>
         </div>
-        <p id="sync-provider-exclusive-note" class="sync-provider-note">云端同步方式互斥：Cloudflare 与 Supabase 同一时间只能启用一种。</p>
+        <p id="sync-provider-exclusive-note" class="sync-provider-note">这里保存的是全局连接资料。是否启用 Cloudflare 或 Supabase，需要到具体工作空间中操作。</p>
 
         <div class="tab-content">
           <div id="cf-sync-panel" class="tab-pane active">
@@ -141,8 +249,8 @@
                 <div class="sync-step-item" data-cf-step="3">
                   <span class="sync-step-number">3</span>
                   <div class="sync-step-content">
-                    <strong>测试并启用</strong>
-                    <span>能连上就可以开启同步。</span>
+                    <strong>测试连接</strong>
+                    <span>确认可用后，再到工作空间里启用。</span>
                   </div>
                 </div>
               </div>
@@ -211,7 +319,7 @@
                     <input type="text" id="cf-worker-url" placeholder="https://your-worker.workers.dev">
                   </div>
                   <div class="form-group">
-                    <label for="cf-access-token">访问令牌 (Access Token - 可选)</label>
+                    <label for="cf-access-token">访问令牌 (Access Token)</label>
                     <input type="password" id="cf-access-token" placeholder="Worker 环境变量中配置的令牌">
                   </div>
                 </div>
@@ -224,44 +332,39 @@
                 </div>
               </div>
               <div id="cf-sync-section" class="sync-inline-reveal" hidden>
-                <p id="cf-sync-mode-hint" class="sync-hint">如果数据库已经建好，可以直接测试并启用同步。</p>
+                <p id="cf-sync-mode-hint" class="sync-hint">如果数据库已经建好，可以直接测试这份全局连接资料。</p>
                 <div class="form-actions sync-primary-actions" style="margin-top:16px;">
+                  <button id="cf-detect-status-btn" class="secondary-btn">检测状态</button>
                   <button id="cf-test-btn" class="secondary-btn">测试连接</button>
-                  <button id="cf-enable-btn" class="primary-btn">启用同步</button>
-                  <button id="cf-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
                 </div>
               </div>
               <details class="sync-advanced-details">
-                <summary>高级选项（可选）</summary>
-                <p class="sync-hint">这些字段只用于本地记录和恢复，不影响主流程。</p>
+                <summary>创建参数（只读）</summary>
+                <p class="sync-hint">这些字段仅用于展示创建资源时的参数，不参与日常连接，也不可编辑。</p>
                 <div class="sync-form-grid">
                   <div class="form-group">
-                    <label for="cf-worker-name">Worker 服务名称（可选）</label>
-                    <input type="text" id="cf-worker-name" placeholder="例如：card-tab-sync">
+                    <label for="cf-worker-name">Worker 服务名称</label>
+                    <input type="text" id="cf-worker-name" placeholder="例如：card-tab-sync" readonly>
                   </div>
                   <div class="form-group">
-                    <label for="cf-database-id">D1 Database ID（可选）</label>
-                    <input type="text" id="cf-database-id" placeholder="用于本地缓存和展示">
+                    <label for="cf-database-id">D1 Database ID</label>
+                    <input type="text" id="cf-database-id" placeholder="用于展示" readonly>
                   </div>
                   <div class="form-group">
-                    <label for="cf-database-name">D1 Database 名称（可选）</label>
-                    <input type="text" id="cf-database-name" placeholder="例如：card-tab-db">
+                    <label for="cf-database-name">D1 Database 名称</label>
+                    <input type="text" id="cf-database-name" placeholder="例如：card-tab-db" readonly>
                   </div>
                   <div class="form-group">
-                    <label for="cf-bucket-name">R2 Bucket 名称（可选）</label>
-                    <input type="text" id="cf-bucket-name" placeholder="例如：card-tab-files">
+                    <label for="cf-bucket-name">R2 Bucket 名称</label>
+                    <input type="text" id="cf-bucket-name" placeholder="例如：card-tab-files" readonly>
                   </div>
                 </div>
-                <div class="form-actions" style="margin-top:16px;">
-                  <button id="cf-save-existing-btn" class="secondary-btn">保存草稿</button>
-                  <button id="cf-restore-setup-btn" class="secondary-btn">恢复缓存</button>
+                <div class="form-actions cf-local-actions" style="margin-top:16px;">
                   <button id="cf-copy-worker-btn" class="secondary-btn">复制 Worker 模板</button>
                   <button id="cf-copy-init-sql-btn" class="secondary-btn">复制 D1 初始化 SQL</button>
+                  <button id="cf-clear-setup-cache-btn" class="secondary-btn text-danger">清空本机连接资料</button>
                 </div>
               </details>
-              <div class="form-actions" style="margin-top:20px;">
-                <button id="cf-clear-setup-cache-btn" class="secondary-btn text-danger">清空本地缓存</button>
-              </div>
             </div>
 
           </div>
@@ -274,7 +377,7 @@
                 <div>
                   <h4>3 步完成 Supabase 设置</h4>
                 </div>
-                <span id="sb-setup-badge" class="sync-status-badge is-idle">未初始化</span>
+                <span id="sb-setup-badge" class="sync-status-badge is-idle">未创建</span>
               </div>
               <div class="sync-step-grid">
                 <div class="sync-step-item" data-sb-step="1">
@@ -294,8 +397,8 @@
                 <div class="sync-step-item" data-sb-step="3">
                   <span class="sync-step-number">3</span>
                   <div class="sync-step-content">
-                    <strong>测试并启用</strong>
-                    <span>能连上就可以开启同步。</span>
+                    <strong>测试连接</strong>
+                    <span>确认可用后，再到工作空间里启用。</span>
                   </div>
                 </div>
               </div>
@@ -358,43 +461,16 @@
                 </details>
               </div>
               <div class="form-actions sync-primary-actions" style="margin-top:20px;">
+                <button id="sb-detect-status-btn" class="secondary-btn">检测状态</button>
                 <button id="sb-test-btn" class="secondary-btn">测试连接</button>
                 <button id="sb-init-resources-btn" class="secondary-btn">初始化连接</button>
-                <button id="sb-enable-btn" class="primary-btn">启用同步</button>
-                <button id="sb-disable-btn" class="secondary-btn text-danger" style="display:none;">禁用同步</button>
-                <button id="sb-clear-setup-cache-btn" class="secondary-btn text-danger">清空本地缓存</button>
+                <button id="sb-clear-setup-cache-btn" class="secondary-btn text-danger">清空本机连接资料</button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="panel-data" class="settings-panel">
-        <div class="panel-header">
-          <h3>数据管理</h3>
-        </div>
-
-        <div class="data-actions-grid">
-          <div class="data-card">
-            <h4>本地数据导出</h4>
-            <p>将当前主题的书签和视图设置导出为 JSON 文件。</p>
-            <button id="export-data-btn" class="secondary-btn">导出数据</button>
-          </div>
-
-          <div class="data-card">
-            <h4>本地数据导入</h4>
-            <p>从 JSON 文件恢复数据，将覆盖当前主题的内容。</p>
-            <input type="file" id="import-file-input" accept=".json" style="display:none;">
-            <button id="import-data-btn" class="secondary-btn">导入数据</button>
-          </div>
-
-          <div class="data-card">
-            <h4>清空当前主题数据</h4>
-            <p>删除当前工作空间的所有分类和快捷方式（危险操作）。</p>
-            <button id="clear-data-btn" class="secondary-btn text-danger">清空数据</button>
-          </div>
-        </div>
-      </section>
 
       <section id="panel-about" class="settings-panel">
         <div class="panel-header">

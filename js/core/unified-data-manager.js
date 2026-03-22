@@ -1009,6 +1009,9 @@ class UnifiedDataManager {
     }
 
     async promoteCurrentThemeToCloud(provider = 'cloudflare', cfConfig = null, supabaseConfig = null, themeName = '') {
+        let previousThemeState = null;
+        let themeStateChanged = false;
+
         try {
             const currentTheme = this.getCurrentTheme();
             if (!currentTheme) {
@@ -1017,18 +1020,27 @@ class UnifiedDataManager {
 
             const dataToMigrate = this.currentConfigData || await this.loadCurrentConfigData();
             const now = new Date().toISOString();
+            const savedConfig = await this.connectProvider(provider, cfConfig, supabaseConfig);
 
-            await this.connectProvider(provider, cfConfig, supabaseConfig);
+            await this.testProviderConnection(provider, savedConfig);
+
+            previousThemeState = {
+                type: currentTheme.type,
+                themeName: currentTheme.themeName,
+                updatedAt: currentTheme.updatedAt
+            };
 
             currentTheme.type = provider;
             if (themeName) {
                 currentTheme.themeName = themeName;
             }
             currentTheme.updatedAt = now;
+            themeStateChanged = true;
+
             await this.saveAppData();
-            this.syncProviderClientsState();
 
             await this.saveCurrentConfigData(dataToMigrate || this.getDefaultConfigData());
+            this.syncProviderClientsState();
 
             console.log(`UnifiedDataManager: 当前主题已切换为 ${provider} 云端工作区`, {
                 themeId: currentTheme.themeId
@@ -1036,6 +1048,22 @@ class UnifiedDataManager {
 
             return currentTheme;
         } catch (error) {
+            if (themeStateChanged && previousThemeState) {
+                const currentTheme = this.getCurrentTheme();
+                if (currentTheme) {
+                    currentTheme.type = previousThemeState.type;
+                    currentTheme.themeName = previousThemeState.themeName;
+                    currentTheme.updatedAt = previousThemeState.updatedAt;
+
+                    try {
+                        await this.saveAppData();
+                    } catch (rollbackError) {
+                        console.error('UnifiedDataManager: 云端切换失败后回滚主题状态失败:', rollbackError);
+                    }
+                }
+            }
+
+            this.syncProviderClientsState();
             console.error('UnifiedDataManager: 当前主题切换为云端失败:', error);
             throw error;
         }
@@ -1114,15 +1142,23 @@ class UnifiedDataManager {
      * 禁用云端同步
      */
     async disableCloudSync() {
+        let previousThemeState = null;
+        let themeStateChanged = false;
+
         try {
             console.log('UnifiedDataManager: 禁用云端同步');
 
             const currentTheme = this.getCurrentTheme();
             if (currentTheme && currentTheme.type !== 'chrome') {
                 const dataToKeep = this.currentConfigData || await this.loadCurrentConfigData();
+                previousThemeState = {
+                    type: currentTheme.type,
+                    updatedAt: currentTheme.updatedAt
+                };
 
                 currentTheme.type = 'chrome';
                 currentTheme.updatedAt = new Date().toISOString();
+                themeStateChanged = true;
                 await this.saveAppData();
 
                 await this.saveCurrentConfigData(dataToKeep || this.getDefaultConfigData());
@@ -1132,6 +1168,21 @@ class UnifiedDataManager {
 
             console.log('UnifiedDataManager: 云端同步已禁用');
         } catch (error) {
+            if (themeStateChanged && previousThemeState) {
+                const currentTheme = this.getCurrentTheme();
+                if (currentTheme) {
+                    currentTheme.type = previousThemeState.type;
+                    currentTheme.updatedAt = previousThemeState.updatedAt;
+
+                    try {
+                        await this.saveAppData();
+                    } catch (rollbackError) {
+                        console.error('UnifiedDataManager: 禁用云端同步失败后回滚主题状态失败:', rollbackError);
+                    }
+                }
+            }
+
+            this.syncProviderClientsState();
             console.error('UnifiedDataManager: 禁用云端同步失败:', error);
             throw error;
         }

@@ -428,8 +428,24 @@ class SupabaseResourceManager {
     }
 
     const now = new Date().toISOString();
+    const nextAnonKey = String(input.anonKey ?? existingProfile?.anonKey ?? '').trim();
+    const nextInitialized = typeof input.initialized === 'boolean'
+      ? input.initialized
+      : !!existingProfile?.initialized;
+    const fallbackSetupStatus = nextInitialized
+      ? 'configured'
+      : String(existingProfile?.setupStatus || '').trim() || 'missing';
+    const nextSetupStatus = String(
+      input.setupStatus
+      ?? existingProfile?.setupStatus
+      ?? fallbackSetupStatus
+    ).trim() || fallbackSetupStatus;
+    const nextSetupStatusText = nextSetupStatus === 'error'
+      ? String(input.setupStatusText ?? existingProfile?.setupStatusText ?? '').trim()
+      : '';
     const nextProfile = {
       url: projectUrl,
+      anonKey: nextAnonKey,
       projectRef: String(
         input.projectRef
         ?? existingProfile?.projectRef
@@ -441,9 +457,9 @@ class SupabaseResourceManager {
         ?? this.getDefaultResourceNames().bucketName,
         this.getDefaultResourceNames().bucketName
       ),
-      initialized: typeof input.initialized === 'boolean'
-        ? input.initialized
-        : !!existingProfile?.initialized,
+      initialized: nextInitialized,
+      setupStatus: nextSetupStatus,
+      setupStatusText: nextSetupStatusText,
       createdAt: existingProfile?.createdAt || now,
       updatedAt: now,
       lastInitializedAt: input.lastInitializedAt ?? existingProfile?.lastInitializedAt ?? null,
@@ -501,6 +517,8 @@ class SupabaseResourceManager {
       projectRef,
       bucketName,
       initialized: true,
+      setupStatus: 'configured',
+      setupStatusText: '',
       lastInitializedAt: initializedAt,
       lastConnectedAt: initializedAt
     });

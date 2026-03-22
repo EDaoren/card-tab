@@ -189,12 +189,12 @@ class CloudflareSyncProvider extends BaseSyncProvider {
   async testConnection(config = null) {
     if (config) {
       const tempClient = new CloudflareClient();
-      await tempClient.initialize(config, true);
-      return { ok: true, provider: 'cloudflare' };
+      await tempClient.initialize(config, false);
+      return tempClient.testConnection();
     }
 
-    await this.dataManager.ensureProviderClient('cloudflare', null, { shouldTest: true });
-    return { ok: true, provider: 'cloudflare' };
+    const client = await this.dataManager.ensureProviderClient('cloudflare');
+    return client.testConnection();
   }
 
   async initializeSchema(config = null) {

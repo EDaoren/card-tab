@@ -54,7 +54,7 @@ class StorageAdapter {
     try {
       // 合并数据
       const dataToSave = {
-        ...this.fullData,
+        ...(this.fullData || {}),
         categories: this.data.categories,
         settings: this.data.settings
       };
@@ -387,25 +387,52 @@ class StorageAdapter {
    * 导出数据
    */
   exportData() {
+    const dataToExport = window.unifiedDataManager.normalizeConfigData(this.fullData || this.data || {});
+
     return {
-      categories: this.data.categories,
-      settings: this.data.settings,
+      ...dataToExport,
       exportDate: new Date().toISOString(),
-      version: '1.0.0'
+      version: window.unifiedDataManager?.appData?.version || '2.0.0'
     };
+  }
+
+  extractImportConfigData(importedData) {
+    if (!importedData || typeof importedData !== 'object') {
+      throw new Error('Invalid data format');
+    }
+
+    const rawData = importedData.data
+      && typeof importedData.data === 'object'
+      && Array.isArray(importedData.data.categories)
+      ? importedData.data
+      : importedData;
+
+    const {
+      exportDate,
+      version,
+      _exportMeta,
+      ...configData
+    } = rawData;
+
+    if (!Array.isArray(configData.categories)) {
+      throw new Error('Invalid data format: categories must be an array');
+    }
+
+    return configData;
   }
 
   /**
    * 导入数据
    */
   async importData(importedData) {
-    if (!importedData.categories) {
-      throw new Error('Invalid data format: missing categories');
-    }
+    const configData = this.extractImportConfigData(importedData);
+    const normalizedData = window.unifiedDataManager.normalizeConfigData(configData);
 
-    const normalizedData = window.unifiedDataManager.normalizeConfigData(importedData);
-    this.data.categories = normalizedData.categories;
-    this.data.settings = normalizedData.settings;
+    this.fullData = normalizedData;
+    this.data = {
+      categories: normalizedData.categories,
+      settings: normalizedData.settings
+    };
     
     await this.saveToStorage();
   }
