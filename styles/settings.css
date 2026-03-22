@@ -40,6 +40,8 @@ body.loaded {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, #dadce0);
 }
 
 #back-to-home-btn {
@@ -136,7 +138,9 @@ body.loaded {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border-color, #dadce0);
 }
 
 .panel-header h3 {
@@ -153,7 +157,7 @@ body.loaded {
   margin-bottom: 24px;
   font-size: 0.95rem;
   line-height: 1.5;
-  max-width: 760px;
+  max-width: none;
 }
 
 .sync-quick-start-card {
