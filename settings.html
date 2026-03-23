@@ -49,15 +49,49 @@
             <p id="workspace-overview-desc">这里显示当前正在使用的工作空间和同步状态。</p>
           </div>
           <div class="workspace-overview-meta">
+            <div class="workspace-overview-actions">
+              <button id="workspace-overview-manage-btn" class="primary-btn" type="button">新建工作空间</button>
+              <button id="workspace-import-cloud-btn" class="secondary-btn" type="button">从云端添加</button>
+            </div>
             <div class="workspace-overview-stat">
               <strong id="workspace-count-value">0</strong>
               <span>个工作空间</span>
             </div>
-            <button id="workspace-overview-manage-btn" class="primary-btn" type="button">新建工作空间</button>
           </div>
         </div>
         <div id="themes-list" class="themes-grid"></div>
         <div id="workspace-load-sentinel" class="workspace-load-sentinel" hidden aria-hidden="true"></div>
+
+        <div id="remote-workspace-picker" class="workspace-detail-container" style="display: none;">
+          <div class="sync-status-card workspace-detail-status-card remote-workspace-status-card">
+            <div class="status-indicator active"></div>
+            <div class="status-info">
+              <span class="workspace-detail-eyebrow">从云端添加</span>
+              <h4 id="remote-workspace-picker-title">选择要添加到本机的工作空间</h4>
+              <p id="remote-workspace-picker-desc">先浏览 Cloudflare / Supabase 上已有的工作空间，再按需添加到当前设备。</p>
+            </div>
+            <div class="workspace-detail-meta">
+              <span id="remote-workspace-provider-badge" class="sync-status-badge is-idle">Cloudflare</span>
+              <div class="workspace-detail-actions">
+                <button id="remote-workspace-picker-close-btn" class="secondary-btn" type="button">返回列表</button>
+              </div>
+            </div>
+          </div>
+          <div class="tabs remote-workspace-tabs" role="tablist" aria-label="云端工作空间来源">
+            <button class="tab-btn remote-provider-tab active" data-remote-provider="cloudflare" type="button">Cloudflare</button>
+            <button class="tab-btn remote-provider-tab" data-remote-provider="supabase" type="button">Supabase</button>
+          </div>
+          <div class="edit-form-container workspace-detail-content-card remote-workspace-page-card">
+            <div class="remote-workspace-toolbar">
+              <p id="remote-workspace-status-text" class="sync-hint">选择一个云端来源以查看可添加的工作空间。</p>
+              <div class="remote-workspace-toolbar-actions">
+                <button id="remote-workspace-open-sync-btn" class="secondary-btn" type="button">前往云端连接</button>
+                <button id="remote-workspace-refresh-btn" class="secondary-btn" type="button">刷新列表</button>
+              </div>
+            </div>
+            <div id="remote-workspace-list" class="remote-workspace-list"></div>
+          </div>
+        </div>
 
         <div id="theme-edit-form" class="workspace-detail-container" style="display: none;">
           <div id="workspace-detail-status-card" class="sync-status-card workspace-detail-status-card">

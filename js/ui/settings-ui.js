@@ -13,6 +13,11 @@ class SettingsUIManager {
     this.workspaceLoadStep = 12;
     this.workspaceLoadObserver = null;
     this.workspaceLoadPending = false;
+    this.remoteWorkspaceActiveProvider = 'cloudflare';
+    this.remoteWorkspaceDiscoveries = {
+      cloudflare: { items: [], loading: false, loaded: false, error: '' },
+      supabase: { items: [], loading: false, loaded: false, error: '' }
+    };
 
     // 背景图片缓存
     this.tempBgImageFile = null;
@@ -21,6 +26,7 @@ class SettingsUIManager {
   async init() {
     this.bindSidebarNav();
     this.bindAppearanceEvents();
+    this.bindRemoteWorkspacePickerEvents();
     this.bindWorkspaceDetailEvents();
     this.bindSyncEvents();
     this.bindSupabaseSecureEvents();
@@ -74,6 +80,478 @@ class SettingsUIManager {
     const targetTab = document.querySelector(`#panel-sync .tab-btn[data-tab="${tabName}"]`);
     if (targetTab) {
       targetTab.click();
+    }
+  }
+
+  getRemoteWorkspaceDiscoveryState(provider = this.remoteWorkspaceActiveProvider) {
+    const resolvedProvider = provider === 'supabase' ? 'supabase' : 'cloudflare';
+    return this.remoteWorkspaceDiscoveries[resolvedProvider];
+  }
+
+  getRemoteWorkspaceProviderLabel(provider = this.remoteWorkspaceActiveProvider) {
+    return provider === 'supabase' ? 'Supabase' : 'Cloudflare';
+  }
+
+  invalidateRemoteWorkspaceDiscovery(provider = null) {
+    const providers = provider ? [provider] : ['cloudflare', 'supabase'];
+
+    providers.forEach((targetProvider) => {
+      const state = this.getRemoteWorkspaceDiscoveryState(targetProvider);
+      state.items = [];
+      state.loading = false;
+      state.loaded = false;
+      state.error = '';
+    });
+  }
+
+  getRemoteWorkspaceImportMeta(importState = 'available') {
+    if (importState === 'imported') {
+      return {
+        label: '已添加到本机',
+        className: 'is-imported',
+        buttonLabel: '已添加',
+        disabled: true
+      };
+    }
+
+    if (importState === 'conflict') {
+      return {
+        label: '本机存在同 ID 工作空间',
+        className: 'is-conflict',
+        buttonLabel: '覆盖导入',
+        disabled: false
+      };
+    }
+
+    return {
+      label: '可添加到本机',
+      className: '',
+      buttonLabel: '添加到本机',
+      disabled: false
+    };
+  }
+
+  formatWorkspaceTimestamp(timestamp) {
+    if (!timestamp) {
+      return '未知';
+    }
+
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+      return '未知';
+    }
+
+    return date.toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  bindRemoteWorkspacePickerEvents() {
+    document.getElementById('workspace-import-cloud-btn')?.addEventListener('click', () => {
+      this.openRemoteWorkspacePicker().catch(console.error);
+    });
+
+    document.getElementById('remote-workspace-picker-close-btn')?.addEventListener('click', () => {
+      this.closeRemoteWorkspacePicker();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        this.closeRemoteWorkspacePicker();
+      }
+    });
+
+    document.querySelectorAll('.remote-provider-tab').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.switchRemoteWorkspaceProvider(button.dataset.remoteProvider || 'cloudflare').catch(console.error);
+      });
+    });
+
+    document.getElementById('remote-workspace-refresh-btn')?.addEventListener('click', async () => {
+      const provider = this.remoteWorkspaceActiveProvider;
+      this.invalidateRemoteWorkspaceDiscovery(provider);
+      await window.unifiedDataManager.reconcileMissingCloudThemes?.(provider).catch(console.error);
+      this.loadRemoteWorkspaceDiscovery(provider, { forceRefresh: true }).catch(console.error);
+    });
+
+    document.getElementById('remote-workspace-open-sync-btn')?.addEventListener('click', () => {
+      const provider = this.remoteWorkspaceActiveProvider;
+      this.closeRemoteWorkspacePicker();
+      this.showPanel('panel-sync');
+      this.activateGlobalProviderTab(provider === 'supabase' ? 'supabase-sync' : 'cf-sync');
+    });
+
+    document.getElementById('remote-workspace-list')?.addEventListener('click', async (event) => {
+      const actionButton = event.target.closest('[data-remote-theme-id][data-remote-action]');
+      if (!actionButton) {
+        return;
+      }
+
+      const provider = actionButton.dataset.remoteProvider || this.remoteWorkspaceActiveProvider;
+      const themeId = actionButton.dataset.remoteThemeId || '';
+      const action = actionButton.dataset.remoteAction || 'import';
+      if (!themeId) {
+        return;
+      }
+
+      if (action === 'delete') {
+        await this.deleteRemoteWorkspace(provider, themeId, actionButton);
+        return;
+      }
+
+      await this.importRemoteWorkspace(provider, themeId, actionButton);
+    });
+  }
+
+  async openRemoteWorkspacePicker(provider = null) {
+    const picker = document.getElementById('remote-workspace-picker');
+    if (!picker) {
+      return;
+    }
+
+    document.getElementById('theme-edit-form').style.display = 'none';
+    this.editingThemeId = null;
+    this.hideWorkspaceOverviewList();
+    picker.style.display = 'flex';
+    await this.switchRemoteWorkspaceProvider(provider || this.remoteWorkspaceActiveProvider, { forceRefresh: true });
+  }
+
+  closeRemoteWorkspacePicker() {
+    const picker = document.getElementById('remote-workspace-picker');
+    if (!picker || picker.style.display === 'none') {
+      return;
+    }
+
+    picker.style.display = 'none';
+    this.showWorkspaceOverviewList();
+  }
+
+  async switchRemoteWorkspaceProvider(provider, { forceRefresh = false } = {}) {
+    this.remoteWorkspaceActiveProvider = provider === 'supabase' ? 'supabase' : 'cloudflare';
+    this.renderRemoteWorkspacePicker();
+
+    const state = this.getRemoteWorkspaceDiscoveryState(this.remoteWorkspaceActiveProvider);
+    if (!state.loaded || forceRefresh) {
+      await this.loadRemoteWorkspaceDiscovery(this.remoteWorkspaceActiveProvider, { forceRefresh });
+    }
+  }
+
+  async loadRemoteWorkspaceDiscovery(provider, { forceRefresh = false } = {}) {
+    const resolvedProvider = provider === 'supabase' ? 'supabase' : 'cloudflare';
+    const state = this.getRemoteWorkspaceDiscoveryState(resolvedProvider);
+
+    if (state.loading) {
+      return;
+    }
+
+    if (forceRefresh) {
+      state.items = [];
+      state.loaded = false;
+      state.error = '';
+    }
+
+    if (state.loaded && !forceRefresh) {
+      this.renderRemoteWorkspacePicker();
+      return;
+    }
+
+    state.loading = true;
+    state.error = '';
+    this.renderRemoteWorkspacePicker();
+
+    try {
+      state.items = await window.unifiedDataManager.discoverRemoteThemes(resolvedProvider);
+      state.loaded = true;
+    } catch (error) {
+      state.items = [];
+      state.loaded = false;
+      state.error = error.message || '加载远端工作空间失败';
+    } finally {
+      state.loading = false;
+      this.renderRemoteWorkspacePicker();
+    }
+  }
+
+  createRemoteWorkspaceItem(entry) {
+    const importMeta = this.getRemoteWorkspaceImportMeta(entry.importState);
+    const previewColorMap = {
+      default: '#f5f5f5',
+      dark: '#35363a',
+      blue: '#e8f0fe',
+      green: '#e6f4ea',
+      purple: '#f3e8fd',
+      pink: '#fce4ec'
+    };
+    const previewBackgroundColor = previewColorMap[entry.themeType] || previewColorMap.default;
+
+    const item = document.createElement('div');
+    item.className = 'remote-workspace-item';
+
+    const preview = document.createElement('div');
+    preview.className = 'remote-workspace-preview';
+    preview.style.backgroundColor = previewBackgroundColor;
+    if (entry.bgImageUrl) {
+      preview.style.backgroundImage = `url(${entry.bgImageUrl})`;
+    }
+
+    const main = document.createElement('div');
+    main.className = 'remote-workspace-item-main';
+
+    const header = document.createElement('div');
+    header.className = 'remote-workspace-item-header';
+
+    const titleWrap = document.createElement('div');
+    const title = document.createElement('h5');
+    title.textContent = entry.themeName || '未命名工作空间';
+    titleWrap.appendChild(title);
+
+    const badges = document.createElement('div');
+    badges.className = 'remote-workspace-item-badges';
+
+    const providerChip = document.createElement('span');
+    providerChip.className = 'remote-workspace-chip is-provider';
+    providerChip.textContent = this.getRemoteWorkspaceProviderLabel(entry.provider);
+    badges.appendChild(providerChip);
+
+    const stateChip = document.createElement('span');
+    stateChip.className = `remote-workspace-chip ${importMeta.className}`.trim();
+    stateChip.textContent = importMeta.label;
+    badges.appendChild(stateChip);
+
+    header.appendChild(titleWrap);
+    header.appendChild(badges);
+
+    const meta = document.createElement('div');
+    meta.className = 'remote-workspace-meta';
+
+    const themeIdMeta = document.createElement('span');
+    themeIdMeta.textContent = `themeId：${entry.themeId}`;
+    const themeTypeMeta = document.createElement('span');
+    themeTypeMeta.textContent = `风格：${entry.themeType || 'default'}`;
+    const updatedAtMeta = document.createElement('span');
+    updatedAtMeta.textContent = `更新于：${this.formatWorkspaceTimestamp(entry.updatedAt)}`;
+
+    meta.appendChild(themeIdMeta);
+    meta.appendChild(themeTypeMeta);
+    meta.appendChild(updatedAtMeta);
+
+    const note = document.createElement('p');
+    note.className = 'remote-workspace-note';
+    if (entry.importState === 'conflict') {
+      note.textContent = `本机已有同 ID 工作空间：${entry.localTheme?.themeName || '未命名工作空间'}。继续导入会改为使用云端版本。`;
+    } else if (entry.importState === 'imported') {
+      note.textContent = '这个工作空间已经在当前设备可用，可直接回到列表切换或编辑。';
+    } else {
+      note.textContent = '添加到本机后，这个工作空间会出现在当前设备的工作空间列表中。';
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'remote-workspace-actions';
+
+    if (entry.importState === 'conflict') {
+      const actionHint = document.createElement('span');
+      actionHint.className = 'sync-hint';
+      actionHint.textContent = '适合把本机同 ID 工作空间接到云端版本。';
+      actions.appendChild(actionHint);
+    }
+
+    const actionButtons = document.createElement('div');
+    actionButtons.className = 'remote-workspace-action-buttons';
+
+    const actionButton = document.createElement('button');
+    actionButton.className = entry.importState === 'conflict' ? 'secondary-btn' : 'primary-btn';
+    actionButton.textContent = importMeta.buttonLabel;
+    actionButton.disabled = importMeta.disabled;
+    actionButton.dataset.remoteThemeId = entry.themeId;
+    actionButton.dataset.remoteProvider = entry.provider;
+    actionButton.dataset.remoteAction = 'import';
+    actionButtons.appendChild(actionButton);
+
+    if (entry.importState !== 'imported') {
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'secondary-btn text-danger';
+      deleteButton.textContent = '删除云端';
+      deleteButton.dataset.remoteThemeId = entry.themeId;
+      deleteButton.dataset.remoteProvider = entry.provider;
+      deleteButton.dataset.remoteAction = 'delete';
+      actionButtons.appendChild(deleteButton);
+    }
+
+    actions.appendChild(actionButtons);
+
+    main.appendChild(header);
+    main.appendChild(meta);
+    main.appendChild(note);
+    main.appendChild(actions);
+
+    item.appendChild(preview);
+    item.appendChild(main);
+
+    return item;
+  }
+
+  renderRemoteWorkspacePicker() {
+    const picker = document.getElementById('remote-workspace-picker');
+    const list = document.getElementById('remote-workspace-list');
+    const statusText = document.getElementById('remote-workspace-status-text');
+    const providerBadge = document.getElementById('remote-workspace-provider-badge');
+    const openSyncBtn = document.getElementById('remote-workspace-open-sync-btn');
+    const refreshBtn = document.getElementById('remote-workspace-refresh-btn');
+    const provider = this.remoteWorkspaceActiveProvider;
+    const providerLabel = this.getRemoteWorkspaceProviderLabel(provider);
+    const state = this.getRemoteWorkspaceDiscoveryState(provider);
+
+    if (!picker || !list || !statusText || !providerBadge || !openSyncBtn || !refreshBtn) {
+      return;
+    }
+
+    document.querySelectorAll('.remote-provider-tab').forEach((button) => {
+      button.classList.toggle('active', button.dataset.remoteProvider === provider);
+    });
+
+    providerBadge.textContent = providerLabel;
+    providerBadge.classList.remove('is-ready', 'is-error', 'is-pending');
+    providerBadge.classList.add('is-idle');
+    openSyncBtn.textContent = `前往 ${providerLabel} 连接`;
+    refreshBtn.disabled = state.loading;
+
+    if (state.loading) {
+      statusText.textContent = `正在读取 ${providerLabel} 上的工作空间列表...`;
+      list.innerHTML = '<div class="remote-workspace-empty">正在从云端读取工作空间列表，请稍候...</div>';
+      return;
+    }
+
+    if (state.error) {
+      statusText.textContent = `${providerLabel} 连接还没准备好，先去完成全局连接。`;
+      list.innerHTML = `<div class="remote-workspace-empty">${providerLabel} 远端工作空间列表加载失败：${state.error}</div>`;
+      return;
+    }
+
+    const importedCount = state.items.filter((item) => item.importState === 'imported').length;
+    statusText.textContent = state.items.length > 0
+      ? `${providerLabel} 远端共 ${state.items.length} 个工作空间，其中 ${importedCount} 个已经在本机可用。`
+      : `${providerLabel} 目前还没有可添加的远端工作空间。`;
+
+    list.innerHTML = '';
+
+    if (!state.items.length) {
+      list.innerHTML = '<div class="remote-workspace-empty">当前没有发现远端工作空间。你可以先在另一台设备启用同步，或前往“云端连接”检查当前连接资料。</div>';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    state.items.forEach((entry) => {
+      fragment.appendChild(this.createRemoteWorkspaceItem(entry));
+    });
+    list.appendChild(fragment);
+  }
+
+  async importRemoteWorkspace(provider, themeId, actionButton = null) {
+    const discoveryState = this.getRemoteWorkspaceDiscoveryState(provider);
+    const targetEntry = discoveryState.items.find((item) => item.themeId === themeId);
+    if (!targetEntry || targetEntry.importState === 'imported') {
+      return;
+    }
+
+    if (targetEntry.importState === 'conflict') {
+      const confirmed = await window.notification.confirm(
+        `本机已经有一个 themeId 为“${themeId}”的工作空间（${targetEntry.localTheme?.themeName || '未命名工作空间'}）。继续后会改为使用云端版本。确定继续吗？`,
+        {
+          title: '确认覆盖导入',
+          confirmText: '继续导入',
+          cancelText: '取消',
+          type: 'warning'
+        }
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const defaultText = actionButton?.textContent || '';
+    if (actionButton) {
+      actionButton.disabled = true;
+      actionButton.textContent = targetEntry.importState === 'conflict' ? '覆盖中...' : '添加中...';
+    }
+
+    try {
+      const importedTheme = await window.unifiedDataManager.importRemoteTheme(provider, targetEntry);
+      await window.syncManager.init().catch(() => {});
+      this.refreshThemesList();
+      this.refreshSyncUI();
+      await this.refreshWorkspaceDetailUI();
+
+      if (importedTheme.themeId === window.unifiedDataManager.appData.currentThemeId) {
+        window.loadThemeSettings();
+      }
+
+      await this.loadRemoteWorkspaceDiscovery(provider, { forceRefresh: true });
+      this.showMessage(
+        targetEntry.importState === 'conflict' ? '云端工作空间已覆盖导入到本机' : '云端工作空间已添加到本机',
+        'success'
+      );
+    } catch (error) {
+      if (actionButton) {
+        actionButton.disabled = false;
+        actionButton.textContent = defaultText;
+      }
+      this.showMessage('添加失败: ' + error.message, 'error');
+    }
+  }
+
+  async deleteRemoteWorkspace(provider, themeId, actionButton = null) {
+    const discoveryState = this.getRemoteWorkspaceDiscoveryState(provider);
+    const targetEntry = discoveryState.items.find((item) => item.themeId === themeId);
+    if (!targetEntry || targetEntry.importState === 'imported') {
+      return;
+    }
+
+    const providerLabel = this.getRemoteWorkspaceProviderLabel(provider);
+    const workspaceName = targetEntry.themeName || themeId;
+    const confirmed = await window.notification.confirm(
+      `确定要从 ${providerLabel} 删除“${workspaceName}”吗？这只会删除云端数据，不会删除本机工作空间。`,
+      {
+        title: '确认删除云端工作空间',
+        confirmText: '删除云端数据',
+        cancelText: '取消',
+        type: 'warning'
+      }
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const relatedButtons = Array.from(
+      actionButton?.closest('.remote-workspace-actions')?.querySelectorAll('button') || []
+    );
+    const previousStates = relatedButtons.map((button) => ({
+      button,
+      text: button.textContent,
+      disabled: button.disabled
+    }));
+
+    relatedButtons.forEach((button) => {
+      button.disabled = true;
+    });
+    if (actionButton) {
+      actionButton.textContent = '删除中...';
+    }
+
+    try {
+      await window.unifiedDataManager.deleteRemoteTheme(provider, targetEntry);
+      await this.loadRemoteWorkspaceDiscovery(provider, { forceRefresh: true });
+      this.showMessage('云端工作空间已删除', 'success');
+    } catch (error) {
+      previousStates.forEach(({ button, text, disabled }) => {
+        button.textContent = text;
+        button.disabled = disabled;
+      });
+      this.showMessage('删除失败: ' + error.message, 'error');
     }
   }
 
@@ -497,15 +975,33 @@ class SettingsUIManager {
     this.updateWorkspaceLoadSentinel(sortedThemes.length, visibleThemes.length);
   }
 
-  openThemeForm(themeId = null) {
-    this.editingThemeId = themeId;
-    const form = document.getElementById('theme-edit-form');
-    const loadSentinel = document.getElementById('workspace-load-sentinel');
-    document.getElementById('themes-list').style.display = 'none';
+  hideWorkspaceOverviewList() {
     document.getElementById('workspace-overview-card').style.display = 'none';
+    document.getElementById('themes-list').style.display = 'none';
+    const loadSentinel = document.getElementById('workspace-load-sentinel');
     if (loadSentinel) {
       loadSentinel.hidden = true;
     }
+  }
+
+  showWorkspaceOverviewList() {
+    document.getElementById('workspace-overview-card').style.display = 'flex';
+    document.getElementById('themes-list').style.display = 'grid';
+    const loadSentinel = document.getElementById('workspace-load-sentinel');
+    if (loadSentinel) {
+      const totalThemes = window.unifiedDataManager?.getAllThemes?.().length || 0;
+      loadSentinel.hidden = totalThemes <= this.workspaceVisibleCount;
+    }
+  }
+
+  openThemeForm(themeId = null) {
+    this.editingThemeId = themeId;
+    const form = document.getElementById('theme-edit-form');
+    const remoteWorkspacePage = document.getElementById('remote-workspace-picker');
+    if (remoteWorkspacePage) {
+      remoteWorkspacePage.style.display = 'none';
+    }
+    this.hideWorkspaceOverviewList();
     form.style.display = 'flex';
     this.currentWorkspaceTab = 'basic';
     this.switchWorkspaceDetailTab('basic');
@@ -550,13 +1046,7 @@ class SettingsUIManager {
 
   closeThemeForm() {
     document.getElementById('theme-edit-form').style.display = 'none';
-    document.getElementById('workspace-overview-card').style.display = 'flex';
-    document.getElementById('themes-list').style.display = 'grid';
-    const loadSentinel = document.getElementById('workspace-load-sentinel');
-    if (loadSentinel) {
-      const totalThemes = window.unifiedDataManager?.getAllThemes?.().length || 0;
-      loadSentinel.hidden = totalThemes <= this.workspaceVisibleCount;
-    }
+    this.showWorkspaceOverviewList();
     this.currentWorkspaceTab = 'basic';
     this.switchWorkspaceDetailTab('basic');
     this.editingThemeId = null;
@@ -714,7 +1204,7 @@ class SettingsUIManager {
     const sbDesc = document.getElementById('workspace-sb-desc');
     if (cfDesc) {
       if (cfSetup.status === 'configured') {
-        cfDesc.textContent = `已配置全局 Cloudflare 连接：${cfConfig.workerUrl || cfProfile?.workerUrl || ''}`;
+        cfDesc.textContent = '已配置全局 Cloudflare 连接。';
       } else if (cfSetup.status === 'pending' || cfSetup.status === 'error') {
         cfDesc.textContent = cfSetup.text;
       } else {
@@ -723,7 +1213,7 @@ class SettingsUIManager {
     }
     if (sbDesc) {
       if (sbSetup.status === 'configured') {
-        sbDesc.textContent = `已配置全局 Supabase 连接：${sbConfig.url || sbProfile?.url || ''}`;
+        sbDesc.textContent = '已配置全局 Supabase 连接。';
       } else if (sbSetup.status === 'pending' || sbSetup.status === 'error') {
         sbDesc.textContent = sbSetup.text;
       } else {
@@ -987,6 +1477,7 @@ class SettingsUIManager {
     document.getElementById('cf-worker-url').value = config.workerUrl || '';
     document.getElementById('cf-access-token').value = config.accessToken || '';
 
+    this.invalidateRemoteWorkspaceDiscovery('cloudflare');
     this.refreshSyncUI();
     await this.refreshCloudflareSetupUI();
     this.refreshThemesList();
@@ -1028,6 +1519,7 @@ class SettingsUIManager {
     document.getElementById('sb-url').value = config.url || '';
     document.getElementById('sb-key').value = config.anonKey || '';
 
+    this.invalidateRemoteWorkspaceDiscovery('supabase');
     this.refreshSyncUI();
     await this.refreshSupabaseSetupUI();
     this.refreshThemesList();
@@ -1410,7 +1902,7 @@ class SettingsUIManager {
       await this.refreshCloudflareSetupUI();
       this.refreshSyncUI();
       if (showMessage) {
-        this.showMessage('检测完成：当前状态为已配置', 'success');
+        this.showMessage('检测完成：当前状态为已配置。下一步到“工作空间”里为目标工作空间启用同步。', 'success');
       }
       return { status: 'configured' };
     } catch (error) {
@@ -1479,7 +1971,7 @@ class SettingsUIManager {
       await this.refreshSupabaseSetupUI();
       this.refreshSyncUI();
       if (showMessage) {
-        this.showMessage('检测完成：当前状态为已配置', 'success');
+        this.showMessage('检测完成：当前状态为已配置。下一步到“工作空间”里为目标工作空间启用同步。', 'success');
       }
       return { status: 'configured' };
     } catch (error) {
@@ -1613,7 +2105,9 @@ class SettingsUIManager {
     const connectionModeHint = document.getElementById('cf-connection-mode-hint');
     const initModeHint = document.getElementById('cf-init-mode-hint');
     const syncModeHint = document.getElementById('cf-sync-mode-hint');
+    const shouldShowConnectionSection = resolvedMode === 'existing' || isCreateReady;
     const shouldShowWorkerDetails = resolvedMode === 'create' ? isCreateReady : hasWorkerUrl;
+    const shouldShowActionSections = resolvedMode === 'existing' || shouldShowWorkerDetails;
 
     if (createRadio) {
       createRadio.checked = resolvedMode === 'create';
@@ -1625,13 +2119,13 @@ class SettingsUIManager {
       createSection.hidden = resolvedMode !== 'create' || isCreateReady;
     }
     if (connectionSection) {
-      connectionSection.hidden = !shouldShowWorkerDetails;
+      connectionSection.hidden = !shouldShowConnectionSection;
     }
     if (schemaSection) {
-      schemaSection.hidden = !shouldShowWorkerDetails;
+      schemaSection.hidden = !shouldShowActionSections;
     }
     if (syncSection) {
-      syncSection.hidden = !shouldShowWorkerDetails;
+      syncSection.hidden = !shouldShowActionSections;
     }
     if (modeText) {
       if (resolvedMode === 'create' && isCreateReady) {
@@ -1651,20 +2145,28 @@ class SettingsUIManager {
       if (resolvedMode === 'create') {
         connectionModeHint.textContent = 'Worker 已创建，下面是自动生成的连接信息。';
       } else if (hasWorkerUrl) {
-        connectionModeHint.textContent = '连接信息已就绪，可以继续下一步。';
+        connectionModeHint.textContent = '连接信息已就绪，可以直接检测状态或测试连接。';
       } else {
-        connectionModeHint.textContent = '已经有 Worker 就填这 2 项。';
+        connectionModeHint.textContent = '已经有 Worker 就填这 2 项；下面的检测和测试按钮会一直显示。';
       }
     }
     if (initModeHint) {
-      initModeHint.textContent = isInitialized
-        ? '数据库已初始化，可直接进入下一步。'
-        : '拿到 Worker API URL 后，再初始化数据库。';
+      if (resolvedMode === 'existing' && !hasWorkerUrl) {
+        initModeHint.textContent = '如果数据库还没准备好，填好 Worker API URL 后可直接初始化数据库。';
+      } else {
+        initModeHint.textContent = isInitialized
+          ? '数据库已初始化，可直接进入下一步。'
+          : '拿到 Worker API URL 后，再初始化数据库。';
+      }
     }
     if (syncModeHint) {
-      syncModeHint.textContent = isInitialized
-        ? '现在可以测试连接并启用同步。'
-        : '如果数据库早就初始化过，也可以直接测试连接。';
+      if (resolvedMode === 'existing' && !hasWorkerUrl) {
+        syncModeHint.textContent = '填入连接信息后，可直接检测状态或测试连接。确认成功后，到“工作空间”里启用同步。';
+      } else {
+        syncModeHint.textContent = isInitialized
+          ? '现在可以测试连接；确认成功后，到“工作空间”里启用同步。'
+          : '如果数据库早就初始化过，也可以直接测试连接。确认成功后，到“工作空间”里启用同步。';
+      }
     }
 
     this.updateCloudflareStepIndicator(currentStep);
@@ -1778,8 +2280,14 @@ class SettingsUIManager {
     const testBtn = document.getElementById('cf-test-btn');
     const initBtn = document.getElementById('cf-init-db-btn');
     const enableBtn = document.getElementById('cf-enable-btn');
-    const resolvedWorkerUrl = profile?.workerUrl || syncStatus?.cloudflareConfig?.workerUrl || workerUrlInput?.value.trim() || '';
-    const resolvedAccessToken = profile?.accessToken || syncStatus?.cloudflareConfig?.accessToken || accessTokenInput?.value.trim() || '';
+    const isEditingWorkerUrl = document.activeElement === workerUrlInput;
+    const isEditingAccessToken = document.activeElement === accessTokenInput;
+    const resolvedWorkerUrl = isEditingWorkerUrl
+      ? (workerUrlInput?.value.trim() || '')
+      : (workerUrlInput?.value.trim() || profile?.workerUrl || syncStatus?.cloudflareConfig?.workerUrl || '');
+    const resolvedAccessToken = isEditingAccessToken
+      ? (accessTokenInput?.value.trim() || '')
+      : (accessTokenInput?.value.trim() || profile?.accessToken || syncStatus?.cloudflareConfig?.accessToken || '');
     const cfSetup = this.resolveCloudflareSetupState({
       profile,
       config: {
@@ -1793,9 +2301,7 @@ class SettingsUIManager {
     const cfLocked = false;
     const isCreateReady = flowMode === 'create' && profile?.source === 'auto' && hasWorkerUrl;
     const hasStepOneResult = flowMode === 'create' ? isCreateReady : hasWorkerUrl;
-    const currentStep = flowMode === 'create'
-      ? (!hasStepOneResult ? 1 : cfSetup.currentStep)
-      : (hasWorkerUrl ? 3 : 1);
+    const currentStep = !hasStepOneResult ? 1 : cfSetup.currentStep;
 
     if (workerUrlInput) {
       workerUrlInput.value = resolvedWorkerUrl;
@@ -1848,13 +2354,13 @@ class SettingsUIManager {
       createBtn.disabled = cfLocked;
     }
     if (detectBtn) {
-      detectBtn.disabled = cfLocked || !hasStepOneResult;
+      detectBtn.disabled = cfLocked || (flowMode === 'create' && !hasStepOneResult);
     }
     if (testBtn) {
-      testBtn.disabled = cfLocked || !hasStepOneResult;
+      testBtn.disabled = cfLocked || (flowMode === 'create' && !hasStepOneResult);
     }
     if (initBtn) {
-      initBtn.disabled = cfLocked || !hasStepOneResult;
+      initBtn.disabled = cfLocked || (flowMode === 'create' && !hasStepOneResult);
     }
     if (enableBtn) {
       enableBtn.disabled = cfLocked || !cfSetup.canEnable;
@@ -1886,7 +2392,11 @@ class SettingsUIManager {
     const testBtn = document.getElementById('sb-test-btn');
     const initBtn = document.getElementById('sb-init-resources-btn');
     const enableBtn = document.getElementById('sb-enable-btn');
-    const resolvedUrl = profile?.url || activeConfig.url || urlInput?.value.trim() || '';
+    const isEditingUrl = document.activeElement === urlInput;
+    const isEditingKey = document.activeElement === keyInput;
+    const resolvedUrl = isEditingUrl
+      ? (urlInput?.value.trim() || '')
+      : (urlInput?.value.trim() || profile?.url || activeConfig.url || '');
     const derivedProjectRef = resolvedUrl
       ? window.supabaseResourceManager.deriveProjectRef(resolvedUrl)
       : '';
@@ -1895,10 +2405,14 @@ class SettingsUIManager {
       urlInput.value = resolvedUrl;
     }
     if (keyInput) {
-      keyInput.value = activeConfig.anonKey || keyInput.value.trim() || '';
+      keyInput.value = isEditingKey
+        ? (keyInput.value.trim() || '')
+        : (keyInput.value.trim() || profile?.anonKey || activeConfig.anonKey || '');
     }
     if (projectRefInput) {
-      projectRefInput.value = profile?.projectRef || derivedProjectRef || '';
+      projectRefInput.value = isEditingUrl
+        ? derivedProjectRef
+        : (projectRefInput.value.trim() || derivedProjectRef || profile?.projectRef || '');
     }
     if (bucketNameInput) {
       bucketNameInput.value = profile?.bucketName || activeConfig.bucketName || defaultNames.bucketName;
@@ -1913,7 +2427,9 @@ class SettingsUIManager {
       saveAdminSecretsCheckbox.checked = !!preferences.saveAdminSecrets;
     }
 
-    const resolvedKey = profile?.anonKey || activeConfig.anonKey || keyInput?.value.trim() || '';
+    const resolvedKey = isEditingKey
+      ? (keyInput?.value.trim() || '')
+      : (keyInput?.value.trim() || profile?.anonKey || activeConfig.anonKey || '');
     const sbLocked = false;
     const flowMode = this.getSupabaseFlowMode(profile);
     const sbSetup = this.resolveSupabaseSetupState({
@@ -1992,6 +2508,18 @@ class SettingsUIManager {
           this.supabaseFlowModeOverride = event.target.value;
           await this.refreshSupabaseSetupUI();
         }
+      });
+    });
+
+    ['cf-worker-url', 'cf-access-token'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('input', () => {
+        this.refreshCloudflareSetupUI().catch(console.error);
+      });
+    });
+
+    ['sb-url', 'sb-key'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('input', () => {
+        this.refreshSupabaseSetupUI().catch(console.error);
       });
     });
 
@@ -2091,7 +2619,7 @@ class SettingsUIManager {
       try {
         const result = await this.detectCloudflareSetupStatus(false);
         if (result.status === 'configured') {
-          this.showMessage('测试连接成功！', 'success');
+          this.showMessage('测试连接成功！下一步到“工作空间”里为目标工作空间启用同步。', 'success');
         } else if (result.status === 'pending') {
           this.showMessage('连接可用，但数据表还没准备好，请先初始化数据库。', 'info');
         } else {
@@ -2508,19 +3036,19 @@ class SettingsUIManager {
     }
 
     if (status.cloudflareConfig) {
-      if (workerUrlInput) {
+      if (workerUrlInput && !workerUrlInput.value.trim()) {
         workerUrlInput.value = status.cloudflareConfig.workerUrl || '';
       }
-      if (accessTokenInput) {
+      if (accessTokenInput && !accessTokenInput.value.trim()) {
         accessTokenInput.value = status.cloudflareConfig.accessToken || '';
       }
     }
 
     if (status.supabaseConfig) {
-      if (sbUrlInput) {
+      if (sbUrlInput && !sbUrlInput.value.trim()) {
         sbUrlInput.value = status.supabaseConfig.url || '';
       }
-      if (sbKeyInput) {
+      if (sbKeyInput && !sbKeyInput.value.trim()) {
         sbKeyInput.value = status.supabaseConfig.anonKey || '';
       }
     }

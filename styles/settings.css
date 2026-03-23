@@ -1379,3 +1379,233 @@ body.theme-purple .primary-btn:hover {
 body.theme-pink .primary-btn:hover {
   background: #c2185b;
 }
+
+.workspace-overview-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.remote-workspace-status-card .status-indicator {
+  align-self: stretch;
+}
+
+.remote-workspace-page-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.remote-workspace-tabs {
+  margin-top: -4px;
+}
+
+.remote-provider-tab {
+  min-width: 132px;
+}
+
+.remote-workspace-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.remote-workspace-toolbar .sync-hint {
+  margin: 0;
+}
+
+.remote-workspace-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.remote-workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.remote-workspace-empty {
+  padding: 22px 18px;
+  border-radius: 16px;
+  background: var(--hover-color, #f8f9fa);
+  border: 1px dashed var(--border-color, #dadce0);
+  color: var(--text-secondary, #5f6368);
+  line-height: 1.6;
+}
+
+.remote-workspace-item {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--card-bg-color, #ffffff);
+  border: 1px solid var(--border-color, #dadce0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.remote-workspace-preview {
+  width: 96px;
+  height: 72px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--primary-color-rgb, 66,133,244), 0.16);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.remote-workspace-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.remote-workspace-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.remote-workspace-item-header h5 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-color, #202124);
+  word-break: break-word;
+}
+
+.remote-workspace-item-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.remote-workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(var(--primary-color-rgb, 66,133,244), 0.12);
+  color: var(--primary-color, #1a73e8);
+}
+
+.remote-workspace-chip.is-imported {
+  background: rgba(52, 168, 83, 0.14);
+  color: #188038;
+}
+
+.remote-workspace-chip.is-conflict {
+  background: rgba(251, 188, 5, 0.18);
+  color: #8a5200;
+}
+
+.remote-workspace-chip.is-provider {
+  background: rgba(95, 99, 104, 0.12);
+  color: var(--text-secondary, #5f6368);
+}
+
+.remote-workspace-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--text-secondary, #5f6368);
+  font-size: 12px;
+}
+
+.remote-workspace-note {
+  margin: 0;
+  color: var(--text-secondary, #5f6368);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.remote-workspace-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.remote-workspace-actions .sync-hint {
+  margin: 0;
+  margin-right: auto;
+}
+
+.remote-workspace-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.remote-workspace-actions .secondary-btn,
+.remote-workspace-actions .primary-btn {
+  flex: 0 0 auto;
+}
+
+body.theme-dark .remote-workspace-page-card,
+body.theme-dark .remote-workspace-item {
+  background: var(--card-bg-color);
+  border-color: var(--border-color);
+}
+
+body.theme-dark .remote-workspace-empty {
+  background: var(--hover-color);
+  border-color: var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .workspace-overview-actions {
+    justify-content: stretch;
+  }
+
+  .workspace-overview-actions .secondary-btn,
+  .workspace-overview-actions .primary-btn {
+    width: 100%;
+  }
+
+  .remote-workspace-page-card {
+    padding: 22px 16px 18px;
+  }
+
+  .remote-workspace-item {
+    grid-template-columns: 1fr;
+  }
+
+  .remote-workspace-preview {
+    width: 100%;
+    height: 92px;
+  }
+
+  .remote-workspace-actions {
+    align-items: stretch;
+  }
+
+  .remote-workspace-action-buttons {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0;
+  }
+
+  .remote-workspace-action-buttons .secondary-btn,
+  .remote-workspace-action-buttons .primary-btn {
+    width: 100%;
+  }
+}

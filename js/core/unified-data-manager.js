@@ -207,6 +207,10 @@ class UnifiedDataManager {
             // 3. 加载当前活跃主题的数据
             await this.loadCurrentConfigData();
 
+            this.reconcileMissingCloudThemes().catch((error) => {
+                console.warn('UnifiedDataManager: 启动时巡检缺失云端工作空间失败', error);
+            });
+
             console.log('UnifiedDataManager: 初始化完成', {
                 currentThemeId: this.appData.currentThemeId,
                 themesCount: Object.keys(this.appData.themes).length
@@ -605,6 +609,105 @@ class UnifiedDataManager {
         return data ? this.normalizeConfigData(data) : null;
     }
 
+    isCloudTheme(theme) {
+        return !!theme && theme.type !== 'chrome';
+    }
+
+    async getLocalRecoveryThemeData(theme, fallbackData = null) {
+        if (!theme?.themeId) {
+            return null;
+        }
+
+        if (theme.themeId === this.appData?.currentThemeId && this.currentConfigData) {
+            return this.normalizeConfigData(this.currentConfigData);
+        }
+
+        if (fallbackData) {
+            return this.normalizeConfigData(fallbackData);
+        }
+
+        const cachedData = await this.loadFromCache(theme.themeId).catch(() => null);
+        return cachedData ? this.normalizeConfigData(cachedData) : null;
+    }
+
+    async restoreMissingCloudTheme(theme, fallbackData = null) {
+        if (!this.isCloudTheme(theme)) {
+            return null;
+        }
+
+        const recoveryData = await this.getLocalRecoveryThemeData(theme, fallbackData);
+        if (!recoveryData) {
+            return null;
+        }
+
+        await this.syncThemeDataWithProvider(theme, recoveryData);
+        console.log(`UnifiedDataManager: 已自动恢复缺失的云端工作空间 ${theme.themeId}`);
+        return recoveryData;
+    }
+
+    async reconcileMissingCloudThemes(provider = null) {
+        const providerTypes = provider
+            ? [provider]
+            : ['supabase', 'cloudflare'];
+        const restoredThemes = [];
+
+        for (const targetProvider of providerTypes) {
+            const localThemes = this.getAllThemes().filter((theme) => theme.type === targetProvider);
+            if (!localThemes.length) {
+                continue;
+            }
+
+            let client = null;
+            try {
+                client = await this.ensureProviderClient(targetProvider);
+            } catch (error) {
+                console.warn(`UnifiedDataManager: 无法初始化 ${targetProvider} 客户端，跳过缺失巡检`, error);
+                continue;
+            }
+
+            if (!client || typeof client.listThemes !== 'function') {
+                continue;
+            }
+
+            let remoteThemes = [];
+            try {
+                remoteThemes = await client.listThemes();
+            } catch (error) {
+                console.warn(`UnifiedDataManager: 读取 ${targetProvider} 远端工作空间列表失败`, error);
+                continue;
+            }
+
+            const remoteThemeIds = new Set(
+                (Array.isArray(remoteThemes) ? remoteThemes : [])
+                    .map((theme) => String(theme.themeId || theme.theme_id || '').trim())
+                    .filter(Boolean)
+            );
+
+            for (const theme of localThemes) {
+                if (!theme?.themeId || remoteThemeIds.has(theme.themeId)) {
+                    continue;
+                }
+
+                try {
+                    const restoredData = await this.restoreMissingCloudTheme(theme);
+                    if (!restoredData) {
+                        continue;
+                    }
+
+                    remoteThemeIds.add(theme.themeId);
+                    restoredThemes.push({
+                        themeId: theme.themeId,
+                        provider: targetProvider
+                    });
+                } catch (error) {
+                    console.warn(`UnifiedDataManager: 自动恢复缺失云端工作空间失败 ${theme.themeId}`, error);
+                }
+            }
+        }
+
+        return restoredThemes;
+    }
+
     async syncThemeDataWithProvider(theme, data) {
         const normalizedData = this.normalizeConfigData(data);
         const provider = this.getThemeProvider(theme);
@@ -741,7 +844,9 @@ class UnifiedDataManager {
                 await this.saveToCache(currentThemeId, this.currentConfigData);
             } else {
                 this.currentConfigData = this.getDefaultConfigData();
-                await this.saveCurrentConfigData(this.currentConfigData);
+                if (!this.isCloudTheme(currentTheme)) {
+                    await this.saveCurrentConfigData(this.currentConfigData);
+                }
             }
 
             return this.currentConfigData;
@@ -949,6 +1054,159 @@ class UnifiedDataManager {
     getAllThemes() {
         if (!this.appData || !this.appData.themes) return [];
         return Object.values(this.appData.themes);
+    }
+
+    normalizeRemoteThemeSummary(provider, theme = {}) {
+        const themeId = String(theme.themeId || theme.theme_id || '').trim();
+        const now = new Date().toISOString();
+
+        return this.createThemeRecord({
+            themeId,
+            themeName: theme.themeName || theme.theme_name || theme.displayName || themeId || '未命名主题',
+            themeType: theme.themeType || theme.theme_type || 'default',
+            bgImageUrl: theme.bgImageUrl ?? theme.bg_image_url ?? null,
+            bgImagePath: theme.bgImagePath ?? theme.bg_image_path ?? null,
+            bgOpacity: theme.bgOpacity ?? theme.bg_opacity ?? 30,
+            type: provider,
+            isActive: false,
+            createdAt: theme.createdAt || theme.created_at || theme.updatedAt || theme.updated_at || now,
+            updatedAt: theme.updatedAt || theme.updated_at || theme.createdAt || theme.created_at || now
+        });
+    }
+
+    getRemoteThemeImportState(themeId, provider) {
+        const localTheme = this.appData?.themes?.[themeId] || null;
+
+        if (!localTheme) {
+            return {
+                state: 'available',
+                localTheme: null
+            };
+        }
+
+        return {
+            state: localTheme.type === provider ? 'imported' : 'conflict',
+            localTheme: this.normalizeThemeRecord(localTheme)
+        };
+    }
+
+    async discoverRemoteThemes(provider) {
+        const client = await this.ensureProviderClient(provider);
+        if (!client || typeof client.listThemes !== 'function') {
+            throw new Error(`${provider} 当前不支持列出远端工作空间`);
+        }
+
+        const remoteThemes = await client.listThemes();
+
+        return (Array.isArray(remoteThemes) ? remoteThemes : [])
+            .map((theme) => this.normalizeRemoteThemeSummary(provider, theme))
+            .filter((theme) => !!theme.themeId)
+            .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
+            .map((theme) => {
+                const importState = this.getRemoteThemeImportState(theme.themeId, provider);
+                return {
+                    ...theme,
+                    provider,
+                    importState: importState.state,
+                    isImported: importState.state === 'imported',
+                    localTheme: importState.localTheme
+                };
+            });
+    }
+
+    async importRemoteTheme(provider, remoteTheme) {
+        const normalizedRemoteTheme = this.normalizeRemoteThemeSummary(provider, remoteTheme);
+        if (!normalizedRemoteTheme.themeId) {
+            throw new Error('远端工作空间缺少 themeId，无法导入');
+        }
+
+        await this.ensureProviderClient(provider);
+
+        const existingTheme = this.appData?.themes?.[normalizedRemoteTheme.themeId] || null;
+        const nextTheme = this.createThemeRecord({
+            ...existingTheme,
+            ...normalizedRemoteTheme,
+            type: provider,
+            isActive: normalizedRemoteTheme.themeId === this.appData.currentThemeId,
+            createdAt: existingTheme?.createdAt || normalizedRemoteTheme.createdAt
+        });
+
+        this.appData.themes[normalizedRemoteTheme.themeId] = nextTheme;
+        await this.saveAppData();
+
+        let remoteData = null;
+        try {
+            remoteData = await this.resolveThemeData(nextTheme, {
+                preferCache: false,
+                useDefaultFallback: false
+            });
+        } catch (error) {
+            console.warn(`UnifiedDataManager: 预取远端工作空间 ${normalizedRemoteTheme.themeId} 失败`, error);
+        }
+
+        await this.clearCache(normalizedRemoteTheme.themeId).catch(() => {});
+        if (remoteData) {
+            await this.saveToCache(normalizedRemoteTheme.themeId, remoteData);
+        }
+
+        if (normalizedRemoteTheme.themeId === this.appData.currentThemeId) {
+            this.currentConfigData = null;
+            await this.loadCurrentConfigData(true).catch(() => {
+                if (remoteData) {
+                    this.currentConfigData = this.normalizeConfigData(remoteData);
+                }
+            });
+        }
+
+        this.syncProviderClientsState();
+        return nextTheme;
+    }
+
+    async deleteRemoteTheme(provider, remoteTheme) {
+        const normalizedRemoteTheme = this.normalizeRemoteThemeSummary(provider, remoteTheme);
+        if (!normalizedRemoteTheme.themeId) {
+            throw new Error('远端工作空间缺少 themeId，无法删除');
+        }
+
+        const importState = this.getRemoteThemeImportState(normalizedRemoteTheme.themeId, provider);
+        if (importState.state === 'imported') {
+            throw new Error('已添加到本机的工作空间不支持在这里删除');
+        }
+
+        const client = await this.ensureProviderClient(provider);
+        const bgImagePath = String(normalizedRemoteTheme.bgImagePath || '').trim();
+
+        if (bgImagePath && typeof client.deleteFile === 'function') {
+            try {
+                if (provider === 'supabase') {
+                    await client.deleteFile(client.getBucketName(), bgImagePath);
+                } else if (provider === 'cloudflare') {
+                    await client.deleteFile('backgrounds', bgImagePath, normalizedRemoteTheme.themeId);
+                }
+            } catch (error) {
+                console.warn(`UnifiedDataManager: 删除远端背景图失败 ${normalizedRemoteTheme.themeId}`, error);
+            }
+        }
+
+        if (provider === 'supabase') {
+            if (typeof client.deleteThemeData !== 'function') {
+                throw new Error('Supabase 当前不支持删除远端工作空间');
+            }
+            await client.deleteThemeData(normalizedRemoteTheme.themeId);
+        } else if (provider === 'cloudflare') {
+            if (typeof client.deleteData !== 'function') {
+                throw new Error('Cloudflare 当前不支持删除远端工作空间');
+            }
+            await client.deleteData(normalizedRemoteTheme.themeId);
+        } else {
+            throw new Error(`${provider} 当前不支持删除远端工作空间`);
+        }
+
+        return {
+            success: true,
+            themeId: normalizedRemoteTheme.themeId,
+            provider
+        };
     }
 
     generateThemeId(prefix = 'theme') {
