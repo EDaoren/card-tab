@@ -48,6 +48,7 @@ class UnifiedDataManager {
         this.providerFactory = typeof SyncProviderFactory !== 'undefined'
             ? new SyncProviderFactory(this)
             : null;
+        this.backgroundSyncPromises = new Map();
     }
 
     createThemeRecord(options = {}) {
@@ -179,6 +180,36 @@ class UnifiedDataManager {
         }
 
         return normalizedData;
+    }
+
+    createComparableValue(value) {
+        if (Array.isArray(value)) {
+            return value.map((item) => this.createComparableValue(item));
+        }
+
+        if (value && typeof value === 'object') {
+            return Object.keys(value)
+                .sort()
+                .reduce((result, key) => {
+                    const normalizedValue = this.createComparableValue(value[key]);
+
+                    if (normalizedValue !== undefined) {
+                        result[key] = normalizedValue;
+                    }
+
+                    return result;
+                }, {});
+        }
+
+        return value;
+    }
+
+    getConfigDataSignature(data) {
+        return JSON.stringify(this.createComparableValue(this.normalizeConfigData(data)));
+    }
+
+    hasConfigDataChanged(previousData, nextData) {
+        return this.getConfigDataSignature(previousData) !== this.getConfigDataSignature(nextData);
     }
 
     /**
@@ -862,27 +893,58 @@ class UnifiedDataManager {
     /**
      * 后台同步云端数据，用于保持本地缓存更新
      */
+    /*
     async backgroundSyncFromCloud(theme) {
-        try {
-            if (!theme || theme.type === 'chrome') {
-                return;
-            }
+        if (!theme || theme.type === 'chrome') {
+            return false;
+        }
 
-            const provider = this.getThemeProvider(theme);
-            const cloudData = await provider.load();
+        const existingSync = this.backgroundSyncPromises.get(theme.themeId);
+        if (existingSync) {
+            return existingSync;
+        }
 
-            if (cloudData) {
-                await this.saveToCache(theme.themeId, cloudData);
+        const syncPromise = (async () => {
+            try {
+
+                const provider = this.getThemeProvider(theme);
+                const cachedData = await this.loadFromCache(theme.themeId);
+                const baselineData = cachedData
+                    || (theme.themeId === this.appData?.currentThemeId ? this.currentConfigData : null);
+                const cloudData = await provider.load();
+
+                if (!cloudData) {
+                    return false;
+                }
+
+                const normalizedCloudData = this.normalizeConfigData(cloudData);
+
+                if (baselineData && !this.hasConfigDataChanged(baselineData, normalizedCloudData)) {
+                    console.log(`UnifiedDataManager: 后台同步未检测到数据变化 ${theme.themeId}`);
+                    return false;
+                }
+
+                await this.saveToCache(theme.themeId, normalizedCloudData);
+
+                if (theme.themeId === this.appData?.currentThemeId) {
+                    this.currentConfigData = normalizedCloudData;
+                }
                 // 触发一个事件通知UI可能有更新
                 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                     try {
-                        chrome.runtime.sendMessage({ action: "dataUpdated", source: "backgroundSync" });
+                        chrome.runtime.sendMessage({
+                            action: 'dataUpdated',
+                            source: 'backgroundSync',
+                            themeId: theme.themeId
+                        });
                     } catch (e) {
                         // 忽略发送消息错误（可能不在扩展上下文中）
                     }
                 }
+                return true;
             }
-        } catch (e) {
+            } catch (e) {
             console.error('UnifiedDataManager: 后台同步失败', e);
         }
     }
@@ -891,6 +953,66 @@ class UnifiedDataManager {
      * 保存当前主题的数据
      * 策略：旁路刷新 - 先写主存储，再清缓存，再更新缓存并返回
      */
+    async backgroundSyncFromCloud(theme) {
+        if (!theme || theme.type === 'chrome') {
+            return false;
+        }
+
+        const existingSync = this.backgroundSyncPromises.get(theme.themeId);
+        if (existingSync) {
+            return existingSync;
+        }
+
+        const syncPromise = (async () => {
+            try {
+                const provider = this.getThemeProvider(theme);
+                const cachedData = await this.loadFromCache(theme.themeId);
+                const baselineData = cachedData
+                    || (theme.themeId === this.appData?.currentThemeId ? this.currentConfigData : null);
+                const cloudData = await provider.load();
+
+                if (!cloudData) {
+                    return false;
+                }
+
+                const normalizedCloudData = this.normalizeConfigData(cloudData);
+
+                if (baselineData && !this.hasConfigDataChanged(baselineData, normalizedCloudData)) {
+                    console.log(`UnifiedDataManager: 后台同步未检测到数据变化 ${theme.themeId}`);
+                    return false;
+                }
+
+                await this.saveToCache(theme.themeId, normalizedCloudData);
+
+                if (theme.themeId === this.appData?.currentThemeId) {
+                    this.currentConfigData = normalizedCloudData;
+                }
+
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    try {
+                        chrome.runtime.sendMessage({
+                            action: 'dataUpdated',
+                            source: 'backgroundSync',
+                            themeId: theme.themeId
+                        });
+                    } catch (error) {
+                        // Ignore runtime messaging failures outside extension contexts.
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                console.error('UnifiedDataManager: 鍚庡彴鍚屾澶辫触', error);
+                return false;
+            } finally {
+                this.backgroundSyncPromises.delete(theme.themeId);
+            }
+        })();
+
+        this.backgroundSyncPromises.set(theme.themeId, syncPromise);
+        return syncPromise;
+    }
+
     async saveCurrentConfigData(data) {
         try {
             const currentThemeId = this.appData.currentThemeId;

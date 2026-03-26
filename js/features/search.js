@@ -32,33 +32,29 @@ class SearchManager {
       {
         id: 'google',
         name: 'Google',
-        icon: 'G',
-        iconType: 'badge',
-        badgeClass: 'search-engine-badge-google',
+        iconType: 'local',
+        iconPath: 'icons/google.png',
         url: 'https://www.google.com/search?q='
       },
       {
         id: 'bing',
         name: 'Bing',
-        icon: 'B',
-        iconType: 'badge',
-        badgeClass: 'search-engine-badge-bing',
+        iconType: 'local',
+        iconPath: 'icons/bing.png',
         url: 'https://www.bing.com/search?q='
       },
       {
         id: 'baidu',
         name: '百度',
-        icon: '百',
-        iconType: 'badge',
-        badgeClass: 'search-engine-badge-baidu',
+        iconType: 'local',
+        iconPath: 'icons/baidu.png',
         url: 'https://www.baidu.com/s?wd='
       },
       {
         id: 'ddg',
         name: 'DuckDuckGo',
-        icon: 'D',
-        iconType: 'badge',
-        badgeClass: 'search-engine-badge-ddg',
+        iconType: 'local',
+        iconPath: 'icons/duckduckgo.png',
         url: 'https://duckduckgo.com/?q='
       }
     ];
@@ -116,6 +112,15 @@ class SearchManager {
         icon.classList.add('search-engine-icon');
       }
       icon.textContent = engine.icon;
+      return icon;
+    }
+
+    if (engine.iconType === 'local') {
+      const icon = document.createElement('img');
+      icon.className = `${isOption ? '' : 'search-engine-icon '}search-engine-image`.trim();
+      icon.src = engine.iconPath;
+      icon.alt = '';
+      icon.draggable = false;
       return icon;
     }
 

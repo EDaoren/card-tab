@@ -295,6 +295,19 @@ header {
   object-fit: cover;
 }
 
+.search-engine-image {
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+.search-engine-icon.search-engine-image {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border-radius: 4px;
+}
+
 .search-engine-dropdown {
   color: var(--text-secondary);
   font-size: 20px;
@@ -353,6 +366,13 @@ header {
 }
 
 .search-engine-option img {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  border-radius: 2px;
+}
+
+.search-engine-option .search-engine-image {
   width: 20px;
   height: 20px;
   margin-right: 12px;

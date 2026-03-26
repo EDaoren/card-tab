@@ -158,8 +158,52 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 // 自动填充快速添加功能已移除，现在使用右键菜单的内容脚本方式
 
 // 处理数据更新通知
+let dataUpdateReloadPromise = null;
+let pendingDataUpdateInfo = null;
+
 function handleDataUpdated(updateInfo) {
   console.log('Handling data update:', updateInfo);
+
+  if (!window.unifiedDataManager) {
+    return Promise.resolve(false);
+  }
+
+  if (dataUpdateReloadPromise) {
+    pendingDataUpdateInfo = updateInfo;
+    console.log('Data update already in progress, queued latest notification');
+    return dataUpdateReloadPromise;
+  }
+
+  dataUpdateReloadPromise = window.unifiedDataManager.loadCurrentConfigData()
+    .then(() => {
+      console.log('Unified data manager data reloaded');
+
+      if (categoryManager) {
+        categoryManager.renderCategories();
+        console.log('Categories re-rendered');
+      }
+
+      if (updateInfo.newShortcut) {
+        window.notification.success(`宸叉坊鍔犫€?{updateInfo.newShortcut.name}鈥濆埌 Card Tab`);
+      }
+
+      return true;
+    })
+    .catch(error => {
+      console.error('Failed to reload data:', error);
+      return false;
+    })
+    .finally(() => {
+      dataUpdateReloadPromise = null;
+
+      if (pendingDataUpdateInfo) {
+        const nextUpdateInfo = pendingDataUpdateInfo;
+        pendingDataUpdateInfo = null;
+        handleDataUpdated(nextUpdateInfo);
+      }
+    });
+
+  return dataUpdateReloadPromise;
 
   // 重新加载统一数据管理器数据
   if (window.unifiedDataManager) {
