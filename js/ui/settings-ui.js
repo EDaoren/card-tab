@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Settings UI Controller
  * 负责管理设置页面的交互：侧边栏导航、外观主题管理、云端同步配置、数据导入导出
  */
@@ -29,7 +29,6 @@ class SettingsUIManager {
     this.bindRemoteWorkspacePickerEvents();
     this.bindWorkspaceDetailEvents();
     this.bindSyncEvents();
-    this.bindSupabaseSecureEvents();
     this.bindDataEvents();
     
     // 返回主页按钮
@@ -933,23 +932,27 @@ class SettingsUIManager {
       supabase: 'Supabase 同步'
     };
     const colorModeMap = {
-      default: '浅色',
-      dark: '暗色',
-      blue: '蓝色',
-      green: '绿色',
-      purple: '紫色',
-      pink: '粉色'
+      default: '浅色风格',
+      dark: '深色风格',
+      blue: '蓝色风格',
+      green: '绿色风格',
+      purple: '紫色风格',
+      pink: '粉色风格'
     };
 
     if (!currentTheme) {
       title.textContent = '还没有可用工作空间';
+      title.hidden = false;
       desc.textContent = '先新建一个工作空间，再继续配置它的外观和同步。';
+      desc.hidden = false;
       manageBtn.textContent = '新建工作空间';
       return;
     }
 
-    title.textContent = currentTheme.themeName || '未命名工作空间';
-    desc.textContent = `当前使用 ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}。`;
+    title.textContent = '';
+    title.hidden = true;
+    desc.textContent = `当前工作空间：${currentTheme.themeName || '未命名工作空间'} · ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}`;
+    desc.hidden = false;
     manageBtn.textContent = '新建工作空间';
   }
   refreshThemesList() {
@@ -1112,22 +1115,29 @@ class SettingsUIManager {
 
     const cfStatusMeta = this.getUnifiedSetupStatusMeta(cfSetup.status);
     const sbStatusMeta = this.getUnifiedSetupStatusMeta(sbSetup.status);
-
-    const syncModeLabel = !workspace
-      ? ''
-      : workspace.type === 'cloudflare'
-        ? 'Cloudflare 同步'
-        : workspace.type === 'supabase'
-          ? 'Supabase 同步'
-          : '本地模式';
+    const syncModeMap = {
+      chrome: '本地存储',
+      cloudflare: 'Cloudflare 同步',
+      supabase: 'Supabase 同步'
+    };
+    const colorModeMap = {
+      default: '浅色风格',
+      dark: '深色风格',
+      blue: '蓝色风格',
+      green: '绿色风格',
+      purple: '紫色风格',
+      pink: '粉色风格'
+    };
 
     if (eyebrow) {
-      eyebrow.textContent = '工作空间详情';
+      eyebrow.textContent = isExistingWorkspace ? '编辑工作空间' : '新建工作空间';
     }
 
     if (!isExistingWorkspace) {
-      title.textContent = '新建工作空间';
-      desc.textContent = '新工作空间 · 先保存基础设置，再配置云同步和数据管理。';
+      title.textContent = '';
+      title.hidden = true;
+      desc.textContent = '新工作空间，先保存基础设置，再配置云同步和数据管理。';
+      desc.hidden = false;
       if (indicator) {
         indicator.classList.remove('active');
       }
@@ -1157,13 +1167,15 @@ class SettingsUIManager {
       return;
     }
 
-    title.textContent = workspace.themeName || '未命名工作空间';
+    title.textContent = '';
+    title.hidden = true;
     if (indicator) {
       indicator.classList.toggle('active', isCurrentWorkspace);
     }
     desc.textContent = isCurrentWorkspace
-      ? `当前工作空间 · ${syncModeLabel}。你可以在下方继续配置外观、云同步和数据管理。`
-      : `非当前工作空间 · ${syncModeLabel}。基础设置可编辑；云同步和数据管理需先切换。`;
+      ? `当前工作空间：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}。`
+      : `当前查看：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}。如需同步或管理数据，请先切换到这个工作空间。`;
+    desc.hidden = false;
 
     applyBadge(badge, isCurrentWorkspace ? 'is-ready' : 'is-pending', isCurrentWorkspace ? '当前使用中' : '需先切换');
 
@@ -2809,60 +2821,9 @@ class SettingsUIManager {
 
     document.getElementById('sb-test-btn').addEventListener('click', async () => {
       const config = this.getSupabaseSyncConfig();
-      if (!config.url || !config.anonKey) { return this.showMessage('请填写完整信息', 'error'); }
-      try {
-         const result = await this.detectSupabaseSetupStatus(false);
-         if (result.status === 'configured') {
-           this.showMessage('测试连接成功！', 'success');
-         } else if (result.status === 'pending') {
-           this.showMessage('连接可用，但数据表还没准备好，请先初始化资源。', 'info');
-         } else {
-           this.showMessage('测试失败: ' + (result.error?.message || '未知错误'), 'error');
-         }
-      } catch (err) {
-         this.showMessage('测试失败: ' + err.message, 'error');
-      }
-    });
-
-    document.getElementById('manual-sync-btn')?.addEventListener('click', async () => {
-      const btn = document.getElementById('manual-sync-btn');
-      if (!btn) {
-        return;
-      }
-
-      btn.textContent = '同步中...';
-      try {
-        await window.syncManager.manualSync();
-        this.showMessage('同步成功', 'success');
-      } catch (e) {
-        this.showMessage('同步失败: ' + e.message, 'error');
-      } finally {
-        btn.textContent = '手动同步';
-      }
-    });
-  }
-  
-  replaceElementWithClone(elementId) {
-    const element = document.getElementById(elementId);
-    if (!element) {
-      return null;
-    }
-
-    const clone = element.cloneNode(true);
-    element.replaceWith(clone);
-    return clone;
-  }
-
-  bindSupabaseSecureEvents() {
-    const testButton = this.replaceElementWithClone('sb-test-btn');
-    const enableButton = this.replaceElementWithClone('sb-enable-btn');
-
-    testButton?.addEventListener('click', async () => {
-      const config = this.getSupabaseSyncConfig();
       if (!config.url || !config.anonKey) {
         return this.showMessage('请先填写完整的 Supabase 连接信息', 'error');
       }
-
       try {
         const result = await this.detectSupabaseSetupStatus(false);
         if (result.status === 'configured') {
@@ -2873,12 +2834,12 @@ class SettingsUIManager {
         } else {
           this.showMessage('测试失败: ' + (result.error?.message || '未知错误'), 'error');
         }
-      } catch (error) {
-        this.showMessage('测试失败: ' + error.message, 'error');
+      } catch (err) {
+        this.showMessage('测试失败: ' + err.message, 'error');
       }
     });
 
-    enableButton?.addEventListener('click', async () => {
+    document.getElementById('sb-enable-btn').addEventListener('click', async () => {
       const config = this.getSupabaseSyncConfig();
       if (!config.url || !config.anonKey) {
         return this.showMessage('请先填写完整的 Supabase 连接信息', 'error');
@@ -2902,6 +2863,23 @@ class SettingsUIManager {
         await this.refreshSupabaseSetupUI();
         this.refreshSyncUI();
         this.showMessage('启用失败: ' + error.message, 'error');
+      }
+    });
+
+    document.getElementById('manual-sync-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('manual-sync-btn');
+      if (!btn) {
+        return;
+      }
+
+      btn.textContent = '同步中...';
+      try {
+        await window.syncManager.manualSync();
+        this.showMessage('同步成功', 'success');
+      } catch (e) {
+        this.showMessage('同步失败: ' + e.message, 'error');
+      } finally {
+        btn.textContent = '手动同步';
       }
     });
   }

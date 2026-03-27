@@ -1,0 +1,183 @@
+:root {
+  --ui-font-display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --ui-font-body: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --ui-surface-1: rgba(255, 255, 255, 0.72);
+  --ui-surface-2: rgba(255, 255, 255, 0.9);
+  --ui-surface-3: #ffffff;
+  --ui-surface-muted: #f3f5f8;
+  --ui-border-subtle: rgba(16, 24, 40, 0.08);
+  --ui-border-strong: rgba(16, 24, 40, 0.14);
+  --ui-text-strong: #17202b;
+  --ui-text-muted: #5f6b7a;
+  --ui-shadow-soft: 0 18px 48px rgba(15, 23, 42, 0.08);
+  --ui-shadow-card: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --ui-shadow-strong: 0 24px 64px rgba(15, 23, 42, 0.12);
+  --ui-radius-xs: 10px;
+  --ui-radius-sm: 14px;
+  --ui-radius-md: 18px;
+  --ui-radius-lg: 24px;
+  --ui-page-max-width: 1280px;
+  --ui-focus-ring: 0 0 0 4px rgba(var(--primary-color-rgb), 0.14);
+}
+
+body.theme-dark {
+  --ui-surface-1: rgba(32, 33, 36, 0.78);
+  --ui-surface-2: rgba(44, 45, 49, 0.92);
+  --ui-surface-3: rgba(53, 54, 58, 0.98);
+  --ui-surface-muted: #2f3134;
+  --ui-border-subtle: rgba(255, 255, 255, 0.08);
+  --ui-border-strong: rgba(255, 255, 255, 0.16);
+  --ui-text-strong: #f2f4f7;
+  --ui-text-muted: #b2b8c2;
+  --ui-shadow-soft: 0 18px 48px rgba(0, 0, 0, 0.3);
+  --ui-shadow-card: 0 10px 30px rgba(0, 0, 0, 0.28);
+  --ui-shadow-strong: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  font-family: var(--ui-font-body);
+  color: var(--text-color);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.ui-kicker,
+.ui-section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ui-kicker::before,
+.ui-section-eyebrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--primary-color);
+  box-shadow: 0 0 0 6px rgba(var(--primary-color-rgb), 0.12);
+}
+
+.ui-section-eyebrow-with-icon::before {
+  display: none;
+}
+
+.ui-section-eyebrow-with-icon {
+  gap: 6px;
+}
+
+.ui-section-eyebrow-with-icon .material-symbols-rounded {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--primary-color);
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 6px 8px;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 10px;
+  background: var(--ui-surface-3);
+  color: var(--ui-text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+button.primary-btn:not(.view-btn):not(.add-btn):not(.menu-btn),
+a.primary-btn {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--primary-color), rgba(var(--primary-color-rgb), 0.82));
+  box-shadow: 0 12px 24px rgba(var(--primary-color-rgb), 0.22);
+  color: #fff;
+  font-weight: 600;
+}
+
+button.primary-btn:not(.view-btn):not(.add-btn):not(.menu-btn):hover,
+a.primary-btn:hover {
+  filter: brightness(0.98);
+  box-shadow: 0 16px 32px rgba(var(--primary-color-rgb), 0.28);
+}
+
+button.secondary-btn:not(.view-btn):not(.add-btn):not(.menu-btn),
+a.secondary-btn {
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 999px;
+  background: var(--ui-surface-3);
+  color: var(--ui-text-strong);
+  box-shadow: none;
+}
+
+button.secondary-btn:not(.view-btn):not(.add-btn):not(.menu-btn):hover,
+a.secondary-btn:hover {
+  border-color: rgba(var(--primary-color-rgb), 0.28);
+  background: var(--ui-surface-2);
+  color: var(--ui-text-strong);
+}
+
+.form-group input[type='text'],
+.form-group input[type='url'],
+.form-group input[type='password'],
+.form-group input[type='number'],
+.form-group input[type='email'],
+.form-group input[type='search'],
+.form-group select,
+.form-group textarea {
+  border-width: 1px;
+  border-color: var(--ui-border-subtle);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface-3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: var(--ui-text-strong);
+}
+
+.form-group input[type='text']:focus,
+.form-group input[type='url']:focus,
+.form-group input[type='password']:focus,
+.form-group input[type='number']:focus,
+.form-group input[type='email']:focus,
+.form-group input[type='search']:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: rgba(var(--primary-color-rgb), 0.3);
+  background: var(--ui-surface-3);
+  transform: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.form-group input[type='text']::placeholder,
+.form-group input[type='url']::placeholder,
+.form-group input[type='password']::placeholder,
+.form-group input[type='number']::placeholder,
+.form-group input[type='email']::placeholder,
+.form-group input[type='search']::placeholder,
+.form-group textarea::placeholder {
+  color: var(--placeholder-color);
+}
