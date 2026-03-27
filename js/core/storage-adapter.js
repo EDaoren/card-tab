@@ -79,7 +79,7 @@ class StorageAdapter {
    */
   getSortedCategories() {
     const categories = this.getCategories();
-    return categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+    return categories.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   }
 
   /**
@@ -97,7 +97,7 @@ class StorageAdapter {
     if (!category || !category.shortcuts) {
       return [];
     }
-    return category.shortcuts.sort((a, b) => (a.order || 0) - (b.order || 0));
+    return category.shortcuts.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   }
 
   /**

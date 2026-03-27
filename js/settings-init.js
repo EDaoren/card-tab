@@ -4,6 +4,13 @@
  */
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.getManifest) {
+      const versionElement = document.getElementById('app-version');
+      if (versionElement) {
+        versionElement.textContent = `Version ${chrome.runtime.getManifest().version}`;
+      }
+    }
+
     if (window.unifiedDataManager) {
       await window.unifiedDataManager.init();
     }

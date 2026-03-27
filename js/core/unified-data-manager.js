@@ -464,6 +464,12 @@ class UnifiedDataManager {
         return normalizedConfig;
     }
 
+    async clearProviderConfig(provider) {
+        const key = this.getProviderConfigKey(provider);
+        await this.removeFromChromeStorageSync([key]);
+        this.providerConfigs[provider] = null;
+    }
+
     getProviderCapabilities(provider) {
         if (provider === 'chrome' || !this.providerFactory) {
             return {
@@ -616,9 +622,26 @@ class UnifiedDataManager {
 
     async connectProvider(provider, cfConfig = null, supabaseConfig = null) {
         const providerConfig = this.getProviderConfigInput(provider, cfConfig, supabaseConfig);
+        const previousConfig = await this.getProviderConfig(provider).catch(() => null);
         const savedConfig = await this.saveProviderConfig(provider, providerConfig);
-        await this.ensureProviderClient(provider, savedConfig);
-        return savedConfig;
+
+        try {
+            await this.ensureProviderClient(provider, savedConfig);
+            return savedConfig;
+        } catch (error) {
+            try {
+                if (previousConfig) {
+                    await this.saveProviderConfig(provider, previousConfig);
+                } else {
+                    await this.clearProviderConfig(provider);
+                }
+            } catch (rollbackError) {
+                console.error(`UnifiedDataManager: failed to rollback ${provider} config`, rollbackError);
+            }
+
+            this.disconnectProviderClient(provider);
+            throw error;
+        }
     }
 
     async resolveThemeData(theme, { preferCache = true, useDefaultFallback = true } = {}) {

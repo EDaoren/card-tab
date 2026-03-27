@@ -28,81 +28,6 @@ body.home-page .home-header {
   padding-top: 30px;
 }
 
-body.home-page .home-intro {
-  width: min(100%, 980px);
-  margin: 0 auto;
-  padding: 24px 26px;
-  border: 1px solid var(--ui-border-subtle);
-  border-radius: var(--ui-radius-lg);
-  background:
-    linear-gradient(135deg, rgba(var(--primary-color-rgb), 0.12), rgba(255, 255, 255, 0) 44%),
-    var(--ui-surface-1);
-  box-shadow: var(--ui-shadow-soft);
-  backdrop-filter: blur(20px);
-}
-
-body.home-page .home-intro-top,
-body.home-page .home-intro-body,
-body.home-page .home-section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-body.home-page .home-intro-top {
-  margin-bottom: 18px;
-}
-
-body.home-page .home-shortcut-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-body.home-page .home-intro-copy {
-  max-width: 660px;
-}
-
-body.home-page .home-intro-copy h1 {
-  margin: 0 0 10px;
-  font-family: var(--ui-font-display);
-  font-size: clamp(28px, 3vw, 40px);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-  color: var(--ui-text-strong);
-}
-
-body.home-page .home-intro-copy p {
-  margin: 0;
-  max-width: 620px;
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-body.home-page .home-intro-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: 240px;
-  padding: 14px 16px;
-  border: 1px solid rgba(var(--primary-color-rgb), 0.14);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-surface-2);
-  color: var(--ui-text-muted);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-body.home-page .home-intro-note .material-symbols-rounded {
-  color: var(--primary-color);
-  font-size: 20px;
-}
-
 body.home-page .search-container {
   display: flex;
   justify-content: center;
@@ -475,22 +400,6 @@ body.home-page .save-btn {
   body.home-page .search-box {
     width: 100%;
     max-width: 100%;
-  }
-
-  body.home-page .home-intro-top,
-  body.home-page .home-intro-body,
-  body.home-page .home-section-header {
-    flex-direction: column;
-  }
-
-  body.home-page .home-intro-note,
-  body.home-page .home-section-header p {
-    max-width: none;
-  }
-
-  body.home-page .home-section-header p {
-    padding-top: 0;
-    text-align: left;
   }
 
   body.home-page #categories-container.grid-view {
