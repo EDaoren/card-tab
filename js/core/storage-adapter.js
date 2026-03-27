@@ -236,37 +236,6 @@ class StorageAdapter {
   }
 
   /**
-   * 移动分类
-   */
-  async moveCategory(categoryId, newOrder) {
-    const category = this.getCategory(categoryId);
-    if (!category) {
-      throw new Error(`Category with ID ${categoryId} not found`);
-    }
-
-    category.order = newOrder;
-    await this.saveToStorage();
-  }
-
-  /**
-   * 移动快捷方式
-   */
-  async moveShortcut(categoryId, shortcutId, newOrder) {
-    const category = this.getCategory(categoryId);
-    if (!category) {
-      throw new Error(`Category with ID ${categoryId} not found`);
-    }
-
-    const shortcut = category.shortcuts.find(s => s.id === shortcutId);
-    if (!shortcut) {
-      throw new Error(`Shortcut with ID ${shortcutId} not found`);
-    }
-
-    shortcut.order = newOrder;
-    await this.saveToStorage();
-  }
-
-  /**
    * 重新排序分类
    */
   async reorderCategories(categoryIds) {

@@ -916,66 +916,6 @@ class UnifiedDataManager {
     /**
      * 后台同步云端数据，用于保持本地缓存更新
      */
-    /*
-    async backgroundSyncFromCloud(theme) {
-        if (!theme || theme.type === 'chrome') {
-            return false;
-        }
-
-        const existingSync = this.backgroundSyncPromises.get(theme.themeId);
-        if (existingSync) {
-            return existingSync;
-        }
-
-        const syncPromise = (async () => {
-            try {
-
-                const provider = this.getThemeProvider(theme);
-                const cachedData = await this.loadFromCache(theme.themeId);
-                const baselineData = cachedData
-                    || (theme.themeId === this.appData?.currentThemeId ? this.currentConfigData : null);
-                const cloudData = await provider.load();
-
-                if (!cloudData) {
-                    return false;
-                }
-
-                const normalizedCloudData = this.normalizeConfigData(cloudData);
-
-                if (baselineData && !this.hasConfigDataChanged(baselineData, normalizedCloudData)) {
-                    console.log(`UnifiedDataManager: 后台同步未检测到数据变化 ${theme.themeId}`);
-                    return false;
-                }
-
-                await this.saveToCache(theme.themeId, normalizedCloudData);
-
-                if (theme.themeId === this.appData?.currentThemeId) {
-                    this.currentConfigData = normalizedCloudData;
-                }
-                // 触发一个事件通知UI可能有更新
-                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                    try {
-                        chrome.runtime.sendMessage({
-                            action: 'dataUpdated',
-                            source: 'backgroundSync',
-                            themeId: theme.themeId
-                        });
-                    } catch (e) {
-                        // 忽略发送消息错误（可能不在扩展上下文中）
-                    }
-                }
-                return true;
-            }
-            } catch (e) {
-            console.error('UnifiedDataManager: 后台同步失败', e);
-        }
-    }
-
-    /**
-     * 保存当前主题的数据
-     * 策略：旁路刷新 - 先写主存储，再清缓存，再更新缓存并返回
-     */
     async backgroundSyncFromCloud(theme) {
         if (!theme || theme.type === 'chrome') {
             return false;

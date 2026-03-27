@@ -116,7 +116,7 @@ class SyncAdapter {
     /**
      * 兼容性方法：加载数据
      */
-    async loadData(preferCloud = false, forceRefresh = false) {
+    async loadData(forceRefresh = false) {
         if (forceRefresh) {
             await window.unifiedDataManager.loadCurrentConfigData(true);
         }
@@ -146,7 +146,7 @@ class SyncAdapter {
     /**
      * 启用 Supabase 同步
      */
-    async enableSupabaseSync(config, themeId = 'default-supabase', themeName = '云端主题') {
+    async enableSupabaseSync(config, themeName = '云端主题') {
         try {
             const currentTheme = window.unifiedDataManager.getCurrentTheme();
             if (currentTheme?.type === 'cloudflare') {
@@ -171,9 +171,9 @@ class SyncAdapter {
     /**
      * 启用 Cloudflare 同步
      */
-    async enableCloudflareSync(config, themeId = 'default-cf', themeName = '云端主题') {
+    async enableCloudflareSync(config, themeName = '云端主题') {
         try {
-            console.log('SyncAdapter: 启用 Cloudflare 同步', { themeId });
+            console.log('SyncAdapter: 启用 Cloudflare 同步');
 
             const currentTheme = window.unifiedDataManager.getCurrentTheme();
             if (currentTheme?.type === 'supabase') {

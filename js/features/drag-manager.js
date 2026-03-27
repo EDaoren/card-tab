@@ -9,7 +9,6 @@ class DragManager {
     this.draggedElement = null;
     this.draggedType = null; // 'category' | 'shortcut'
     this.draggedId = null;
-    this.isEnabled = true;
   }
 
   /**
@@ -719,30 +718,9 @@ class DragManager {
 
 
   /**
-   * 启用/禁用拖拽功能
-   */
-  setEnabled(enabled) {
-    this.isEnabled = enabled;
-  }
-
-  /**
    * 重新初始化拖拽功能（在重新渲染后调用）
    */
   reinitialize() {
-    this.init();
-  }
-
-  /**
-   * 启用分类拖拽功能（兼容性方法）
-   */
-  enableCategoryDrag() {
-    this.init();
-  }
-
-  /**
-   * 启用快捷方式拖拽功能（兼容性方法）
-   */
-  enableShortcutDrag() {
     this.init();
   }
 }

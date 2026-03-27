@@ -52,11 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (typeof dragManager !== 'undefined') {
       try {
-        dragManager.init();
-        setTimeout(() => {
-          dragManager.enableCategoryDrag();
-          dragManager.enableShortcutDrag();
-        }, 200);
+        dragManager.reinitialize();
       } catch (error) {
         console.warn('Failed to initialize drag manager:', error);
       }

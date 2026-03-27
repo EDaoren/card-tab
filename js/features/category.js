@@ -65,8 +65,7 @@ class CategoryManager {
     if (typeof dragManager !== 'undefined') {
       setTimeout(() => {
         try {
-          dragManager.enableCategoryDrag();
-          dragManager.enableShortcutDrag();
+          dragManager.reinitialize();
         } catch (error) {
           console.warn('重新启用拖拽功能失败:', error);
         }
