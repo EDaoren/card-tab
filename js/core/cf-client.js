@@ -59,6 +59,7 @@ class CloudflareClient {
     } catch (error) {
       console.error('CloudflareClient: 初始化失败:', error);
       this.isConnected = false;
+      this.config = null;
       this.currentConfigHash = null;
       throw error;
     }

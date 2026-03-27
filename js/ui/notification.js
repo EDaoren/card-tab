@@ -204,6 +204,8 @@ class NotificationManager {
         this.resolveConfirmation(confirmation, false, config, resolve);
       }
     };
+    confirmation.confirmationConfig = config;
+    confirmation.confirmationResolve = resolve;
     document.addEventListener('keydown', confirmation.escapeHandler);
 
     return confirmation;
@@ -245,6 +247,12 @@ class NotificationManager {
   remove(notification) {
     if (!notification || notification.dataset.removing === 'true') {
       return;
+    }
+
+    if (this.confirmations.has(notification) && notification.dataset.resolved !== 'true') {
+      notification.dataset.resolved = 'true';
+      notification.confirmationConfig?.onCancel?.(notification);
+      notification.confirmationResolve?.(false);
     }
 
     notification.dataset.removing = 'true';

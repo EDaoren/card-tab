@@ -40,10 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
 
-    await categoryManager.renderCategories();
-
-    window.simpleLoadingManager?.updateProgress(++currentStep, totalSteps);
-
     iconManager.init();
 
     if (typeof offlineManager !== 'undefined') {

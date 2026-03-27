@@ -1208,6 +1208,7 @@ class UnifiedDataManager {
         await this.ensureProviderClient(provider);
 
         const existingTheme = this.appData?.themes?.[normalizedRemoteTheme.themeId] || null;
+        const previousTheme = existingTheme ? this.normalizeThemeRecord(existingTheme) : null;
         const nextTheme = this.createThemeRecord({
             ...existingTheme,
             ...normalizedRemoteTheme,
@@ -1229,17 +1230,25 @@ class UnifiedDataManager {
             console.warn(`UnifiedDataManager: 预取远端工作空间 ${normalizedRemoteTheme.themeId} 失败`, error);
         }
 
-        await this.clearCache(normalizedRemoteTheme.themeId).catch(() => {});
-        if (remoteData) {
-            await this.saveToCache(normalizedRemoteTheme.themeId, remoteData);
+        if (!remoteData) {
+            if (previousTheme) {
+                this.appData.themes[normalizedRemoteTheme.themeId] = previousTheme;
+            } else {
+                delete this.appData.themes[normalizedRemoteTheme.themeId];
+            }
+
+            await this.saveAppData();
+            await this.clearCache(normalizedRemoteTheme.themeId).catch(() => {});
+            throw new Error(`远端工作空间 ${normalizedRemoteTheme.themeId} 不存在或暂时无法读取`);
         }
+
+        await this.clearCache(normalizedRemoteTheme.themeId).catch(() => {});
+        await this.saveToCache(normalizedRemoteTheme.themeId, remoteData);
 
         if (normalizedRemoteTheme.themeId === this.appData.currentThemeId) {
             this.currentConfigData = null;
             await this.loadCurrentConfigData(true).catch(() => {
-                if (remoteData) {
-                    this.currentConfigData = this.normalizeConfigData(remoteData);
-                }
+                this.currentConfigData = this.normalizeConfigData(remoteData);
             });
         }
 
@@ -1358,6 +1367,10 @@ class UnifiedDataManager {
     }
 
     async switchTheme(themeId) {
+        let previousThemeId = null;
+        let previousActiveStates = null;
+        let themeStateChanged = false;
+
         try {
             console.log(`UnifiedDataManager: 切换到主题 ${themeId}`);
 
@@ -1368,11 +1381,17 @@ class UnifiedDataManager {
             // 清除其他缓存
             await this.clearAllCacheExceptCurrent();
 
+            previousThemeId = this.appData.currentThemeId;
+            previousActiveStates = Object.fromEntries(
+                Object.values(this.appData.themes).map((theme) => [theme.themeId, !!theme.isActive])
+            );
+
             // 更新活跃状态
             this.appData.currentThemeId = themeId;
             Object.values(this.appData.themes).forEach(t => {
                 t.isActive = (t.themeId === themeId);
             });
+            themeStateChanged = true;
 
             await this.saveAppData();
 
@@ -1382,6 +1401,19 @@ class UnifiedDataManager {
             console.log(`UnifiedDataManager: 切换到主题 ${themeId} 成功`);
             return this.currentConfigData;
         } catch (error) {
+            if (themeStateChanged && previousThemeId && previousActiveStates) {
+                this.appData.currentThemeId = previousThemeId;
+                Object.values(this.appData.themes).forEach((theme) => {
+                    theme.isActive = !!previousActiveStates[theme.themeId];
+                });
+
+                try {
+                    await this.saveAppData();
+                } catch (rollbackError) {
+                    console.error('UnifiedDataManager: 切换主题失败后回滚状态失败:', rollbackError);
+                }
+            }
+
             console.error(`UnifiedDataManager: 切换主题失败:`, error);
             throw error;
         }

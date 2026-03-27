@@ -40,9 +40,9 @@ class CategoryManager {
    * Set the current view mode
    * @param {string} mode - The view mode ('grid' or 'list')
    */
-  setViewMode(mode) {
+  async setViewMode(mode) {
     this.currentViewMode = mode;
-    this.renderCategories();
+    await this.renderCategories();
   }
 
   /**

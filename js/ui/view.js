@@ -89,7 +89,7 @@ class ViewManager {
 
     // Notify category manager
     if (categoryManager) {
-      categoryManager.setViewMode(mode);
+      await categoryManager.setViewMode(mode);
     }
 
     // Save setting only when explicitly requested (user action)

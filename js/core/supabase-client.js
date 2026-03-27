@@ -123,8 +123,7 @@ class SupabaseClient {
       return true;
     } catch (error) {
       console.error('Supabase client initialization failed:', error);
-      this.isConnected = false;
-      this.currentConfigHash = null;
+      this.disconnect();
       throw error;
     }
   }

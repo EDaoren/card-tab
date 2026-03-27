@@ -397,10 +397,10 @@ class SearchManager {
   bindSearchResultEvents() {
     // 使用事件委托，只在dropdown上绑定一次事件
     if (!this.searchDropdown.hasEventListener) {
-      this.searchDropdown.addEventListener('click', (e) => {
+      this.searchDropdown.addEventListener('click', async (e) => {
         const item = e.target.closest('.search-result-item');
         if (item) {
-          this.handleSearchResultClick({ currentTarget: item });
+          await this.handleSearchResultClick({ currentTarget: item });
         }
       });
       this.searchDropdown.hasEventListener = true;
@@ -410,13 +410,13 @@ class SearchManager {
   /**
    * Handle search result click
    */
-  handleSearchResultClick(e) {
+  async handleSearchResultClick(e) {
     const item = e.currentTarget;
     const type = item.dataset.type;
 
     if (type === 'category') {
       const categoryId = item.dataset.id;
-      this.selectCategory(categoryId);
+      await this.selectCategory(categoryId);
     } else if (type === 'shortcut') {
       const url = item.dataset.url;
       this.selectShortcut(url);
@@ -462,10 +462,15 @@ class SearchManager {
   /**
    * Select category from search results
    */
-  selectCategory(categoryId) {
+  async selectCategory(categoryId) {
     this.hideSearchDropdown();
     this.searchInput.value = '';
-    // Scroll to category or highlight it
+
+    const category = window.storageManager?.getCategory?.(categoryId);
+    if (category?.collapsed && window.categoryManager?.toggleCategoryCollapse) {
+      await window.categoryManager.toggleCategoryCollapse(categoryId);
+    }
+
     const categoryElement = document.querySelector(`.category-card[data-id="${categoryId}"]`);
     if (categoryElement) {
       categoryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });

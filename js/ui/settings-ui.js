@@ -565,12 +565,12 @@ class SettingsUIManager {
 
     // 颜色选择器
     document.querySelectorAll('.color-option').forEach(opt => {
-      opt.addEventListener('click', (e) => {
+      opt.addEventListener('click', () => {
         document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
-        e.target.classList.add('selected');
+        opt.classList.add('selected');
         
         // 预览主题颜色
-        const type = e.target.getAttribute('data-type');
+        const type = opt.getAttribute('data-type');
         window.applyThemeClass(type);
       });
     });

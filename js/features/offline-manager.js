@@ -152,10 +152,12 @@ class OfflineManager {
    * 从URL获取搜索引擎名称
    */
   getEngineNameFromSrc(src) {
-    if (src.includes('google.com')) return 'google';
-    if (src.includes('bing.com')) return 'bing';
-    if (src.includes('baidu.com')) return 'baidu';
-    if (src.includes('duckduckgo.com')) return 'duckduckgo';
+    const normalizedSrc = String(src || '').toLowerCase();
+
+    if (normalizedSrc.includes('google.com') || normalizedSrc.includes('/google.') || normalizedSrc.includes('google.png')) return 'google';
+    if (normalizedSrc.includes('bing.com') || normalizedSrc.includes('/bing.') || normalizedSrc.includes('bing.png')) return 'bing';
+    if (normalizedSrc.includes('baidu.com') || normalizedSrc.includes('/baidu.') || normalizedSrc.includes('baidu.png')) return 'baidu';
+    if (normalizedSrc.includes('duckduckgo.com') || normalizedSrc.includes('/duckduckgo.') || normalizedSrc.includes('duckduckgo.png')) return 'duckduckgo';
     return 'unknown';
   }
 
