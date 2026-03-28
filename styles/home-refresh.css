@@ -1,8 +1,9 @@
 body.home-page {
   --home-fab-size: 44px;
-  --home-fab-radius: 10px;
+  --home-fab-radius: 7px;
   --home-fab-group-padding: 10px;
-  --home-fab-group-radius: 14px;
+  --home-fab-group-padding-x: 12px;
+  --home-fab-group-radius: 7px;
 }
 
 body.home-page {
@@ -263,6 +264,43 @@ body.home-page .empty-state-content {
   max-width: 580px;
 }
 
+body.home-page.display-focus #categories-container,
+body.home-page.display-wallpaper #categories-container {
+  display: none;
+}
+
+body.home-page.display-wallpaper .home-header {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px);
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+body.home-page.display-wallpaper.wallpaper-search-active .home-header {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+body.home-page.display-wallpaper .floating-buttons,
+body.home-page.display-focus .floating-buttons {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(16px);
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+body.home-page.display-wallpaper.wallpaper-controls-visible .floating-buttons,
+body.home-page.display-focus.wallpaper-controls-visible .floating-buttons,
+body.home-page.display-wallpaper .floating-buttons:hover,
+body.home-page.display-focus .floating-buttons:hover,
+body.home-page.display-wallpaper .floating-buttons:focus-within,
+body.home-page.display-focus .floating-buttons:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 body.home-page .empty-state-title {
   font-family: var(--ui-font-display);
   letter-spacing: -0.03em;
@@ -274,22 +312,61 @@ body.home-page .floating-buttons {
   gap: 6px;
 }
 
-body.home-page .floating-buttons-group {
-  padding: var(--home-fab-group-padding);
+body.home-page .floating-submenu-group {
+  position: absolute;
+  right: calc(100% + 6px);
+  top: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(4px) scale(0.98);
+  transform-origin: right center;
+  transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.16s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+body.home-page .floating-submenu-group.has-open-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+}
+
+body.home-page .floating-submenu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px var(--home-fab-group-padding-x);
   border: 1px solid var(--ui-border-subtle);
   border-radius: var(--home-fab-group-radius);
   background: var(--ui-surface-1);
-  box-shadow: var(--ui-shadow-soft);
-  backdrop-filter: blur(18px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+
+body.home-page .floating-submenu[hidden] {
+  display: none !important;
+}
+
+body.home-page .floating-buttons-group {
+  gap: 8px;
+  padding: var(--home-fab-group-padding) var(--home-fab-group-padding-x);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--home-fab-group-radius);
+  background: var(--ui-surface-1);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(16px);
 }
 
 body.home-page .floating-buttons-group.collapsed {
-  transform: scale(0.92) translateY(14px);
+  transform: scale(0.98) translateY(6px);
 }
 
 body.home-page .view-btn,
 body.home-page .add-btn,
-body.home-page .menu-btn {
+body.home-page .menu-btn,
+body.home-page .floating-submenu-btn {
   width: var(--home-fab-size);
   height: var(--home-fab-size);
   border-radius: var(--home-fab-radius);
@@ -298,21 +375,32 @@ body.home-page .menu-btn {
 body.home-page .floating-buttons .secondary-btn {
   background: var(--ui-surface-3);
   color: var(--ui-text-muted);
+  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 body.home-page .floating-buttons .secondary-btn.active,
 body.home-page .floating-buttons .secondary-btn:hover {
   background: rgba(var(--primary-color-rgb), 0.12);
   color: var(--primary-color);
-  transform: translateY(-1px);
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+body.home-page .floating-submenu-btn {
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   box-shadow: none;
 }
 
 body.home-page .menu-btn {
-  width: calc(var(--home-fab-size) + var(--home-fab-group-padding) * 2);
+  width: var(--home-fab-size);
   height: var(--home-fab-size);
   border-radius: var(--home-fab-group-radius);
-  box-shadow: 0 8px 18px rgba(var(--primary-color-rgb), 0.18);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.14);
+  box-shadow: 0 8px 18px rgba(var(--primary-color-rgb), 0.16);
 }
 
 body.home-page .modal {
@@ -410,9 +498,10 @@ body.home-page .save-btn {
 @media (max-width: 640px) {
   body.home-page {
     --home-fab-size: 42px;
-    --home-fab-group-padding: 8px;
-    --home-fab-radius: 9px;
-    --home-fab-group-radius: 12px;
+    --home-fab-group-padding: 10px;
+    --home-fab-group-padding-x: 12px;
+    --home-fab-radius: 7px;
+    --home-fab-group-radius: 7px;
   }
 
   body.home-page .search-box {
@@ -434,8 +523,13 @@ body.home-page .save-btn {
     bottom: 16px;
   }
 
+  body.home-page .floating-submenu {
+    gap: 4px;
+    padding: 8px var(--home-fab-group-padding-x);
+  }
+
   body.home-page .floating-buttons-group {
-    padding: var(--home-fab-group-padding);
+    padding: var(--home-fab-group-padding) var(--home-fab-group-padding-x);
     border-radius: var(--home-fab-group-radius);
   }
 }

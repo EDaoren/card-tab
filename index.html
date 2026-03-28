@@ -132,15 +132,47 @@
     </main>
 
     <div class="floating-buttons" id="floating-buttons">
+      <div class="floating-submenu-group" id="floating-submenu-group">
+        <div class="floating-submenu" id="view-submenu" data-submenu="view" hidden>
+          <button id="quick-view-grid-btn" class="floating-submenu-btn secondary-btn" type="button" title="网格视图">
+            <span class="material-symbols-rounded">grid_view</span>
+          </button>
+          <button id="quick-view-list-btn" class="floating-submenu-btn secondary-btn" type="button" title="列表视图">
+            <span class="material-symbols-rounded">view_list</span>
+          </button>
+        </div>
+        <div class="floating-submenu" id="display-submenu" data-submenu="display" hidden>
+          <button class="floating-submenu-btn secondary-btn" type="button" data-display-mode="standard" title="标准模式">
+            <span class="material-symbols-rounded">web</span>
+          </button>
+          <button class="floating-submenu-btn secondary-btn" type="button" data-display-mode="focus" title="专注模式">
+            <span class="material-symbols-rounded">filter_center_focus</span>
+          </button>
+          <button class="floating-submenu-btn secondary-btn" type="button" data-display-mode="wallpaper" title="壁纸模式">
+            <span class="material-symbols-rounded">image</span>
+          </button>
+        </div>
+        <div class="floating-submenu" id="shortcut-open-submenu" data-submenu="open-mode" hidden>
+          <button class="floating-submenu-btn secondary-btn" type="button" data-shortcut-open-mode="current-tab" title="当前页打开">
+            <span class="material-symbols-rounded">tab</span>
+          </button>
+          <button class="floating-submenu-btn secondary-btn" type="button" data-shortcut-open-mode="new-tab" title="新标签页打开">
+            <span class="material-symbols-rounded">open_in_new</span>
+          </button>
+        </div>
+      </div>
       <div class="floating-buttons-group collapsed" id="floating-buttons-group">
         <button id="settings-btn" class="view-btn secondary-btn" title="设置">
           <span class="material-symbols-rounded">settings</span>
         </button>
-        <button id="grid-view-btn" class="view-btn secondary-btn active" title="网格视图">
+        <button id="view-menu-btn" class="view-btn secondary-btn" type="button" title="视图">
           <span class="material-symbols-rounded">grid_view</span>
         </button>
-        <button id="list-view-btn" class="view-btn secondary-btn" title="列表视图">
-          <span class="material-symbols-rounded">view_list</span>
+        <button id="display-menu-btn" class="view-btn secondary-btn" type="button" title="模式">
+          <span class="material-symbols-rounded">image</span>
+        </button>
+        <button id="shortcut-open-menu-btn" class="view-btn secondary-btn" type="button" title="打开方式">
+          <span class="material-symbols-rounded">open_in_new</span>
         </button>
         <button id="add-category-btn" class="add-btn secondary-btn" title="添加分类">
           <span class="material-symbols-rounded">add</span>

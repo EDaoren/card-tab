@@ -50,8 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 class ViewManager {
   constructor() {
-    this.gridViewBtn = document.getElementById('grid-view-btn');
-    this.listViewBtn = document.getElementById('list-view-btn');
+    this.gridViewBtn = document.getElementById('quick-view-grid-btn');
+    this.listViewBtn = document.getElementById('quick-view-list-btn');
     this.categoriesContainer = document.getElementById('categories-container');
     this.currentViewMode = 'grid'; // Default view mode
     
@@ -63,10 +63,10 @@ class ViewManager {
    */
   bindEvents() {
     // Grid view button click
-    this.gridViewBtn.addEventListener('click', () => this.setViewMode('grid'));
+    this.gridViewBtn?.addEventListener('click', () => this.setViewMode('grid'));
     
     // List view button click
-    this.listViewBtn.addEventListener('click', () => this.setViewMode('list'));
+    this.listViewBtn?.addEventListener('click', () => this.setViewMode('list'));
   }
 
   /**
@@ -109,6 +109,10 @@ class ViewManager {
    * Update view buttons active state
    */
   updateViewButtons() {
+    if (!this.gridViewBtn || !this.listViewBtn) {
+      return;
+    }
+
     if (this.currentViewMode === 'grid') {
       this.gridViewBtn.classList.add('active');
       this.listViewBtn.classList.remove('active');

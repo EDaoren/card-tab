@@ -119,7 +119,8 @@ class UnifiedDataManager {
     getDefaultSettings() {
         return {
             viewMode: 'grid',
-            shortcutOpenMode: 'new-tab'
+            shortcutOpenMode: 'new-tab',
+            displayMode: 'standard'
         };
     }
 
@@ -167,6 +168,10 @@ class UnifiedDataManager {
 
         if (!['current-tab', 'new-tab'].includes(normalizedSettings.shortcutOpenMode)) {
             normalizedSettings.shortcutOpenMode = 'new-tab';
+        }
+
+        if (!['standard', 'focus', 'wallpaper'].includes(normalizedSettings.displayMode)) {
+            normalizedSettings.displayMode = 'standard';
         }
 
         return normalizedSettings;

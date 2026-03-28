@@ -172,6 +172,26 @@
                 </div>
               </div>
 
+              <div class="form-group">
+                <label>展示模式</label>
+                <p class="sync-hint workspace-setting-hint">设置首页默认展示哪些内容。</p>
+                <div class="sync-mode-options" role="radiogroup" aria-label="展示模式">
+                  <label class="sync-inline-toggle" for="workspace-display-mode-standard">
+                    <input type="radio" id="workspace-display-mode-standard" name="workspace-display-mode" value="standard" checked>
+                    <span>标准模式</span>
+                  </label>
+                  <label class="sync-inline-toggle" for="workspace-display-mode-focus">
+                    <input type="radio" id="workspace-display-mode-focus" name="workspace-display-mode" value="focus">
+                    <span>专注模式</span>
+                  </label>
+                  <label class="sync-inline-toggle" for="workspace-display-mode-wallpaper">
+                    <input type="radio" id="workspace-display-mode-wallpaper" name="workspace-display-mode" value="wallpaper">
+                    <span>壁纸模式</span>
+                  </label>
+                </div>
+                <p class="sync-hint workspace-setting-hint">壁纸模式下按 <code>/</code> 可唤出搜索，按 <code>Esc</code> 返回纯壁纸。</p>
+              </div>
+
               <div class="form-group" id="bg-setting-group">
                 <label for="bg-image-upload">背景图片（仅云端工作空间可用）</label>
                 <div id="bg-preview-area" class="bg-preview-area" role="button" tabindex="0" aria-label="选择背景图片">

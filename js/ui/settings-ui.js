@@ -1296,6 +1296,7 @@ class SettingsUIManager {
     this.showPreviewBg(null);
     this.setShortcutOpenMode('new-tab');
     this.setWorkspaceViewMode('grid');
+    this.setWorkspaceDisplayMode('standard');
     document.getElementById('bg-opacity-slider').value = 30;
     document.getElementById('bg-opacity-value').textContent = '30%';
 
@@ -1607,9 +1608,23 @@ class SettingsUIManager {
     }
   }
 
+  getWorkspaceDisplayMode() {
+    return document.querySelector('input[name="workspace-display-mode"]:checked')?.value || 'standard';
+  }
+
+  setWorkspaceDisplayMode(mode = 'standard') {
+    const normalizedMode = ['standard', 'focus', 'wallpaper'].includes(mode) ? mode : 'standard';
+    const targetInput = document.querySelector(`input[name="workspace-display-mode"][value="${normalizedMode}"]`);
+
+    if (targetInput) {
+      targetInput.checked = true;
+    }
+  }
+
   async loadWorkspaceBasicSettings(themeId = null) {
     const requestedThemeId = themeId || null;
     this.setShortcutOpenMode('new-tab');
+    this.setWorkspaceDisplayMode('standard');
 
     if (!requestedThemeId) {
       return;
@@ -1635,12 +1650,14 @@ class SettingsUIManager {
       const settings = window.unifiedDataManager.normalizeSettings(themeData?.settings);
       this.setShortcutOpenMode(settings.shortcutOpenMode);
       this.setWorkspaceViewMode(settings.viewMode);
+      this.setWorkspaceDisplayMode(settings.displayMode);
     } catch (error) {
       console.warn('加载工作空间基础设置失败:', error);
 
       if (this.editingThemeId === requestedThemeId) {
         this.setShortcutOpenMode('new-tab');
         this.setWorkspaceViewMode('grid');
+        this.setWorkspaceDisplayMode('standard');
       }
     }
   }
@@ -1652,6 +1669,7 @@ class SettingsUIManager {
     const opacity = parseInt(document.getElementById('bg-opacity-slider').value) || 30;
     const shortcutOpenMode = this.getShortcutOpenMode();
     const viewMode = this.getWorkspaceViewMode();
+    const displayMode = this.getWorkspaceDisplayMode();
     const previewImage = document.getElementById('bg-preview-img');
     const hasPreviewImage = !!previewImage.getAttribute('src');
     let savedThemeId = this.editingThemeId;
@@ -1697,14 +1715,16 @@ class SettingsUIManager {
         await window.unifiedDataManager.updateThemeMetadata(this.editingThemeId, themeUpdates);
         await window.unifiedDataManager.updateThemeSettings(this.editingThemeId, {
           shortcutOpenMode,
-          viewMode
+          viewMode,
+          displayMode
         });
       } else {
         const newTheme = await window.unifiedDataManager.createLocalTheme(name, themeType, opacity);
         savedThemeId = newTheme.themeId;
         await window.unifiedDataManager.updateThemeSettings(savedThemeId, {
           shortcutOpenMode,
-          viewMode
+          viewMode,
+          displayMode
         });
       }
 
