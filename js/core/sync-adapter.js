@@ -146,7 +146,7 @@ class SyncAdapter {
     /**
      * 启用 Supabase 同步
      */
-    async enableSupabaseSync(config, themeName = '云端主题') {
+    async enableSupabaseSync(config, themeName = '') {
         try {
             const currentTheme = window.unifiedDataManager.getCurrentTheme();
             if (currentTheme?.type === 'cloudflare') {
@@ -171,7 +171,7 @@ class SyncAdapter {
     /**
      * 启用 Cloudflare 同步
      */
-    async enableCloudflareSync(config, themeName = '云端主题') {
+    async enableCloudflareSync(config, themeName = '') {
         try {
             console.log('SyncAdapter: 启用 Cloudflare 同步');
 

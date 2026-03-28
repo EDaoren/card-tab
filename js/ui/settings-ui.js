@@ -15,8 +15,8 @@ class SettingsUIManager {
     this.workspaceLoadPending = false;
     this.remoteWorkspaceActiveProvider = 'cloudflare';
     this.remoteWorkspaceDiscoveries = {
-      cloudflare: { items: [], loading: false, loaded: false, error: '' },
-      supabase: { items: [], loading: false, loaded: false, error: '' }
+      cloudflare: { items: [], missingItems: [], loading: false, loaded: false, error: '' },
+      supabase: { items: [], missingItems: [], loading: false, loaded: false, error: '' }
     };
 
     // 背景图片缓存
@@ -97,6 +97,7 @@ class SettingsUIManager {
     providers.forEach((targetProvider) => {
       const state = this.getRemoteWorkspaceDiscoveryState(targetProvider);
       state.items = [];
+      state.missingItems = [];
       state.loading = false;
       state.loaded = false;
       state.error = '';
@@ -172,7 +173,6 @@ class SettingsUIManager {
     document.getElementById('remote-workspace-refresh-btn')?.addEventListener('click', async () => {
       const provider = this.remoteWorkspaceActiveProvider;
       this.invalidateRemoteWorkspaceDiscovery(provider);
-      await window.unifiedDataManager.reconcileMissingCloudThemes?.(provider).catch(console.error);
       this.loadRemoteWorkspaceDiscovery(provider, { forceRefresh: true }).catch(console.error);
     });
 
@@ -198,6 +198,11 @@ class SettingsUIManager {
 
       if (action === 'delete') {
         await this.deleteRemoteWorkspace(provider, themeId, actionButton);
+        return;
+      }
+
+      if (action === 'restore' || action === 'detach' || action === 'remove-local') {
+        await this.handleMissingRemoteWorkspaceAction(provider, themeId, action, actionButton);
         return;
       }
 
@@ -248,6 +253,7 @@ class SettingsUIManager {
 
     if (forceRefresh) {
       state.items = [];
+      state.missingItems = [];
       state.loaded = false;
       state.error = '';
     }
@@ -262,10 +268,16 @@ class SettingsUIManager {
     this.renderRemoteWorkspacePicker();
 
     try {
-      state.items = await window.unifiedDataManager.discoverRemoteThemes(resolvedProvider);
+      const [remoteItems, missingItems] = await Promise.all([
+        window.unifiedDataManager.discoverRemoteThemes(resolvedProvider),
+        window.unifiedDataManager.reconcileMissingCloudThemes(resolvedProvider)
+      ]);
+      state.items = remoteItems;
+      state.missingItems = Array.isArray(missingItems) ? missingItems : [];
       state.loaded = true;
     } catch (error) {
       state.items = [];
+      state.missingItems = [];
       state.loaded = false;
       state.error = error.message || '加载远端工作空间失败';
     } finally {
@@ -340,9 +352,9 @@ class SettingsUIManager {
     const note = document.createElement('p');
     note.className = 'remote-workspace-note';
     if (entry.importState === 'conflict') {
-      note.textContent = `本机已有同 ID 工作空间：${entry.localTheme?.themeName || '未命名工作空间'}。继续导入会改为使用云端版本。`;
+      note.textContent = `本机已有同 ID 工作空间：${entry.localTheme?.themeName || '未命名工作空间'}。继续导入会改为使用云端版本；当前设备保留本机工作空间时不能删除云端。`;
     } else if (entry.importState === 'imported') {
-      note.textContent = '这个工作空间已经在当前设备可用，可直接回到列表切换或编辑。';
+      note.textContent = '这个工作空间已经在当前设备可用。若要删除云端，请先在当前设备删除本机工作空间。';
     } else {
       note.textContent = '添加到本机后，这个工作空间会出现在当前设备的工作空间列表中。';
     }
@@ -369,7 +381,7 @@ class SettingsUIManager {
     actionButton.dataset.remoteAction = 'import';
     actionButtons.appendChild(actionButton);
 
-    if (entry.importState !== 'imported') {
+    if (entry.importState === 'available') {
       const deleteButton = document.createElement('button');
       deleteButton.className = 'secondary-btn text-danger';
       deleteButton.textContent = '删除云端';
@@ -378,6 +390,118 @@ class SettingsUIManager {
       deleteButton.dataset.remoteAction = 'delete';
       actionButtons.appendChild(deleteButton);
     }
+
+    actions.appendChild(actionButtons);
+
+    main.appendChild(header);
+    main.appendChild(meta);
+    main.appendChild(note);
+    main.appendChild(actions);
+
+    item.appendChild(preview);
+    item.appendChild(main);
+
+    return item;
+  }
+
+  createMissingRemoteWorkspaceItem(entry) {
+    const previewColorMap = {
+      default: '#f5f5f5',
+      dark: '#35363a',
+      blue: '#e8f0fe',
+      green: '#e6f4ea',
+      purple: '#f3e8fd',
+      pink: '#fce4ec'
+    };
+    const localTheme = entry.localTheme || {};
+    const previewBackgroundColor = previewColorMap[localTheme.themeType] || previewColorMap.default;
+
+    const item = document.createElement('div');
+    item.className = 'remote-workspace-item';
+
+    const preview = document.createElement('div');
+    preview.className = 'remote-workspace-preview';
+    preview.style.backgroundColor = previewBackgroundColor;
+
+    const main = document.createElement('div');
+    main.className = 'remote-workspace-item-main';
+
+    const header = document.createElement('div');
+    header.className = 'remote-workspace-item-header';
+
+    const titleWrap = document.createElement('div');
+    const title = document.createElement('h5');
+    title.textContent = entry.themeName || localTheme.themeName || '未命名工作空间';
+    titleWrap.appendChild(title);
+
+    const badges = document.createElement('div');
+    badges.className = 'remote-workspace-item-badges';
+
+    const providerChip = document.createElement('span');
+    providerChip.className = 'remote-workspace-chip is-provider';
+    providerChip.textContent = this.getRemoteWorkspaceProviderLabel(entry.provider);
+    badges.appendChild(providerChip);
+
+    const stateChip = document.createElement('span');
+    stateChip.className = 'remote-workspace-chip is-conflict';
+    stateChip.textContent = '云端副本缺失';
+    badges.appendChild(stateChip);
+
+    header.appendChild(titleWrap);
+    header.appendChild(badges);
+
+    const meta = document.createElement('div');
+    meta.className = 'remote-workspace-meta';
+
+    const themeIdMeta = document.createElement('span');
+    themeIdMeta.textContent = `themeId：${entry.themeId}`;
+    const themeTypeMeta = document.createElement('span');
+    themeTypeMeta.textContent = `风格：${localTheme.themeType || 'default'}`;
+    const updatedAtMeta = document.createElement('span');
+    updatedAtMeta.textContent = `本机更新于：${this.formatWorkspaceTimestamp(localTheme.updatedAt)}`;
+
+    meta.appendChild(themeIdMeta);
+    meta.appendChild(themeTypeMeta);
+    meta.appendChild(updatedAtMeta);
+
+    const note = document.createElement('p');
+    note.className = 'remote-workspace-note';
+    note.textContent = '当前设备仍保留这个工作空间，但云端记录已经不存在。请选择恢复到云端、转成本地空间，或直接从本机移除。';
+
+    const actions = document.createElement('div');
+    actions.className = 'remote-workspace-actions';
+
+    const actionHint = document.createElement('span');
+    actionHint.className = 'sync-hint';
+    actionHint.textContent = '缺失态不会自动恢复，也不会在普通编辑时偷偷重建云端。';
+    actions.appendChild(actionHint);
+
+    const actionButtons = document.createElement('div');
+    actionButtons.className = 'remote-workspace-action-buttons';
+
+    const restoreButton = document.createElement('button');
+    restoreButton.className = 'primary-btn';
+    restoreButton.textContent = '恢复到云端';
+    restoreButton.dataset.remoteThemeId = entry.themeId;
+    restoreButton.dataset.remoteProvider = entry.provider;
+    restoreButton.dataset.remoteAction = 'restore';
+    actionButtons.appendChild(restoreButton);
+
+    const detachButton = document.createElement('button');
+    detachButton.className = 'secondary-btn';
+    detachButton.textContent = '转成本地空间';
+    detachButton.dataset.remoteThemeId = entry.themeId;
+    detachButton.dataset.remoteProvider = entry.provider;
+    detachButton.dataset.remoteAction = 'detach';
+    actionButtons.appendChild(detachButton);
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'secondary-btn text-danger';
+    removeButton.textContent = '从本机移除';
+    removeButton.dataset.remoteThemeId = entry.themeId;
+    removeButton.dataset.remoteProvider = entry.provider;
+    removeButton.dataset.remoteAction = 'remove-local';
+    actionButtons.appendChild(removeButton);
 
     actions.appendChild(actionButtons);
 
@@ -430,18 +554,22 @@ class SettingsUIManager {
     }
 
     const importedCount = state.items.filter((item) => item.importState === 'imported').length;
-    statusText.textContent = state.items.length > 0
-      ? `${providerLabel} 远端共 ${state.items.length} 个工作空间，其中 ${importedCount} 个已经在本机可用。`
+    const missingCount = state.missingItems.length;
+    statusText.textContent = state.items.length > 0 || missingCount > 0
+      ? `${providerLabel} 远端共 ${state.items.length} 个工作空间，其中 ${importedCount} 个已经在本机可用；另有 ${missingCount} 个工作空间处于云端缺失待处理状态。`
       : `${providerLabel} 目前还没有可添加的远端工作空间。`;
 
     list.innerHTML = '';
 
-    if (!state.items.length) {
+    if (!state.items.length && !missingCount) {
       list.innerHTML = '<div class="remote-workspace-empty">当前没有发现远端工作空间。你可以先在另一台设备启用同步，或前往“云端连接”检查当前连接资料。</div>';
       return;
     }
 
     const fragment = document.createDocumentFragment();
+    state.missingItems.forEach((entry) => {
+      fragment.appendChild(this.createMissingRemoteWorkspaceItem(entry));
+    });
     state.items.forEach((entry) => {
       fragment.appendChild(this.createRemoteWorkspaceItem(entry));
     });
@@ -502,10 +630,99 @@ class SettingsUIManager {
     }
   }
 
+  async handleMissingRemoteWorkspaceAction(provider, themeId, action, actionButton = null) {
+    const discoveryState = this.getRemoteWorkspaceDiscoveryState(provider);
+    const targetEntry = discoveryState.missingItems.find((item) => item.themeId === themeId);
+    if (!targetEntry) {
+      return;
+    }
+
+    const relatedButtons = Array.from(
+      actionButton?.closest('.remote-workspace-actions')?.querySelectorAll('button') || []
+    );
+    const previousStates = relatedButtons.map((button) => ({
+      button,
+      text: button.textContent,
+      disabled: button.disabled
+    }));
+
+    const actionMetaMap = {
+      restore: {
+        confirm: `确定要恢复“${targetEntry.themeName || themeId}”到 ${this.getRemoteWorkspaceProviderLabel(provider)} 吗？这会使用当前设备上的本机数据重新创建云端副本。`,
+        title: '确认恢复到云端',
+        confirmText: '恢复到云端',
+        busyText: '恢复中...',
+        success: '云端工作空间已恢复'
+      },
+      detach: {
+        confirm: `确定要把“${targetEntry.themeName || themeId}”转成本地工作空间吗？这会移除云端身份，并清除背景图配置。`,
+        title: '确认转成本地空间',
+        confirmText: '转成本地',
+        busyText: '转换中...',
+        success: '已转为本地工作空间，背景图已移除'
+      },
+      'remove-local': {
+        confirm: `确定要从当前设备移除“${targetEntry.themeName || themeId}”吗？云端副本已经不存在，这会直接删除本机这份工作空间。`,
+        title: '确认从本机移除',
+        confirmText: '从本机移除',
+        busyText: '移除中...',
+        success: '工作空间已从当前设备移除'
+      }
+    };
+    const actionMeta = actionMetaMap[action];
+    if (!actionMeta) {
+      return;
+    }
+
+    const confirmed = await window.notification.confirm(actionMeta.confirm, {
+      title: actionMeta.title,
+      confirmText: actionMeta.confirmText,
+      cancelText: '取消',
+      type: action === 'remove-local' ? 'error' : 'warning'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    relatedButtons.forEach((button) => {
+      button.disabled = true;
+    });
+    if (actionButton) {
+      actionButton.textContent = actionMeta.busyText;
+    }
+
+    try {
+      if (action === 'restore') {
+        await window.unifiedDataManager.restoreMissingRemoteTheme(themeId);
+      } else if (action === 'detach') {
+        await window.unifiedDataManager.convertThemeToLocal(themeId);
+      } else {
+        await window.unifiedDataManager.deleteTheme(themeId);
+      }
+
+      await this.loadRemoteWorkspaceDiscovery(provider, { forceRefresh: true });
+      this.refreshThemesList();
+      this.refreshSyncUI();
+      await this.refreshWorkspaceDetailUI();
+      this.showMessage(actionMeta.success, 'success');
+    } catch (error) {
+      previousStates.forEach(({ button, text, disabled }) => {
+        button.textContent = text;
+        button.disabled = disabled;
+      });
+      this.showMessage('操作失败: ' + error.message, 'error');
+    }
+  }
+
   async deleteRemoteWorkspace(provider, themeId, actionButton = null) {
     const discoveryState = this.getRemoteWorkspaceDiscoveryState(provider);
     const targetEntry = discoveryState.items.find((item) => item.themeId === themeId);
-    if (!targetEntry || targetEntry.importState === 'imported') {
+    if (!targetEntry) {
+      return;
+    }
+
+    if (targetEntry.importState !== 'available') {
+      this.showMessage('当前设备仍保留该工作空间，请先删除本机工作空间后再删除云端数据', 'warning');
       return;
     }
 
@@ -661,6 +878,11 @@ class SettingsUIManager {
         }
 
         if (actionButton.classList.contains('edit-theme-btn')) {
+          const theme = window.unifiedDataManager?.appData?.themes?.[themeId] || null;
+          if (!this.canActivateWorkspace(theme)) {
+            this.showMessage('这个工作空间处于云端缺失待处理状态，不能直接进入详情或切换使用', 'warning');
+            return;
+          }
           this.openThemeForm(themeId);
           return;
         }
@@ -673,6 +895,11 @@ class SettingsUIManager {
 
       const card = event.target.closest('.theme-card');
       if (card?.dataset.id) {
+        const theme = window.unifiedDataManager?.appData?.themes?.[card.dataset.id] || null;
+        if (!this.canActivateWorkspace(theme)) {
+          this.showMessage('这个工作空间处于云端缺失待处理状态，不能直接进入详情或切换使用', 'warning');
+          return;
+        }
         this.openThemeForm(card.dataset.id);
       }
     });
@@ -688,6 +915,12 @@ class SettingsUIManager {
 
       const card = event.target.closest('.theme-card');
       if (!card?.dataset.id) {
+        return;
+      }
+
+      const theme = window.unifiedDataManager?.appData?.themes?.[card.dataset.id] || null;
+      if (!this.canActivateWorkspace(theme)) {
+        this.showMessage('这个工作空间处于云端缺失待处理状态，不能直接进入详情或切换使用', 'warning');
         return;
       }
 
@@ -741,6 +974,12 @@ class SettingsUIManager {
   }
 
   async switchWorkspaceFromList(themeId) {
+    const theme = window.unifiedDataManager?.appData?.themes?.[themeId] || null;
+    if (!this.canActivateWorkspace(theme)) {
+      this.showMessage('这个工作空间的云端副本已缺失，请先恢复到云端、转成本地空间，或从本机移除', 'warning');
+      return;
+    }
+
     this.showMessage('正在切换工作空间...', 'info');
 
     try {
@@ -756,9 +995,18 @@ class SettingsUIManager {
   }
 
   async deleteWorkspaceFromList(themeId) {
-    const confirmed = await window.notification.confirm('确定要删除此工作空间吗？此操作不可恢复。', {
-      title: '确认删除工作空间',
-      confirmText: '删除',
+    const theme = window.unifiedDataManager?.appData?.themes?.[themeId] || null;
+    const isCloudTheme = theme?.type && theme.type !== 'chrome';
+    const isMissingRemote = theme?.syncStatus === 'missing_remote';
+    const message = isCloudTheme
+      ? (isMissingRemote
+        ? '确定要从当前设备移除此工作空间吗？当前云端副本已经不存在，这会直接删除本机这份工作空间。'
+        : '确定要从当前设备移除此工作空间吗？这不会删除云端数据，其他设备仍可继续使用。')
+      : '确定要删除此本地工作空间吗？此操作不可恢复。';
+
+    const confirmed = await window.notification.confirm(message, {
+      title: '确认移除工作空间',
+      confirmText: isCloudTheme ? '仅删本机' : '删除',
       cancelText: '取消',
       type: 'error'
     });
@@ -770,7 +1018,7 @@ class SettingsUIManager {
     try {
       await window.unifiedDataManager.deleteTheme(themeId);
       this.refreshThemesList();
-      this.showMessage('工作空间已删除', 'success');
+      this.showMessage(isCloudTheme ? '工作空间已从当前设备移除' : '工作空间已删除', 'success');
     } catch (error) {
       this.showMessage('删除失败: ' + error.message, 'error');
     }
@@ -807,11 +1055,32 @@ class SettingsUIManager {
     sentinel.hidden = !!this.editingThemeId || renderedCount >= totalItems;
   }
 
+  isMissingRemoteWorkspace(theme) {
+    return !!theme && theme.syncStatus === 'missing_remote';
+  }
+
+  canActivateWorkspace(theme) {
+    if (!theme) {
+      return false;
+    }
+
+    if (theme.themeId === window.unifiedDataManager?.appData?.currentThemeId) {
+      return true;
+    }
+
+    return !this.isMissingRemoteWorkspace(theme);
+  }
+
   createThemeCard(theme, currentThemeId) {
     const isCurrent = theme.themeId === currentThemeId;
+    const syncStatus = theme.syncStatus || (theme.type === 'chrome' ? 'local' : 'ok');
+    const canActivate = this.canActivateWorkspace(theme);
     const typeLabel = theme.type === 'chrome'
       ? '本地'
       : (theme.type === 'cloudflare' ? 'CF 云端' : 'Supabase');
+    const statusLabel = syncStatus === 'missing_remote'
+      ? '云端缺失'
+      : (syncStatus === 'detached' ? '已转本地' : null);
     const previewColorMap = {
       default: '#f5f5f5',
       dark: '#35363a',
@@ -830,15 +1099,15 @@ class SettingsUIManager {
     const card = document.createElement('div');
     card.className = `theme-card ${isCurrent ? 'active-theme' : ''}`;
     card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `打开工作空间 ${themeName} 的详情设置`);
+    card.setAttribute('tabindex', canActivate ? '0' : '-1');
+    card.setAttribute('aria-label', canActivate ? `打开工作空间 ${themeName} 的详情设置` : `工作空间 ${themeName} 处于云端缺失待处理状态`);
     card.dataset.id = theme.themeId;
     card.innerHTML = `
       <div class="theme-card-header">
         <div>
           <h4 class="theme-name">${themeName}</h4>
           <div class="theme-meta">
-            <span>${typeLabel}</span> \u00b7 <span>${themeColorLabel}</span>
+            <span>${typeLabel}</span> \u00b7 <span>${themeColorLabel}</span>${statusLabel ? ` \u00b7 <span>${statusLabel}</span>` : ''}
           </div>
         </div>
         ${isCurrent ? '<span class="theme-card-state is-current">当前使用中</span>' : ''}
@@ -846,10 +1115,10 @@ class SettingsUIManager {
       <div class="theme-preview-block" style="${bgStyle}"></div>
       <div class="theme-card-hint">
         <span class="material-symbols-rounded">arrow_forward</span>
-        <span>点击卡片可进入详情设置</span>
+        <span>${canActivate ? '点击卡片可进入详情设置' : '请先处理云端缺失状态'}</span>
       </div>
       <div class="theme-actions">
-        ${!isCurrent ? `<button class="primary-btn use-theme-btn" data-id="${theme.themeId}">\u4f7f\u7528</button>` : ''}
+        ${!isCurrent ? `<button class="primary-btn use-theme-btn" data-id="${theme.themeId}" ${canActivate ? '' : 'disabled'}>\u4f7f\u7528</button>` : ''}
         <button class="secondary-btn edit-theme-btn" data-id="${theme.themeId}">设置</button>
         ${(!isCurrent && theme.themeId !== 'default') ? `<button class="secondary-btn text-danger delete-theme-btn" data-id="${theme.themeId}">\u5220\u9664</button>` : ''}
       </div>
@@ -867,6 +1136,12 @@ class SettingsUIManager {
 
     document.getElementById('switch-workspace-btn')?.addEventListener('click', async () => {
       if (!this.editingThemeId) {
+        return;
+      }
+
+      const theme = window.unifiedDataManager?.appData?.themes?.[this.editingThemeId] || null;
+      if (!this.canActivateWorkspace(theme)) {
+        this.showMessage('这个工作空间处于云端缺失待处理状态，不能直接切换使用，请先处理', 'warning');
         return;
       }
 
@@ -951,7 +1226,11 @@ class SettingsUIManager {
 
     title.textContent = '';
     title.hidden = true;
-    desc.textContent = `当前工作空间：${currentTheme.themeName || '未命名工作空间'} · ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}`;
+    const currentSyncStatus = currentTheme.syncStatus || (currentTheme.type === 'chrome' ? 'local' : 'ok');
+    const currentSyncStatusLabel = currentSyncStatus === 'missing_remote'
+      ? '云端缺失待处理'
+      : (currentSyncStatus === 'detached' ? '已转本地' : '');
+    desc.textContent = `当前工作空间：${currentTheme.themeName || '未命名工作空间'} · ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}${currentSyncStatusLabel ? ` · ${currentSyncStatusLabel}` : ''}`;
     desc.hidden = false;
     manageBtn.textContent = '新建工作空间';
   }
@@ -1037,7 +1316,7 @@ class SettingsUIManager {
         }
 
         document.getElementById('bg-setting-group').style.display =
-          (theme.type === 'supabase' || theme.type === 'cloudflare') ? 'block' : 'none';
+          ((theme.type === 'supabase' || theme.type === 'cloudflare') && theme.syncStatus !== 'missing_remote') ? 'block' : 'none';
       }
     } else {
       document.getElementById('bg-setting-group').style.display = 'none';
@@ -1102,6 +1381,7 @@ class SettingsUIManager {
     const importBtn = document.getElementById('import-data-btn');
     const clearDataBtn = document.getElementById('clear-data-btn');
     const bgSettingGroup = document.getElementById('bg-setting-group');
+    const saveBtn = document.getElementById('save-theme-btn');
 
     const applyBadge = (element, state, text) => {
       if (!element) {
@@ -1120,6 +1400,10 @@ class SettingsUIManager {
       cloudflare: 'Cloudflare 同步',
       supabase: 'Supabase 同步'
     };
+    const syncStatus = workspace.syncStatus || (workspace.type === 'chrome' ? 'local' : 'ok');
+    const syncStatusLabel = syncStatus === 'missing_remote'
+      ? '云端缺失待处理'
+      : (syncStatus === 'detached' ? '已转本地' : '');
     const colorModeMap = {
       default: '浅色风格',
       dark: '深色风格',
@@ -1154,6 +1438,9 @@ class SettingsUIManager {
           button.disabled = true;
         }
       });
+      if (saveBtn) {
+        saveBtn.disabled = false;
+      }
       if (manualBtn) {
         manualBtn.style.display = 'none';
       }
@@ -1173,8 +1460,8 @@ class SettingsUIManager {
       indicator.classList.toggle('active', isCurrentWorkspace);
     }
     desc.textContent = isCurrentWorkspace
-      ? `当前工作空间：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}。`
-      : `当前查看：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}。如需同步或管理数据，请先切换到这个工作空间。`;
+      ? `当前工作空间：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}${syncStatusLabel ? ` · ${syncStatusLabel}` : ''}。`
+      : `当前查看：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}${syncStatusLabel ? ` · ${syncStatusLabel}` : ''}。如需同步或管理数据，请先切换到这个工作空间。`;
     desc.hidden = false;
 
     applyBadge(badge, isCurrentWorkspace ? 'is-ready' : 'is-pending', isCurrentWorkspace ? '当前使用中' : '需先切换');
@@ -1186,14 +1473,21 @@ class SettingsUIManager {
 
     if (inactiveNote) {
       inactiveNote.style.display = isCurrentWorkspace ? 'none' : 'block';
-      inactiveNote.textContent = '当前不是这个工作空间。你仍然可以修改基础设置，但云同步和数据管理需要先切换过去。';
+      inactiveNote.textContent = syncStatus === 'missing_remote'
+        ? '这个工作空间处于云端缺失待处理状态，当前不能切换到它。请先到“从云端导入”里选择恢复到云端、转成本地空间，或从本机移除。'
+        : '当前不是这个工作空间。你仍然可以修改基础设置，但云同步和数据管理需要先切换过去。';
     }
 
     if (bgSettingGroup) {
-      bgSettingGroup.style.display = (workspace.type === 'supabase' || workspace.type === 'cloudflare') ? 'block' : 'none';
+      bgSettingGroup.style.display = (workspace.type === 'supabase' || workspace.type === 'cloudflare') && syncStatus !== 'missing_remote' ? 'block' : 'none';
     }
 
-    if (workspace.type === 'cloudflare') {
+    if (syncStatus === 'missing_remote') {
+      syncTitle.textContent = '云端副本已缺失';
+      syncDesc.textContent = isCurrentWorkspace
+        ? '你当前仍在使用这份本机副本，但它已不是正常同步状态。请尽快到“从云端导入”里选择恢复到云端、转成本地空间，或从本机移除。'
+        : '这个工作空间处于待处理状态，当前不能切换使用。请到“从云端导入”里选择恢复到云端、转成本地空间，或从本机移除。';
+    } else if (workspace.type === 'cloudflare') {
       syncTitle.textContent = '已启用 Cloudflare 同步';
       syncDesc.textContent = 'Cloudflare 与 Supabase 只能二选一，不能同时启用。';
     } else if (workspace.type === 'supabase') {
@@ -1204,11 +1498,17 @@ class SettingsUIManager {
       syncDesc.textContent = '可在下方选择已配置好的云端连接。';
     }
 
-    dataNote.textContent = isCurrentWorkspace
-      ? '这里只管理当前工作空间的数据导入、导出和清空。'
-      : '要管理这个工作空间的数据，请先切换到它。';
+    dataNote.textContent = syncStatus === 'missing_remote'
+      ? '当前处于云端缺失待处理状态；导入、导出和清空仍只作用于本机数据。'
+      : (isCurrentWorkspace
+        ? '这里只管理当前工作空间的数据导入、导出和清空。'
+        : '要管理这个工作空间的数据，请先切换到它。');
 
-    applyBadge(document.getElementById('workspace-local-status'), workspace.type === 'chrome' ? 'is-ready' : 'is-idle', workspace.type === 'chrome' ? '当前模式' : '可切换');
+    applyBadge(
+      document.getElementById('workspace-local-status'),
+      workspace.type === 'chrome' || syncStatus === 'missing_remote' ? 'is-ready' : 'is-idle',
+      syncStatus === 'missing_remote' ? '缺失态回退' : (workspace.type === 'chrome' ? '当前模式' : '可切换')
+    );
     applyBadge(document.getElementById('workspace-cf-status'), cfStatusMeta.badgeClass, cfStatusMeta.label);
     applyBadge(document.getElementById('workspace-sb-status'), sbStatusMeta.badgeClass, sbStatusMeta.label);
 
@@ -1235,19 +1535,19 @@ class SettingsUIManager {
 
     const canOperateWorkspace = isCurrentWorkspace;
     if (manualBtn) {
-      manualBtn.style.display = canOperateWorkspace && workspace.type !== 'chrome' ? 'inline-flex' : 'none';
-      manualBtn.disabled = !canOperateWorkspace || workspace.type === 'chrome';
+      manualBtn.style.display = canOperateWorkspace && workspace.type !== 'chrome' && syncStatus !== 'missing_remote' ? 'inline-flex' : 'none';
+      manualBtn.disabled = !canOperateWorkspace || workspace.type === 'chrome' || syncStatus === 'missing_remote';
     }
     if (disableBtn) {
-      disableBtn.style.display = canOperateWorkspace && workspace.type !== 'chrome' ? 'inline-flex' : 'none';
-      disableBtn.disabled = !canOperateWorkspace || workspace.type === 'chrome';
+      disableBtn.style.display = canOperateWorkspace && workspace.type !== 'chrome' && syncStatus !== 'missing_remote' ? 'inline-flex' : 'none';
+      disableBtn.disabled = !canOperateWorkspace || workspace.type === 'chrome' || syncStatus === 'missing_remote';
     }
     if (cfEnableBtn) {
-      cfEnableBtn.disabled = !canOperateWorkspace || !cfSetup.canEnable || workspace.type === 'supabase';
+      cfEnableBtn.disabled = !canOperateWorkspace || !cfSetup.canEnable || workspace.type === 'supabase' || syncStatus === 'missing_remote';
       cfEnableBtn.textContent = workspace.type === 'cloudflare' ? '当前已启用' : '启用同步';
     }
     if (sbEnableBtn) {
-      sbEnableBtn.disabled = !canOperateWorkspace || !sbSetup.canEnable || workspace.type === 'cloudflare';
+      sbEnableBtn.disabled = !canOperateWorkspace || !sbSetup.canEnable || workspace.type === 'cloudflare' || syncStatus === 'missing_remote';
       sbEnableBtn.textContent = workspace.type === 'supabase' ? '当前已启用' : '启用同步';
     }
     if (exportBtn) {
@@ -1258,6 +1558,9 @@ class SettingsUIManager {
     }
     if (clearDataBtn) {
       clearDataBtn.disabled = !canOperateWorkspace;
+    }
+    if (saveBtn) {
+      saveBtn.disabled = syncStatus === 'missing_remote';
     }
   }
   
@@ -1356,6 +1659,9 @@ class SettingsUIManager {
     try {
       if (this.editingThemeId) {
         const theme = window.unifiedDataManager.appData.themes[this.editingThemeId];
+        if (this.isMissingRemoteWorkspace(theme)) {
+          throw new Error('这个工作空间处于云端缺失待处理状态，不能继续编辑保存，请先恢复到云端、转成本地空间，或从本机移除');
+        }
         const themeUpdates = {
           themeName: name,
           themeType: themeType,
@@ -1462,7 +1768,7 @@ class SettingsUIManager {
   }
 
   async completeCloudflareSyncSetup(config, suggestedThemeName = '') {
-    const themeName = this.getDefaultSyncThemeName('cloudflare', suggestedThemeName);
+    const themeName = suggestedThemeName.trim();
 
     if (window.cloudflareResourceManager?.saveExistingResourceProfile) {
       await window.cloudflareResourceManager.saveExistingResourceProfile({
@@ -1497,7 +1803,7 @@ class SettingsUIManager {
   }
 
   async completeSupabaseSyncSetup(config, suggestedThemeName = '') {
-    const themeName = this.getDefaultSyncThemeName('supabase', suggestedThemeName);
+    const themeName = suggestedThemeName.trim();
 
     if (window.supabaseResourceManager?.saveExistingProjectProfile) {
       await this.saveExistingSupabaseProjectProfile(false, {

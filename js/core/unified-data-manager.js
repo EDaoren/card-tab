@@ -54,6 +54,8 @@ class UnifiedDataManager {
     createThemeRecord(options = {}) {
         const now = new Date().toISOString();
         const createdAt = options.createdAt || now;
+        const resolvedType = options.type || 'chrome';
+        const resolvedSyncStatus = options.syncStatus ?? (resolvedType === 'chrome' ? 'local' : 'ok');
 
         return {
             themeId: options.themeId,
@@ -63,7 +65,8 @@ class UnifiedDataManager {
             bgImagePath: options.bgImagePath ?? null,
             bgOpacity: options.bgOpacity ?? 30,
             isActive: !!options.isActive,
-            type: options.type || 'chrome',
+            type: resolvedType,
+            syncStatus: resolvedSyncStatus,
             createdAt,
             updatedAt: options.updatedAt || createdAt
         };
@@ -86,6 +89,18 @@ class UnifiedDataManager {
             themeId: overrides.themeId ?? theme?.themeId,
             themeName: overrides.themeName ?? theme?.themeName ?? theme?.displayName
         });
+    }
+
+    getThemeProvider(theme) {
+        if (this.getThemeSyncStatus(theme) === 'missing_remote') {
+            return this.getDirectThemeProvider({
+                ...theme,
+                type: 'chrome',
+                syncStatus: 'local'
+            });
+        }
+
+        return this.getDirectThemeProvider(theme);
     }
 
     /**
@@ -238,8 +253,12 @@ class UnifiedDataManager {
             // 3. 加载当前活跃主题的数据
             await this.loadCurrentConfigData();
 
-            this.reconcileMissingCloudThemes().catch((error) => {
-                console.warn('UnifiedDataManager: 启动时巡检缺失云端工作空间失败', error);
+            this.reconcileMissingCloudThemes().then((missingThemes) => {
+                if (Array.isArray(missingThemes) && missingThemes.length > 0) {
+                    console.warn('UnifiedDataManager: 检测到云端缺失的工作空间，等待用户决定是否恢复', missingThemes);
+                }
+            }).catch((error) => {
+                console.warn('UnifiedDataManager: 启动时检查缺失云端工作空间失败', error);
             });
 
             console.log('UnifiedDataManager: 初始化完成', {
@@ -488,14 +507,17 @@ class UnifiedDataManager {
             themeName: '默认主题',
             type: 'chrome'
         };
-        const activeProvider = currentTheme.type === 'cloudflare'
-            ? 'cloudflare'
-            : (currentTheme.type === 'supabase' ? 'supabase' : 'none');
+        const canUseRemote = this.canUseRemoteProvider(currentTheme);
+        const activeProvider = canUseRemote
+            ? (currentTheme.type === 'cloudflare'
+                ? 'cloudflare'
+                : (currentTheme.type === 'supabase' ? 'supabase' : 'none'))
+            : 'none';
 
         return {
-            isSupabaseEnabled: currentTheme.type === 'supabase',
-            isCloudflareEnabled: currentTheme.type === 'cloudflare',
-            isCloudEnabled: currentTheme.type !== 'chrome',
+            isSupabaseEnabled: canUseRemote && currentTheme.type === 'supabase',
+            isCloudflareEnabled: canUseRemote && currentTheme.type === 'cloudflare',
+            isCloudEnabled: canUseRemote,
             activeProvider,
             currentThemeId: currentTheme.themeId,
             currentThemeName: currentTheme.themeName || '',
@@ -667,6 +689,22 @@ class UnifiedDataManager {
         return !!theme && theme.type !== 'chrome';
     }
 
+    getThemeSyncStatus(theme) {
+        if (!theme) {
+            return 'local';
+        }
+
+        if (theme.syncStatus) {
+            return theme.syncStatus;
+        }
+
+        return theme.type === 'chrome' ? 'local' : 'ok';
+    }
+
+    canUseRemoteProvider(theme) {
+        return this.isCloudTheme(theme) && this.getThemeSyncStatus(theme) !== 'missing_remote';
+    }
+
     async getLocalRecoveryThemeData(theme, fallbackData = null) {
         if (!theme?.themeId) {
             return null;
@@ -694,7 +732,7 @@ class UnifiedDataManager {
             return null;
         }
 
-        await this.syncThemeDataWithProvider(theme, recoveryData);
+        await this.syncThemeDataWithProvider(theme, recoveryData, { forceRemote: true });
         console.log(`UnifiedDataManager: 已自动恢复缺失的云端工作空间 ${theme.themeId}`);
         return recoveryData;
     }
@@ -703,7 +741,8 @@ class UnifiedDataManager {
         const providerTypes = provider
             ? [provider]
             : ['supabase', 'cloudflare'];
-        const restoredThemes = [];
+        const missingThemes = [];
+        let themeStatusChanged = false;
 
         for (const targetProvider of providerTypes) {
             const localThemes = this.getAllThemes().filter((theme) => theme.type === targetProvider);
@@ -738,33 +777,42 @@ class UnifiedDataManager {
             );
 
             for (const theme of localThemes) {
-                if (!theme?.themeId || remoteThemeIds.has(theme.themeId)) {
+                if (!theme?.themeId) {
                     continue;
                 }
 
-                try {
-                    const restoredData = await this.restoreMissingCloudTheme(theme);
-                    if (!restoredData) {
-                        continue;
-                    }
-
-                    remoteThemeIds.add(theme.themeId);
-                    restoredThemes.push({
-                        themeId: theme.themeId,
-                        provider: targetProvider
-                    });
-                } catch (error) {
-                    console.warn(`UnifiedDataManager: 自动恢复缺失云端工作空间失败 ${theme.themeId}`, error);
+                const nextSyncStatus = remoteThemeIds.has(theme.themeId) ? 'ok' : 'missing_remote';
+                if (theme.syncStatus !== nextSyncStatus) {
+                    theme.syncStatus = nextSyncStatus;
+                    themeStatusChanged = true;
                 }
+
+                if (nextSyncStatus !== 'missing_remote') {
+                    continue;
+                }
+
+                missingThemes.push({
+                    themeId: theme.themeId,
+                    provider: targetProvider,
+                    themeName: theme.themeName || '',
+                    localTheme: this.normalizeThemeRecord(theme)
+                });
             }
         }
 
-        return restoredThemes;
+        if (themeStatusChanged) {
+            await this.saveAppData();
+            this.syncProviderClientsState();
+        }
+
+        return missingThemes;
     }
 
-    async syncThemeDataWithProvider(theme, data) {
+    async syncThemeDataWithProvider(theme, data, options = {}) {
         const normalizedData = this.normalizeConfigData(data);
-        const provider = this.getThemeProvider(theme);
+        const provider = options.forceRemote
+            ? this.getDirectThemeProvider(theme)
+            : this.getThemeProvider(theme);
         await provider.save(normalizedData);
         await this.saveToCache(theme.themeId, normalizedData);
         return normalizedData;
@@ -815,7 +863,7 @@ class UnifiedDataManager {
         return data;
     }
 
-    getThemeProvider(theme) {
+    getDirectThemeProvider(theme) {
         if (!theme) {
             throw new Error('主题不存在');
         }
@@ -881,7 +929,7 @@ class UnifiedDataManager {
                     console.log('UnifiedDataManager: 从缓存加载数据成功');
                     
                     // 异步触发后台更新
-                    if (currentTheme.type !== 'chrome') {
+                    if (this.canUseRemoteProvider(currentTheme)) {
                         this.backgroundSyncFromCloud(currentTheme).catch(e => console.error('后台同步失败', e));
                     }
                     return this.currentConfigData;
@@ -898,7 +946,7 @@ class UnifiedDataManager {
                 await this.saveToCache(currentThemeId, this.currentConfigData);
             } else {
                 this.currentConfigData = this.getDefaultConfigData();
-                if (!this.isCloudTheme(currentTheme)) {
+                if (!this.canUseRemoteProvider(currentTheme)) {
                     await this.saveCurrentConfigData(this.currentConfigData);
                 }
             }
@@ -917,7 +965,7 @@ class UnifiedDataManager {
      * 后台同步云端数据，用于保持本地缓存更新
      */
     async backgroundSyncFromCloud(theme) {
-        if (!theme || theme.type === 'chrome') {
+        if (!this.canUseRemoteProvider(theme)) {
             return false;
         }
 
@@ -965,7 +1013,7 @@ class UnifiedDataManager {
 
                 return true;
             } catch (error) {
-                console.error('UnifiedDataManager: 鍚庡彴鍚屾澶辫触', error);
+                console.error('UnifiedDataManager: 后台同步失败', error);
                 return false;
             } finally {
                 this.backgroundSyncPromises.delete(theme.themeId);
@@ -1123,6 +1171,7 @@ class UnifiedDataManager {
         if (cloudRes.bg_image_url !== undefined && cloudRes.bg_image_url !== theme.bgImageUrl) { theme.bgImageUrl = cloudRes.bg_image_url; changed = true; }
         if (cloudRes.bg_image_path !== undefined && cloudRes.bg_image_path !== theme.bgImagePath) { theme.bgImagePath = cloudRes.bg_image_path; changed = true; }
         if (cloudRes.bg_opacity !== undefined && cloudRes.bg_opacity !== theme.bgOpacity) { theme.bgOpacity = cloudRes.bg_opacity; changed = true; }
+        if (theme.syncStatus !== 'ok' && theme.type !== 'chrome') { theme.syncStatus = 'ok'; changed = true; }
 
         if (changed) {
             this.saveAppData().catch(e => console.error(e));
@@ -1213,6 +1262,7 @@ class UnifiedDataManager {
             ...existingTheme,
             ...normalizedRemoteTheme,
             type: provider,
+            syncStatus: 'ok',
             isActive: normalizedRemoteTheme.themeId === this.appData.currentThemeId,
             createdAt: existingTheme?.createdAt || normalizedRemoteTheme.createdAt
         });
@@ -1263,8 +1313,8 @@ class UnifiedDataManager {
         }
 
         const importState = this.getRemoteThemeImportState(normalizedRemoteTheme.themeId, provider);
-        if (importState.state === 'imported') {
-            throw new Error('已添加到本机的工作空间不支持在这里删除');
+        if (importState.state !== 'available') {
+            throw new Error('当前设备仍保留该工作空间，请先删除本机工作空间后再删除云端数据');
         }
 
         const client = await this.ensureProviderClient(provider);
@@ -1301,6 +1351,64 @@ class UnifiedDataManager {
             themeId: normalizedRemoteTheme.themeId,
             provider
         };
+    }
+
+    async restoreMissingRemoteTheme(themeId) {
+        const theme = this.appData?.themes?.[themeId];
+        if (!theme) {
+            throw new Error(`主题 ${themeId} 不存在`);
+        }
+
+        if (!this.isCloudTheme(theme) || this.getThemeSyncStatus(theme) !== 'missing_remote') {
+            throw new Error('当前工作空间不处于云端缺失状态');
+        }
+
+        const restoredData = await this.restoreMissingCloudTheme(theme);
+        if (!restoredData) {
+            throw new Error('当前设备缺少可恢复的数据');
+        }
+
+        theme.syncStatus = 'ok';
+        await this.saveAppData();
+        this.syncProviderClientsState();
+
+        if (themeId === this.appData.currentThemeId) {
+            this.currentConfigData = this.normalizeConfigData(restoredData);
+            await this.saveToCache(themeId, this.currentConfigData);
+        }
+
+        return this.normalizeThemeRecord(theme);
+    }
+
+    async convertThemeToLocal(themeId) {
+        const theme = this.appData?.themes?.[themeId];
+        if (!theme) {
+            throw new Error(`主题 ${themeId} 不存在`);
+        }
+
+        const fallbackData = await this.getLocalRecoveryThemeData(
+            theme,
+            themeId === this.appData.currentThemeId ? this.currentConfigData : null
+        );
+        const nextData = this.normalizeConfigData(fallbackData || this.getDefaultConfigData());
+
+        theme.type = 'chrome';
+        theme.syncStatus = 'detached';
+        theme.bgImageUrl = null;
+        theme.bgImagePath = null;
+        theme.bgOpacity = 30;
+        theme.updatedAt = new Date().toISOString();
+
+        await this.saveAppData();
+        await this.saveToChromeSync(themeId, nextData);
+        await this.saveToCache(themeId, nextData);
+        this.syncProviderClientsState();
+
+        if (themeId === this.appData.currentThemeId) {
+            this.currentConfigData = nextData;
+        }
+
+        return this.normalizeThemeRecord(theme);
     }
 
     generateThemeId(prefix = 'theme') {
@@ -1351,7 +1459,7 @@ class UnifiedDataManager {
         theme.updatedAt = new Date().toISOString();
         await this.saveAppData();
 
-        if (theme.type !== 'chrome') {
+        if (this.canUseRemoteProvider(theme)) {
             if (themeId === this.appData.currentThemeId) {
                 await this.saveCurrentConfigData({ ...this.currentConfigData });
             } else {
@@ -1376,6 +1484,9 @@ class UnifiedDataManager {
 
             if (!this.appData.themes[themeId]) {
                 throw new Error(`主题 ${themeId} 不存在`);
+            }
+            if (this.getThemeSyncStatus(this.appData.themes[themeId]) === 'missing_remote') {
+                throw new Error('该工作空间处于云端缺失待处理状态，请先恢复到云端、转成本地空间，或从本机移除');
             }
 
             // 清除其他缓存
@@ -1437,11 +1548,13 @@ class UnifiedDataManager {
 
             previousThemeState = {
                 type: currentTheme.type,
+                syncStatus: currentTheme.syncStatus,
                 themeName: currentTheme.themeName,
                 updatedAt: currentTheme.updatedAt
             };
 
             currentTheme.type = provider;
+            currentTheme.syncStatus = 'ok';
             if (themeName) {
                 currentTheme.themeName = themeName;
             }
@@ -1463,6 +1576,7 @@ class UnifiedDataManager {
                 const currentTheme = this.getCurrentTheme();
                 if (currentTheme) {
                     currentTheme.type = previousThemeState.type;
+                    currentTheme.syncStatus = previousThemeState.syncStatus || (previousThemeState.type === 'chrome' ? 'local' : 'ok');
                     currentTheme.themeName = previousThemeState.themeName;
                     currentTheme.updatedAt = previousThemeState.updatedAt;
 
@@ -1492,7 +1606,8 @@ class UnifiedDataManager {
                 themeId,
                 themeName,
                 isActive: false,
-                type: provider
+                type: provider,
+                syncStatus: 'ok'
             });
 
             await this.connectProvider(provider, cfConfig, supabaseConfig);
@@ -1525,14 +1640,6 @@ class UnifiedDataManager {
             const theme = this.appData.themes[themeId];
             if (!theme) return;
 
-            // 尝试删除主存储中的主题数据
-            try {
-                const provider = this.getThemeProvider(theme);
-                await provider.delete();
-            } catch (e) {
-                console.warn('主题主存储删除失败', e);
-            }
-
             // 清理缓存和 Chrome 同步残留
             await this.clearCache(themeId);
             await this.clearChromeSync(themeId);
@@ -1564,10 +1671,12 @@ class UnifiedDataManager {
                 const dataToKeep = this.currentConfigData || await this.loadCurrentConfigData();
                 previousThemeState = {
                     type: currentTheme.type,
+                    syncStatus: currentTheme.syncStatus,
                     updatedAt: currentTheme.updatedAt
                 };
 
                 currentTheme.type = 'chrome';
+                currentTheme.syncStatus = 'local';
                 currentTheme.updatedAt = new Date().toISOString();
                 themeStateChanged = true;
                 await this.saveAppData();
@@ -1583,6 +1692,7 @@ class UnifiedDataManager {
                 const currentTheme = this.getCurrentTheme();
                 if (currentTheme) {
                     currentTheme.type = previousThemeState.type;
+                    currentTheme.syncStatus = previousThemeState.syncStatus;
                     currentTheme.updatedAt = previousThemeState.updatedAt;
 
                     try {
