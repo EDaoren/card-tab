@@ -3,8 +3,10 @@
  */
 
 let quickAddModal = null;
+let quickAddHost = null;
 let categories = [];
 let quickAddToast = null;
+let quickAddToastHost = null;
 let quickAddKeydownHandler = null;
 
 async function safeSendMessage(message, retries = 1) {
@@ -38,51 +40,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function createQuickAddModal(pageInfo) {
-  if (quickAddModal) {
-    quickAddModal.remove();
-    quickAddModal = null;
-  }
+  closeQuickAddModal();
 
-  addQuickAddStyles();
+  quickAddHost = document.createElement('div');
+  quickAddHost.id = 'card-tab-quick-add-host';
 
-  quickAddModal = document.createElement('div');
-  quickAddModal.id = 'card-tab-quick-add-modal';
-  quickAddModal.innerHTML = `
-    <div class="card-tab-modal-overlay">
-      <div class="card-tab-modal-content" role="dialog" aria-modal="true" aria-labelledby="card-tab-quick-add-title">
-        <div class="card-tab-modal-header">
-          <h3 id="card-tab-quick-add-title">添加到 Card Tab</h3>
-          <button class="card-tab-close-btn" type="button" aria-label="关闭">&times;</button>
-        </div>
-        <div class="card-tab-modal-body">
-          <div class="card-tab-form-group">
-            <label for="card-tab-name">网站名称</label>
-            <input type="text" id="card-tab-name" value="${escapeHtml(pageInfo.title || '')}" required>
+  const shadowRoot = quickAddHost.attachShadow({ mode: 'open' });
+  shadowRoot.innerHTML = `
+    <style>${getQuickAddStyles()}</style>
+    <div id="card-tab-quick-add-modal">
+      <div class="card-tab-modal-overlay">
+        <div class="card-tab-modal-shell">
+          <div class="card-tab-modal-content" role="dialog" aria-modal="true" aria-labelledby="card-tab-quick-add-title">
+            <div class="card-tab-modal-header">
+              <h3 id="card-tab-quick-add-title">添加到 Card Tab</h3>
+              <button class="card-tab-close-btn" type="button" aria-label="关闭">&times;</button>
+            </div>
+            <div class="card-tab-modal-body">
+              <div class="card-tab-form-group">
+                <label for="card-tab-name">网站名称</label>
+                <input type="text" id="card-tab-name" value="${escapeHtml(pageInfo.title || '')}" required>
+              </div>
+              <div class="card-tab-form-group">
+                <label for="card-tab-url">网址</label>
+                <input type="url" id="card-tab-url" value="${escapeHtml(pageInfo.url || '')}" required>
+              </div>
+              <div class="card-tab-form-group">
+                <label for="card-tab-category">选择分类</label>
+                <select id="card-tab-category" required>
+                  <option value="">请选择分类</option>
+                  ${categories.map((category) => (
+                    `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`
+                  )).join('')}
+                </select>
+                ${categories.length === 0 ? '<div class="card-tab-no-categories"><p>当前没有可用分类，请先在 Card Tab 中创建分类。</p></div>' : ''}
+              </div>
+            </div>
+            <div class="card-tab-modal-footer">
+              <button class="card-tab-cancel-btn" type="button">取消</button>
+              <button class="card-tab-save-btn" type="button">保存</button>
+            </div>
           </div>
-          <div class="card-tab-form-group">
-            <label for="card-tab-url">网址</label>
-            <input type="url" id="card-tab-url" value="${escapeHtml(pageInfo.url || '')}" required>
-          </div>
-          <div class="card-tab-form-group">
-            <label for="card-tab-category">选择分类</label>
-            <select id="card-tab-category" required>
-              <option value="">请选择分类</option>
-              ${categories.map((category) => (
-                `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`
-              )).join('')}
-            </select>
-            ${categories.length === 0 ? '<div class="card-tab-no-categories"><p>当前没有可用分类，请先在 Card Tab 中创建分类。</p></div>' : ''}
-          </div>
-        </div>
-        <div class="card-tab-modal-footer">
-          <button class="card-tab-cancel-btn" type="button">取消</button>
-          <button class="card-tab-save-btn" type="button">保存</button>
         </div>
       </div>
     </div>
   `;
 
-  document.body.appendChild(quickAddModal);
+  quickAddModal = shadowRoot.querySelector('#card-tab-quick-add-modal');
+  document.documentElement.appendChild(quickAddHost);
   bindQuickAddEvents(pageInfo);
 
   setTimeout(() => {
@@ -105,8 +110,12 @@ function closeQuickAddModal() {
     return;
   }
 
-  quickAddModal.remove();
+  if (quickAddHost) {
+    quickAddHost.remove();
+  }
+
   quickAddModal = null;
+  quickAddHost = null;
 }
 
 function escapeHtml(text) {
@@ -117,44 +126,42 @@ function escapeHtml(text) {
 
 function showQuickAddToast(message, type = 'info') {
   if (!quickAddToast) {
-    quickAddToast = document.createElement('div');
-    quickAddToast.id = 'card-tab-quick-add-toast';
-    document.documentElement.appendChild(quickAddToast);
+    quickAddToastHost = document.createElement('div');
+    quickAddToastHost.id = 'card-tab-quick-add-toast-host';
+    const toastShadowRoot = quickAddToastHost.attachShadow({ mode: 'open' });
+    toastShadowRoot.innerHTML = `
+      <style>${getQuickAddToastStyles()}</style>
+      <div id="card-tab-quick-add-toast"></div>
+    `;
+    quickAddToast = toastShadowRoot.querySelector('#card-tab-quick-add-toast');
+    document.documentElement.appendChild(quickAddToastHost);
   }
 
   quickAddToast.textContent = message;
-  quickAddToast.className = `is-${type}`;
+  quickAddToast.setAttribute('data-state', type);
+  quickAddToast.classList.add('is-visible');
 
   window.clearTimeout(showQuickAddToast.timeoutId);
   showQuickAddToast.timeoutId = window.setTimeout(() => {
     if (quickAddToast) {
-      quickAddToast.className = '';
+      quickAddToast.classList.remove('is-visible');
     }
   }, 2200);
 }
 
-function addQuickAddStyles() {
-  if (document.getElementById('card-tab-quick-add-styles')) {
-    return;
-  }
-
-  const styles = document.createElement('style');
-  styles.id = 'card-tab-quick-add-styles';
-  styles.textContent = `
-    #card-tab-quick-add-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 999999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+function getQuickAddToastStyles() {
+  return `
+    :host {
+      all: initial;
     }
 
     #card-tab-quick-add-toast {
       position: fixed;
       top: 20px;
       right: 20px;
-      z-index: 1000000;
+      z-index: 2147483647;
       min-width: 220px;
-      max-width: 360px;
+      max-width: min(360px, calc(100vw - 24px));
       padding: 12px 14px;
       border-radius: 10px;
       color: #fff;
@@ -164,37 +171,89 @@ function addQuickAddStyles() {
       transform: translateY(-8px);
       pointer-events: none;
       transition: opacity 0.18s ease, transform 0.18s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
-    #card-tab-quick-add-toast.is-success,
-    #card-tab-quick-add-toast.is-error,
-    #card-tab-quick-add-toast.is-info {
+    #card-tab-quick-add-toast.is-visible {
       opacity: 1;
       transform: translateY(0);
     }
 
-    #card-tab-quick-add-toast.is-success {
+    #card-tab-quick-add-toast[data-state="success"] {
       background: rgba(5, 150, 105, 0.96);
     }
 
-    #card-tab-quick-add-toast.is-error {
+    #card-tab-quick-add-toast[data-state="error"] {
       background: rgba(220, 38, 38, 0.96);
     }
 
+    #card-tab-quick-add-toast[data-state="info"] {
+      background: rgba(17, 24, 39, 0.92);
+    }
+
+    @media (max-width: 640px) {
+      #card-tab-quick-add-toast {
+        left: 12px;
+        right: 12px;
+        top: 12px;
+        min-width: auto;
+        max-width: none;
+      }
+    }
+  `;
+}
+
+function getQuickAddStyles() {
+  return `
+    :host {
+      all: initial;
+    }
+
+    #card-tab-quick-add-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.4;
+      color: #111827;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
     .card-tab-modal-overlay {
-      position: absolute;
+      position: fixed;
       inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.5);
+      padding: 16px;
+      background:
+        radial-gradient(circle at top, rgba(15, 23, 42, 0.12), transparent 45%),
+        rgba(3, 7, 18, 0.68);
+      backdrop-filter: blur(10px) saturate(120%);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+    }
+
+    .card-tab-modal-shell {
+      width: min(520px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      display: flex;
     }
 
     .card-tab-modal-content {
-      width: min(480px, calc(100vw - 32px));
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 16px;
+      box-shadow:
+        0 24px 70px rgba(2, 6, 23, 0.36),
+        0 2px 12px rgba(15, 23, 42, 0.16);
       overflow: hidden;
     }
 
@@ -209,16 +268,19 @@ function addQuickAddStyles() {
 
     .card-tab-modal-header {
       border-bottom: 1px solid #e5e7eb;
+      background: rgba(255, 255, 255, 0.82);
     }
 
     .card-tab-modal-header h3 {
       margin: 0;
       font-size: 18px;
+      font-weight: 700;
       color: #111827;
     }
 
     .card-tab-modal-body {
       padding: 20px;
+      overflow: auto;
     }
 
     .card-tab-form-group {
@@ -241,6 +303,8 @@ function addQuickAddStyles() {
       border: 1px solid #d1d5db;
       border-radius: 8px;
       font-size: 14px;
+      color: #111827;
+      background: rgba(255, 255, 255, 0.96);
     }
 
     .card-tab-form-group input:focus,
@@ -257,6 +321,7 @@ function addQuickAddStyles() {
       border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
+      transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
     }
 
     .card-tab-close-btn {
@@ -267,9 +332,15 @@ function addQuickAddStyles() {
       font-size: 24px;
     }
 
+    .card-tab-close-btn:hover {
+      background: rgba(148, 163, 184, 0.14);
+      color: #0f172a;
+    }
+
     .card-tab-cancel-btn,
     .card-tab-save-btn {
       padding: 10px 16px;
+      font-weight: 600;
     }
 
     .card-tab-cancel-btn {
@@ -280,11 +351,18 @@ function addQuickAddStyles() {
     .card-tab-save-btn {
       background: #2563eb;
       color: #fff;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+    }
+
+    .card-tab-cancel-btn:hover,
+    .card-tab-save-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
     }
 
     .card-tab-save-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+      box-shadow: none;
     }
 
     .card-tab-no-categories {
@@ -306,9 +384,30 @@ function addQuickAddStyles() {
       color: #dc2626;
       font-size: 12px;
     }
-  `;
 
-  document.head.appendChild(styles);
+    @media (max-width: 640px) {
+      .card-tab-modal-overlay {
+        align-items: flex-end;
+        padding: 12px;
+      }
+
+      .card-tab-modal-shell {
+        width: min(100%, 520px);
+        max-height: calc(100vh - 24px);
+      }
+
+      .card-tab-modal-content {
+        border-radius: 18px 18px 12px 12px;
+      }
+
+      .card-tab-modal-header,
+      .card-tab-modal-body,
+      .card-tab-modal-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  `;
 }
 
 function bindQuickAddEvents(pageInfo) {
@@ -406,7 +505,7 @@ async function handleSave(pageInfo) {
     }
 
     closeQuickAddModal();
-    showQuickAddToast(`已添加“${name}”到 Card Tab`, 'success');
+    showQuickAddToast(`已将“${name}”添加到 Card Tab`, 'success');
   } catch (error) {
     saveBtn.disabled = false;
     saveBtn.textContent = '保存';
