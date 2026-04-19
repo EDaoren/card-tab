@@ -123,17 +123,15 @@ class ShortcutManager {
       
       // Extract domain for favicon
       const domain = new URL(fullUrl).hostname;
+      const browserFaviconUrl = this.getBrowserFaviconUrl(fullUrl);
+      const fallbackFaviconUrl = this.getFallbackFaviconUrl(domain);
       
-      // Get favicon using multiple fallback services
-      const faviconUrl = this.getFaviconUrl(domain);
-      
-      // Try to get title (Note: This is just an example. In a real extension,
-      // you would need to use a background script with chrome.tabs API or a proxy service)
-      this.currentFaviconUrl = faviconUrl;
-      this.faviconImage.src = faviconUrl;
+      // Keep a network fallback URL for compatibility with existing data.
+      this.currentFaviconUrl = fallbackFaviconUrl;
+      this.setFaviconPreview(browserFaviconUrl, fallbackFaviconUrl);
       
       // If we have a favicon, auto-select the favicon option
-      if (faviconUrl) {
+      if (browserFaviconUrl || fallbackFaviconUrl) {
         document.getElementById('icon-type-favicon').checked = true;
         this.faviconPreview.classList.remove('hidden');
         this.letterIconForm.classList.add('hidden');
@@ -214,9 +212,10 @@ class ShortcutManager {
     this.updateIconOptionStyles();
     
     // Set favicon preview if available
-    if (shortcut.iconType === 'favicon' && shortcut.iconUrl) {
-      this.currentFaviconUrl = shortcut.iconUrl;
-      this.faviconImage.src = shortcut.iconUrl;
+    if (shortcut.iconType === 'favicon') {
+      const browserFaviconUrl = this.getBrowserFaviconUrl(shortcut.url);
+      this.currentFaviconUrl = shortcut.iconUrl || '';
+      this.setFaviconPreview(browserFaviconUrl, shortcut.iconUrl || '');
       this.faviconPreview.classList.remove('hidden');
     } else {
       this.faviconPreview.classList.add('hidden');
@@ -326,6 +325,74 @@ class ShortcutManager {
 
     // 返回第一个可用的服务
     return fallbackServices[0];
+  }
+
+  /**
+   * Build a browser-managed favicon URL for a page.
+   * @param {string} pageUrl - The target page URL
+   * @param {number} size - Requested favicon size
+   * @returns {string} Browser favicon URL
+   */
+  getBrowserFaviconUrl(pageUrl, size = 64) {
+    if (!pageUrl || !chrome?.runtime?.id) {
+      return '';
+    }
+
+    try {
+      const normalizedUrl = this.normalizeUrl(pageUrl);
+      return `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(normalizedUrl)}&size=${size}`;
+    } catch (error) {
+      console.warn('ShortcutManager: Failed to build browser favicon URL', error);
+      return '';
+    }
+  }
+
+  /**
+   * Get a network favicon fallback URL.
+   * @param {string} domain - The domain name
+   * @returns {string} Fallback favicon URL
+   */
+  getFallbackFaviconUrl(domain) {
+    return this.getFaviconUrl(domain);
+  }
+
+  /**
+   * Normalize a raw URL to an absolute URL.
+   * @param {string} url - Raw input URL
+   * @returns {string} Normalized URL
+   */
+  normalizeUrl(url) {
+    if (!url) {
+      return '';
+    }
+
+    return url.match(/^https?:\/\//) ? url : `https://${url}`;
+  }
+
+  /**
+   * Show favicon preview using browser favicon first, then stored fallback.
+   * @param {string} primaryUrl - Preferred favicon source
+   * @param {string} fallbackUrl - Secondary favicon source
+   */
+  setFaviconPreview(primaryUrl, fallbackUrl = '') {
+    if (!primaryUrl && !fallbackUrl) {
+      this.faviconImage.removeAttribute('src');
+      this.faviconImage.onerror = null;
+      return;
+    }
+
+    let hasTriedFallback = false;
+    this.faviconImage.onerror = () => {
+      if (!hasTriedFallback && fallbackUrl && this.faviconImage.src !== fallbackUrl) {
+        hasTriedFallback = true;
+        this.faviconImage.src = fallbackUrl;
+        return;
+      }
+
+      this.faviconImage.onerror = null;
+    };
+
+    this.faviconImage.src = primaryUrl || fallbackUrl;
   }
 }
 

@@ -352,13 +352,34 @@ class SearchManager {
       } else {
         item.dataset.url = result.data.url;
 
-        if (result.data.iconType === 'favicon' && result.data.iconUrl) {
+        if (result.data.iconType === 'favicon') {
+          icon.classList.add('shortcut-icon-image');
           const image = document.createElement('img');
-          image.src = result.data.iconUrl;
           image.alt = result.data.name;
+          let browserFaviconUrl = '';
+          let hasTriedFallbackUrl = false;
+
+          if (result.data.url && chrome?.runtime?.id) {
+            try {
+              const normalizedUrl = result.data.url.match(/^https?:\/\//)
+                ? result.data.url
+                : `https://${result.data.url}`;
+              browserFaviconUrl = `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(normalizedUrl)}&size=32`;
+            } catch (error) {
+              console.warn('SearchManager: Failed to build browser favicon URL', error);
+            }
+          }
+
           image.addEventListener('error', () => {
+            if (!hasTriedFallbackUrl && result.data.iconUrl && image.src !== result.data.iconUrl) {
+              hasTriedFallbackUrl = true;
+              image.src = result.data.iconUrl;
+              return;
+            }
+
             icon.textContent = result.data.name.charAt(0).toUpperCase();
           });
+          image.src = browserFaviconUrl || result.data.iconUrl || '';
           icon.appendChild(image);
         } else {
           icon.textContent = result.data.name.charAt(0).toUpperCase();

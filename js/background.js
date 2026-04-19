@@ -12,6 +12,7 @@ try {
 }
 
 const DEFAULT_CATEGORY_COLOR = '#4285f4';
+let contextMenuInitPromise = null;
 
 async function ensureBackgroundDataManager() {
   if (typeof globalThis.unifiedDataManager === 'undefined') {
@@ -120,47 +121,71 @@ async function sendQuickAddMessage(tabId, pageInfo) {
   }
 }
 
-function createContextMenus() {
-  console.log('Card Tab: Creating context menus...');
-
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: 'add-to-card-tab',
-      title: 'Card Tab 卡片式导航',
-      contexts: ['page', 'link'],
-      documentUrlPatterns: ['http://*/*', 'https://*/*']
-    });
-
-    chrome.contextMenus.create({
-      id: 'add-current-page',
-      parentId: 'add-to-card-tab',
-      title: '添加当前页面',
-      contexts: ['page'],
-      documentUrlPatterns: ['http://*/*', 'https://*/*']
-    });
-
-    chrome.contextMenus.create({
-      id: 'add-link',
-      parentId: 'add-to-card-tab',
-      title: '添加此链接',
-      contexts: ['link'],
-      documentUrlPatterns: ['http://*/*', 'https://*/*']
-    });
-
-    if (chrome.runtime.lastError) {
-      console.error('Background: Failed to create context menus', chrome.runtime.lastError);
+async function safeCreateContextMenu(options) {
+  try {
+    await chrome.contextMenus.create(options);
+  } catch (error) {
+    const message = String(error?.message || '');
+    if (message.includes('duplicate id')) {
+      console.warn(`Background: Context menu already exists: ${options.id}`);
+      return;
     }
-  });
+
+    throw error;
+  }
+}
+
+async function createContextMenus() {
+  if (contextMenuInitPromise) {
+    return contextMenuInitPromise;
+  }
+
+  contextMenuInitPromise = (async () => {
+    console.log('Card Tab: Creating context menus...');
+
+    try {
+      await chrome.contextMenus.removeAll();
+
+      await safeCreateContextMenu({
+        id: 'add-to-card-tab',
+        title: 'Card Tab 卡片式导航',
+        contexts: ['page', 'link'],
+        documentUrlPatterns: ['http://*/*', 'https://*/*']
+      });
+
+      await safeCreateContextMenu({
+        id: 'add-current-page',
+        parentId: 'add-to-card-tab',
+        title: '添加当前页面',
+        contexts: ['page'],
+        documentUrlPatterns: ['http://*/*', 'https://*/*']
+      });
+
+      await safeCreateContextMenu({
+        id: 'add-link',
+        parentId: 'add-to-card-tab',
+        title: '添加此链接',
+        contexts: ['link'],
+        documentUrlPatterns: ['http://*/*', 'https://*/*']
+      });
+    } catch (error) {
+      console.error('Background: Failed to create context menus', error);
+    } finally {
+      contextMenuInitPromise = null;
+    }
+  })();
+
+  return contextMenuInitPromise;
 }
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Card Tab: Background script installed');
-  createContextMenus();
+  void createContextMenus();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   console.log('Card Tab: Background script startup');
-  createContextMenus();
+  void createContextMenus();
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
