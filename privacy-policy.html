@@ -37,7 +37,7 @@
 <body>
   <div class="container">
     <h1>Privacy Policy for Card Tab</h1>
-    <p>Last updated: <span id="last-updated">January 8, 2025</span></p>
+    <p>Last updated: <span id="last-updated">April 20, 2026</span></p>
 
     <h2>Overview</h2>
     <p>Card Tab is a new tab extension for managing shortcuts, categories, workspaces, and optional cloud sync. We do not run analytics, advertising, or tracking services, and we do not send your data to our own servers.</p>
@@ -84,13 +84,14 @@
 
     <h2>Favicon Requests</h2>
     <p>To display shortcut icons, Card Tab may request favicon images from:</p>
+    <p>Card Tab may first use Chrome's built-in Favicon API to display icons for saved shortcuts and search results. If that is unavailable, it may fall back to the website itself or the public favicon services listed below.</p>
     <ul>
       <li>the website itself, such as <code>/favicon.ico</code></li>
       <li>Google favicon service</li>
       <li>DuckDuckGo favicon service</li>
       <li>Favicon Kit</li>
     </ul>
-    <p>These requests include only the website domain needed to retrieve the icon.</p>
+    <p>These requests include only the website domain or page URL needed to retrieve the icon.</p>
 
     <h2>Permissions</h2>
     <ul>
@@ -99,6 +100,7 @@
       <li><strong>contextMenus:</strong> provide the “Add to Card Tab” right-click menu.</li>
       <li><strong>search:</strong> use Chrome's Search API for the default search option.</li>
       <li><strong>scripting:</strong> inject the quick-add script into the current page only when you trigger the right-click add action.</li>
+      <li><strong>favicon:</strong> use Chrome's built-in Favicon API to display website icons for saved shortcuts and search results.</li>
     </ul>
 
     <h3>Host Permissions</h3>
