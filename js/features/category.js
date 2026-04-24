@@ -303,39 +303,34 @@ class CategoryManager {
       shortcutIcon.style.color = 'white';
     };
 
-    const getBrowserFaviconUrl = (pageUrl, size = 64) => {
-      if (!pageUrl || !chrome?.runtime?.id) {
-        return '';
-      }
-
-      try {
-        const normalizedUrl = pageUrl.match(/^https?:\/\//) ? pageUrl : `https://${pageUrl}`;
-        return `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(normalizedUrl)}&size=${size}`;
-      } catch (error) {
-        console.warn('CategoryManager: Failed to build browser favicon URL', error);
-        return '';
-      }
-    };
-
     if (shortcut.iconType === 'favicon') {
       // Use favicon
       shortcutIcon.classList.add('shortcut-icon-image');
       const iconImg = document.createElement('img');
       iconImg.className = 'shortcut-img';
       iconImg.alt = shortcut.name;
-      const browserFaviconUrl = getBrowserFaviconUrl(shortcut.url);
       const fallbackUrl = shortcut.iconUrl || '';
-      let hasTriedFallbackUrl = false;
-      iconImg.onerror = function() {
-        if (!hasTriedFallbackUrl && fallbackUrl && iconImg.src !== fallbackUrl) {
-          hasTriedFallbackUrl = true;
-          iconImg.src = fallbackUrl;
-          return;
-        }
+      const faviconCandidates = window.FaviconHelper?.getFaviconCandidates
+        ? window.FaviconHelper.getFaviconCandidates(shortcut.url, fallbackUrl)
+        : [fallbackUrl];
 
-        renderLetterFallback();
-      };
-      iconImg.src = browserFaviconUrl || fallbackUrl;
+      if (window.FaviconHelper?.applyImageFallback) {
+        window.FaviconHelper.applyImageFallback(iconImg, faviconCandidates, {
+          onExhausted: renderLetterFallback
+        });
+      } else {
+        let hasTriedFallbackUrl = false;
+        iconImg.onerror = function() {
+          if (!hasTriedFallbackUrl && fallbackUrl && iconImg.src !== fallbackUrl) {
+            hasTriedFallbackUrl = true;
+            iconImg.src = fallbackUrl;
+            return;
+          }
+
+          renderLetterFallback();
+        };
+        iconImg.src = faviconCandidates[0] || '';
+      }
       shortcutIcon.appendChild(iconImg);
     } else if (shortcut.iconType === 'custom' && shortcut.iconUrl) {
       // Use custom icon

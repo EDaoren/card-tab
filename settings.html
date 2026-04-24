@@ -44,13 +44,13 @@
             <h3><span class="material-symbols-rounded" aria-hidden="true">dashboard_customize</span><span>工作空间</span></h3>
           </div>
         </div>
-        <p class="panel-desc">每个工作空间都有独立的书签、视图和同步状态。先管理工作空间，再进入详情设置。</p>
+        <p class="panel-desc">每个工作空间独立保存书签、视图和同步设置。</p>
 
         <div id="workspace-overview-card" class="workspace-overview-card">
           <div class="workspace-overview-main">
             <span class="workspace-overview-eyebrow">当前工作空间</span>
             <h4 id="workspace-overview-title">加载中...</h4>
-            <p id="workspace-overview-desc">这里显示当前工作空间和同步状态。</p>
+            <p id="workspace-overview-desc">显示当前工作空间与同步状态。</p>
           </div>
           <div class="workspace-overview-meta">
             <div class="workspace-overview-actions">
@@ -73,7 +73,7 @@
             <div class="status-info">
               <span class="workspace-detail-eyebrow">从云端导入</span>
               <h4 id="remote-workspace-picker-title" hidden></h4>
-              <p id="remote-workspace-picker-desc">选择云端来源，查看可导入的工作空间。</p>
+              <p id="remote-workspace-picker-desc">选择云端来源并导入工作空间。</p>
             </div>
             <div class="workspace-detail-meta">
               <span id="remote-workspace-provider-badge" class="sync-status-badge is-idle">Cloudflare</span>
@@ -90,7 +90,7 @@
 
           <div class="edit-form-container workspace-detail-content-card remote-workspace-page-card">
             <div class="remote-workspace-toolbar">
-              <p id="remote-workspace-status-text" class="sync-hint">选择云端来源，查看可导入的工作空间。</p>
+              <p id="remote-workspace-status-text" class="sync-hint">选择云端来源并导入工作空间。</p>
               <div class="remote-workspace-toolbar-actions">
                 <button id="remote-workspace-open-sync-btn" class="secondary-btn" type="button">前往连接设置</button>
                 <button id="remote-workspace-refresh-btn" class="secondary-btn" type="button">刷新列表</button>
@@ -144,7 +144,6 @@
 
               <div class="form-group">
                 <label>快捷方式打开方式</label>
-                <p class="sync-hint workspace-setting-hint">设置首页点击快捷方式时的打开方式。</p>
                 <div class="sync-mode-options" role="radiogroup" aria-label="快捷方式打开方式">
                   <label class="sync-inline-toggle" for="shortcut-open-mode-current">
                     <input type="radio" id="shortcut-open-mode-current" name="shortcut-open-mode" value="current-tab">
@@ -157,9 +156,46 @@
                 </div>
               </div>
 
+              <div class="form-group favicon-source-group">
+                <label class="setting-label-with-help">
+                  <span class="setting-label-text">快捷方式图标来源</span>
+                  <span class="setting-help-anchor">
+                    <button
+                      class="setting-help-trigger"
+                      type="button"
+                      aria-label="查看快捷方式图标来源说明"
+                      aria-describedby="favicon-source-help-tooltip"
+                    >
+                      <span class="setting-help-icon" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" focusable="false">
+                          <path d="M8 1.5a6.5 6.5 0 1 1 0 13a6.5 6.5 0 0 1 0-13Z"></path>
+                          <path d="M6.2 6.2A1.9 1.9 0 0 1 8 4.95c1.23 0 2.05.72 2.05 1.82c0 1.36-1.4 1.72-1.82 2.43c-.12.21-.18.41-.18.78"></path>
+                          <circle cx="8" cy="11.35" r="0.78" fill="currentColor" stroke="none"></circle>
+                        </svg>
+                      </span>
+                    </button>
+                    <span id="favicon-source-help-tooltip" class="setting-help-tooltip" role="tooltip">
+                      <strong>图标来源</strong>
+                      <span>仅影响新增快捷方式的站点图标。</span>
+                      <span><b>标准模式：</b>优先使用浏览器图标。</span>
+                      <span><b>兼容模式：</b>优先使用在线图标服务。</span>
+                    </span>
+                  </span>
+                </label>
+                <div class="sync-mode-options" role="radiogroup" aria-label="网站图标来源">
+                  <label class="sync-inline-toggle" for="favicon-source-browser-first">
+                    <input type="radio" id="favicon-source-browser-first" name="favicon-source" value="browser-first" checked>
+                    <span>标准模式</span>
+                  </label>
+                  <label class="sync-inline-toggle" for="favicon-source-online-first">
+                    <input type="radio" id="favicon-source-online-first" name="favicon-source" value="online-first">
+                    <span>兼容模式</span>
+                  </label>
+                </div>
+              </div>
+
               <div class="form-group">
                 <label>视图方式</label>
-                <p class="sync-hint workspace-setting-hint">设置首页默认使用的视图。</p>
                 <div class="sync-mode-options" role="radiogroup" aria-label="视图方式">
                   <label class="sync-inline-toggle" for="workspace-view-mode-grid">
                     <input type="radio" id="workspace-view-mode-grid" name="workspace-view-mode" value="grid" checked>
@@ -173,8 +209,32 @@
               </div>
 
               <div class="form-group">
-                <label>展示模式</label>
-                <p class="sync-hint workspace-setting-hint">设置首页默认展示哪些内容。</p>
+                <label class="setting-label-with-help">
+                  <span class="setting-label-text">展示模式</span>
+                  <span class="setting-help-anchor">
+                    <button
+                      class="setting-help-trigger"
+                      type="button"
+                      aria-label="查看展示模式说明"
+                      aria-describedby="workspace-display-mode-help-tooltip"
+                    >
+                      <span class="setting-help-icon" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" focusable="false">
+                          <path d="M8 1.5a6.5 6.5 0 1 1 0 13a6.5 6.5 0 0 1 0-13Z"></path>
+                          <path d="M6.2 6.2A1.9 1.9 0 0 1 8 4.95c1.23 0 2.05.72 2.05 1.82c0 1.36-1.4 1.72-1.82 2.43c-.12.21-.18.41-.18.78"></path>
+                          <circle cx="8" cy="11.35" r="0.78" fill="currentColor" stroke="none"></circle>
+                        </svg>
+                      </span>
+                    </button>
+                    <span id="workspace-display-mode-help-tooltip" class="setting-help-tooltip" role="tooltip">
+                      <strong>展示模式</strong>
+                      <span><b>标准模式：</b>常规首页。</span>
+                      <span><b>专注模式：</b>弱化干扰元素。</span>
+                      <span><b>壁纸模式：</b>突出背景图片。</span>
+                      <span><b>快捷键：</b>壁纸模式下按 <code>/</code> 搜索，按 <code>Esc</code> 返回壁纸。</span>
+                    </span>
+                  </span>
+                </label>
                 <div class="sync-mode-options" role="radiogroup" aria-label="展示模式">
                   <label class="sync-inline-toggle" for="workspace-display-mode-standard">
                     <input type="radio" id="workspace-display-mode-standard" name="workspace-display-mode" value="standard" checked>
@@ -189,7 +249,6 @@
                     <span>壁纸模式</span>
                   </label>
                 </div>
-                <p class="sync-hint workspace-setting-hint">壁纸模式下按 <code>/</code> 可唤出搜索，按 <code>Esc</code> 返回纯壁纸。</p>
               </div>
 
               <div class="form-group" id="bg-setting-group">
@@ -236,7 +295,7 @@
                     <h5>仅本地</h5>
                     <span id="workspace-local-status" class="sync-status-badge is-idle">当前模式</span>
                   </div>
-                  <p class="sync-hint">当前工作空间仅保存在本机，不使用云端同步。</p>
+                  <p class="sync-hint">仅保存在本机，不启用云同步。</p>
                   <div class="form-actions">
                     <button id="workspace-disable-sync-btn" class="secondary-btn text-danger">改为本地存储</button>
                   </div>
@@ -247,7 +306,7 @@
                     <h5>Cloudflare</h5>
                     <span id="workspace-cf-status" class="sync-status-badge is-idle">未创建</span>
                   </div>
-                  <p id="workspace-cf-desc" class="sync-hint">先在“云端连接”中配置 Cloudflare 连接。</p>
+                  <p id="workspace-cf-desc" class="sync-hint">先配置 Cloudflare 连接。</p>
                   <div class="form-actions workspace-provider-actions">
                     <button id="workspace-open-global-cf-btn" class="secondary-btn">前往连接设置</button>
                     <button id="cf-enable-btn" class="primary-btn">启用同步</button>
@@ -259,7 +318,7 @@
                     <h5>Supabase</h5>
                     <span id="workspace-sb-status" class="sync-status-badge is-idle">未创建</span>
                   </div>
-                  <p id="workspace-sb-desc" class="sync-hint">先在“云端连接”中配置 Supabase 连接。</p>
+                  <p id="workspace-sb-desc" class="sync-hint">先配置 Supabase 连接。</p>
                   <div class="form-actions workspace-provider-actions">
                     <button id="workspace-open-global-sb-btn" class="secondary-btn">前往连接设置</button>
                     <button id="sb-enable-btn" class="primary-btn">启用同步</button>
@@ -269,24 +328,24 @@
             </div>
 
             <div id="workspace-tab-data" class="tab-pane workspace-tab-pane">
-              <p id="workspace-data-note" class="sync-hint">这里只管理当前工作空间的数据导入、导出和清空。</p>
+              <p id="workspace-data-note" class="sync-hint">管理当前工作空间的导入、导出和清空。</p>
               <div class="data-actions-grid">
                 <div class="data-card">
                   <h4>导出当前工作空间</h4>
-                  <p>将当前工作空间的书签和视图设置导出为 JSON 文件。</p>
+                  <p>导出当前工作空间为 JSON 文件。</p>
                   <button id="export-data-btn" class="secondary-btn">导出数据</button>
                 </div>
 
                 <div class="data-card">
                   <h4>导入到当前工作空间</h4>
-                  <p>从 JSON 文件恢复数据，将覆盖当前工作空间的内容。</p>
+                  <p>从 JSON 导入，并覆盖当前工作空间。</p>
                   <input type="file" id="import-file-input" accept=".json" style="display:none;">
                   <button id="import-data-btn" class="secondary-btn">导入数据</button>
                 </div>
 
                 <div class="data-card">
                   <h4>清空当前工作空间数据</h4>
-                  <p>删除当前工作空间的所有分类和快捷方式。此操作不可撤销。</p>
+                  <p>删除当前工作空间的全部分类和快捷方式，不可撤销。</p>
                   <button id="clear-data-btn" class="secondary-btn text-danger">清空数据</button>
                 </div>
               </div>
@@ -301,7 +360,7 @@
             <h3><span class="material-symbols-rounded" aria-hidden="true">cloud_sync</span><span>云端连接</span></h3>
           </div>
         </div>
-        <p class="panel-desc">这里保存本机可用的全局连接信息，具体是否启用同步，需要到工作空间里单独设置。</p>
+        <p class="panel-desc">这里保存全局连接；是否启用同步，请在工作空间中设置。</p>
 
         <div class="sync-status-card" id="sync-status-card">
           <div class="status-indicator"></div>
@@ -316,7 +375,7 @@
           <div class="tab-btn active" data-tab="cf-sync">Cloudflare</div>
           <div class="tab-btn" data-tab="supabase-sync">Supabase</div>
         </div>
-        <p id="sync-provider-exclusive-note" class="sync-provider-note">这里保存的是全局连接资料。是否启用 Cloudflare 或 Supabase，需要到具体工作空间中操作。</p>
+        <p id="sync-provider-exclusive-note" class="sync-provider-note">这里只保存连接资料；启用同步请到工作空间中操作。</p>
 
         <div class="tab-content">
           <div id="cf-sync-panel" class="tab-pane active">
@@ -335,21 +394,21 @@
                   <span class="sync-step-number">1</span>
                   <div class="sync-step-content">
                     <strong>准备连接</strong>
-                    <span>已有 Worker 直接填 URL；没有就先创建。</span>
+                    <span>已有 Worker 就直接连接，没有就先创建。</span>
                   </div>
                 </div>
                 <div class="sync-step-item" data-cf-step="2">
                   <span class="sync-step-number">2</span>
                   <div class="sync-step-content">
                     <strong>初始化数据库</strong>
-                    <span>拿到 Worker API URL 后再做这步。</span>
+                    <span>拿到 Worker URL 后再初始化数据库。</span>
                   </div>
                 </div>
                 <div class="sync-step-item" data-cf-step="3">
                   <span class="sync-step-number">3</span>
                   <div class="sync-step-content">
                     <strong>测试连接</strong>
-                    <span>确认可用后，再到工作空间里启用。</span>
+                    <span>测试通过后，到工作空间启用。</span>
                   </div>
                 </div>
               </div>
@@ -357,7 +416,7 @@
               <div class="sync-mode-selector">
                 <div class="sync-mode-selector-copy">
                   <h5>Worker / D1 / R2 已经建好了吗？</h5>
-                  <p id="cf-flow-mode-text" class="sync-hint">已有 Worker 就选“已经建好，直接连接”。</p>
+                  <p id="cf-flow-mode-text" class="sync-hint">已有 Worker 就选“直接连接”。</p>
                 </div>
                 <div class="sync-mode-options" role="radiogroup" aria-label="Cloudflare 资源准备方式">
                   <label class="sync-inline-toggle" for="cf-resource-mode-existing">
@@ -372,7 +431,7 @@
               </div>
 
               <div id="cf-create-section" class="sync-inline-reveal" hidden>
-                <p id="cf-create-mode-hint" class="sync-hint">先创建 Worker，成功后会自动生成 Worker API URL。</p>
+                <p id="cf-create-mode-hint" class="sync-hint">先创建 Worker，随后会自动生成 URL。</p>
                 <div class="sync-form-grid">
                   <div class="form-group">
                     <label for="cf-account-id">Cloudflare Account ID</label>
@@ -384,7 +443,7 @@
                   </div>
                 </div>
                 <details class="sync-advanced-details">
-                  <summary>创建时的默认值（一般不用改）</summary>
+                  <summary>默认值（通常不用改）</summary>
                   <div class="sync-form-grid">
                     <div class="form-group">
                       <label for="cf-create-worker-name">Worker 服务名称</label>
@@ -414,7 +473,7 @@
               </div>
 
               <div id="cf-connection-section" class="sync-inline-reveal">
-                <p id="cf-connection-mode-hint" class="sync-hint">已有 Worker 时，只需填写下面两项。</p>
+                <p id="cf-connection-mode-hint" class="sync-hint">已有 Worker 时，只填下面两项。</p>
                 <div class="sync-form-grid">
                   <div class="form-group">
                     <label for="cf-worker-url">Worker API URL</label>
@@ -429,14 +488,14 @@
 
               <div id="cf-schema-section" class="sync-inline-reveal" hidden>
                 <p id="cf-setup-status-text" class="sync-hint" hidden></p>
-                <p id="cf-init-mode-hint" class="sync-hint">拿到 Worker API URL 后，再初始化数据库。</p>
+                <p id="cf-init-mode-hint" class="sync-hint">拿到 Worker URL 后再初始化数据库。</p>
                 <div class="form-actions sync-primary-actions" style="margin-top:16px;">
                   <button id="cf-init-db-btn" class="secondary-btn">初始化数据库</button>
                 </div>
               </div>
 
               <div id="cf-sync-section" class="sync-inline-reveal" hidden>
-                <p id="cf-sync-mode-hint" class="sync-hint">如果数据库已准备好，可以直接测试这份全局连接。</p>
+                <p id="cf-sync-mode-hint" class="sync-hint">数据库已就绪时可直接测试连接。</p>
                 <div class="form-actions sync-primary-actions" style="margin-top:16px;">
                   <button id="cf-detect-status-btn" class="secondary-btn">检测状态</button>
                   <button id="cf-test-btn" class="secondary-btn">测试连接</button>
@@ -444,8 +503,8 @@
               </div>
 
               <details class="sync-advanced-details">
-                <summary>创建参数（只读）</summary>
-                <p class="sync-hint">这些字段仅用于展示创建资源时的参数，不参与日常连接，也不可编辑。</p>
+                <summary>创建参数（只读保留）</summary>
+                <p class="sync-hint">仅展示创建参数，不用于日常连接。</p>
                 <div class="sync-form-grid">
                   <div class="form-group">
                     <label for="cf-worker-name">Worker 服务名称</label>
@@ -496,14 +555,14 @@
                   <span class="sync-step-number">2</span>
                   <div class="sync-step-content">
                     <strong>未准备好再执行</strong>
-                    <span>如果资源已准备好，可以直接跳过。</span>
+                    <span>资源已就绪可跳过。</span>
                   </div>
                 </div>
                 <div class="sync-step-item" data-sb-step="3">
                   <span class="sync-step-number">3</span>
                   <div class="sync-step-content">
                     <strong>测试连接</strong>
-                    <span>确认可用后，再到工作空间中启用同步。</span>
+                    <span>测试通过后，到工作空间启用。</span>
                   </div>
                 </div>
               </div>
@@ -520,7 +579,7 @@
               <div class="sync-mode-selector">
                 <div class="sync-mode-selector-copy">
                   <h5>表和 Bucket 准备好了吗？</h5>
-                  <p id="sb-flow-mode-text" class="sync-hint">资源未准备好，就选“还没有，帮我初始化”。</p>
+                  <p id="sb-flow-mode-text" class="sync-hint">未准备好就选“帮我初始化”。</p>
                 </div>
                 <div class="sync-mode-options">
                   <label class="sync-inline-toggle" for="sb-project-state-existing">
@@ -536,7 +595,7 @@
 
               <div id="sb-init-section" class="sync-inline-reveal" hidden>
                 <p id="sb-setup-status-text" class="sync-hint" hidden></p>
-                <p id="sb-init-mode-hint" class="sync-hint">Project Ref 会自动识别，Bucket 默认是 backgrounds。</p>
+                <p id="sb-init-mode-hint" class="sync-hint">Project Ref 自动识别，Bucket 默认为 backgrounds。</p>
                 <div class="form-group">
                   <label for="sb-service-role-key">Service Role Key <span class="sync-label-chip is-init-only">仅初始化</span></label>
                   <input type="password" id="sb-service-role-key" placeholder="直接粘贴 Service Role Key">
@@ -546,8 +605,8 @@
                   <input type="password" id="sb-management-token" placeholder="直接粘贴 Personal Access Token">
                 </div>
                 <details class="sync-advanced-details">
-                  <summary>高级选项（一般不用改）</summary>
-                  <p class="sync-hint">Project Ref 会自动识别，Bucket 默认是 `backgrounds`。</p>
+                  <summary>高级选项（通常不用改）</summary>
+                  <p class="sync-hint">Project Ref 自动识别，Bucket 默认为 `backgrounds`。</p>
                   <div class="sync-form-grid">
                     <div class="form-group">
                       <label for="sb-project-ref">Project Ref <span class="sync-label-chip is-optional">可选</span></label>

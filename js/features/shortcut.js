@@ -123,15 +123,15 @@ class ShortcutManager {
       
       // Extract domain for favicon
       const domain = new URL(fullUrl).hostname;
-      const browserFaviconUrl = this.getBrowserFaviconUrl(fullUrl);
       const fallbackFaviconUrl = this.getFallbackFaviconUrl(domain);
+      const faviconCandidates = this.getFaviconCandidates(fullUrl, fallbackFaviconUrl);
       
       // Keep a network fallback URL for compatibility with existing data.
       this.currentFaviconUrl = fallbackFaviconUrl;
-      this.setFaviconPreview(browserFaviconUrl, fallbackFaviconUrl);
+      this.setFaviconPreview(faviconCandidates);
       
       // If we have a favicon, auto-select the favicon option
-      if (browserFaviconUrl || fallbackFaviconUrl) {
+      if (faviconCandidates.length > 0) {
         document.getElementById('icon-type-favicon').checked = true;
         this.faviconPreview.classList.remove('hidden');
         this.letterIconForm.classList.add('hidden');
@@ -213,9 +213,8 @@ class ShortcutManager {
     
     // Set favicon preview if available
     if (shortcut.iconType === 'favicon') {
-      const browserFaviconUrl = this.getBrowserFaviconUrl(shortcut.url);
       this.currentFaviconUrl = shortcut.iconUrl || '';
-      this.setFaviconPreview(browserFaviconUrl, shortcut.iconUrl || '');
+      this.setFaviconPreview(this.getFaviconCandidates(shortcut.url, shortcut.iconUrl || ''));
       this.faviconPreview.classList.remove('hidden');
     } else {
       this.faviconPreview.classList.add('hidden');
@@ -334,17 +333,7 @@ class ShortcutManager {
    * @returns {string} Browser favicon URL
    */
   getBrowserFaviconUrl(pageUrl, size = 64) {
-    if (!pageUrl || !chrome?.runtime?.id) {
-      return '';
-    }
-
-    try {
-      const normalizedUrl = this.normalizeUrl(pageUrl);
-      return `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(normalizedUrl)}&size=${size}`;
-    } catch (error) {
-      console.warn('ShortcutManager: Failed to build browser favicon URL', error);
-      return '';
-    }
+    return window.FaviconHelper?.getBrowserFaviconUrl(pageUrl, size) || '';
   }
 
   /**
@@ -354,6 +343,22 @@ class ShortcutManager {
    */
   getFallbackFaviconUrl(domain) {
     return this.getFaviconUrl(domain);
+  }
+
+  /**
+   * Get ordered favicon candidates based on current settings.
+   * @param {string} pageUrl - The target page URL
+   * @param {string} fallbackUrl - Network favicon fallback URL
+   * @param {number} size - Requested favicon size
+   * @returns {string[]} Favicon candidates
+   */
+  getFaviconCandidates(pageUrl, fallbackUrl = '', size = 64) {
+    if (window.FaviconHelper?.getFaviconCandidates) {
+      return window.FaviconHelper.getFaviconCandidates(pageUrl, fallbackUrl, size);
+    }
+
+    const browserFaviconUrl = this.getBrowserFaviconUrl(pageUrl, size);
+    return [browserFaviconUrl, fallbackUrl].filter(Boolean);
   }
 
   /**
@@ -370,17 +375,26 @@ class ShortcutManager {
   }
 
   /**
-   * Show favicon preview using browser favicon first, then stored fallback.
-   * @param {string} primaryUrl - Preferred favicon source
-   * @param {string} fallbackUrl - Secondary favicon source
+   * Show favicon preview using ordered fallback candidates.
+   * @param {string[]} candidates - Ordered favicon candidates
    */
-  setFaviconPreview(primaryUrl, fallbackUrl = '') {
-    if (!primaryUrl && !fallbackUrl) {
+  setFaviconPreview(candidates = []) {
+    if (!Array.isArray(candidates) || candidates.length === 0) {
       this.faviconImage.removeAttribute('src');
       this.faviconImage.onerror = null;
       return;
     }
 
+    if (window.FaviconHelper?.applyImageFallback) {
+      window.FaviconHelper.applyImageFallback(this.faviconImage, candidates, {
+        onExhausted: () => {
+          this.faviconImage.removeAttribute('src');
+        }
+      });
+      return;
+    }
+
+    const [primaryUrl, fallbackUrl] = candidates;
     let hasTriedFallback = false;
     this.faviconImage.onerror = () => {
       if (!hasTriedFallback && fallbackUrl && this.faviconImage.src !== fallbackUrl) {

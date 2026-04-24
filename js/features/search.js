@@ -356,30 +356,30 @@ class SearchManager {
           icon.classList.add('shortcut-icon-image');
           const image = document.createElement('img');
           image.alt = result.data.name;
-          let browserFaviconUrl = '';
-          let hasTriedFallbackUrl = false;
+          const fallbackUrl = result.data.iconUrl || '';
+          const faviconCandidates = window.FaviconHelper?.getFaviconCandidates
+            ? window.FaviconHelper.getFaviconCandidates(result.data.url, fallbackUrl, 32)
+            : [fallbackUrl];
 
-          if (result.data.url && chrome?.runtime?.id) {
-            try {
-              const normalizedUrl = result.data.url.match(/^https?:\/\//)
-                ? result.data.url
-                : `https://${result.data.url}`;
-              browserFaviconUrl = `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(normalizedUrl)}&size=32`;
-            } catch (error) {
-              console.warn('SearchManager: Failed to build browser favicon URL', error);
-            }
+          if (window.FaviconHelper?.applyImageFallback) {
+            window.FaviconHelper.applyImageFallback(image, faviconCandidates, {
+              onExhausted: () => {
+                icon.textContent = result.data.name.charAt(0).toUpperCase();
+              }
+            });
+          } else {
+            let hasTriedFallbackUrl = false;
+            image.addEventListener('error', () => {
+              if (!hasTriedFallbackUrl && fallbackUrl && image.src !== fallbackUrl) {
+                hasTriedFallbackUrl = true;
+                image.src = fallbackUrl;
+                return;
+              }
+
+              icon.textContent = result.data.name.charAt(0).toUpperCase();
+            });
+            image.src = faviconCandidates[0] || '';
           }
-
-          image.addEventListener('error', () => {
-            if (!hasTriedFallbackUrl && result.data.iconUrl && image.src !== result.data.iconUrl) {
-              hasTriedFallbackUrl = true;
-              image.src = result.data.iconUrl;
-              return;
-            }
-
-            icon.textContent = result.data.name.charAt(0).toUpperCase();
-          });
-          image.src = browserFaviconUrl || result.data.iconUrl || '';
           icon.appendChild(image);
         } else {
           icon.textContent = result.data.name.charAt(0).toUpperCase();

@@ -120,7 +120,8 @@ class UnifiedDataManager {
         return {
             viewMode: 'grid',
             shortcutOpenMode: 'new-tab',
-            displayMode: 'standard'
+            displayMode: 'standard',
+            faviconSource: 'browser-first'
         };
     }
 
@@ -172,6 +173,10 @@ class UnifiedDataManager {
 
         if (!['standard', 'focus', 'wallpaper'].includes(normalizedSettings.displayMode)) {
             normalizedSettings.displayMode = 'standard';
+        }
+
+        if (!['browser-first', 'online-first'].includes(normalizedSettings.faviconSource)) {
+            normalizedSettings.faviconSource = 'browser-first';
         }
 
         return normalizedSettings;

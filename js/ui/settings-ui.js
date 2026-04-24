@@ -1218,7 +1218,7 @@ class SettingsUIManager {
     if (!currentTheme) {
       title.textContent = '还没有可用工作空间';
       title.hidden = false;
-      desc.textContent = '先新建一个工作空间，再继续配置它的外观和同步。';
+      desc.textContent = '先新建工作空间，再配置外观和同步。';
       desc.hidden = false;
       manageBtn.textContent = '新建工作空间';
       return;
@@ -1230,7 +1230,7 @@ class SettingsUIManager {
     const currentSyncStatusLabel = currentSyncStatus === 'missing_remote'
       ? '云端缺失待处理'
       : (currentSyncStatus === 'detached' ? '已转本地' : '');
-    desc.textContent = `当前工作空间：${currentTheme.themeName || '未命名工作空间'} · ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}${currentSyncStatusLabel ? ` · ${currentSyncStatusLabel}` : ''}`;
+    desc.textContent = `${currentTheme.themeName || '未命名工作空间'} · ${syncModeMap[currentTheme.type] || '本地模式'} · ${colorModeMap[currentTheme.themeType] || '默认风格'}${currentSyncStatusLabel ? ` · ${currentSyncStatusLabel}` : ''}`;
     desc.hidden = false;
     manageBtn.textContent = '新建工作空间';
   }
@@ -1421,7 +1421,7 @@ class SettingsUIManager {
     if (!isExistingWorkspace) {
       title.textContent = '';
       title.hidden = true;
-      desc.textContent = '新工作空间，先保存基础设置，再配置云同步和数据管理。';
+      desc.textContent = '先保存工作空间，再配置同步和数据。';
       desc.hidden = false;
       if (indicator) {
         indicator.classList.remove('active');
@@ -1430,8 +1430,8 @@ class SettingsUIManager {
       switchBtn.style.display = 'none';
       inactiveNote.style.display = 'none';
       syncTitle.textContent = '请先保存工作空间';
-      syncDesc.textContent = '保存后，再回来选择使用已配置好的 Cloudflare 或 Supabase 连接。';
-      dataNote.textContent = '保存当前工作空间后，才能导入、导出或清空这份数据。';
+      syncDesc.textContent = '保存后即可选择 Cloudflare 或 Supabase 连接。';
+      dataNote.textContent = '保存后才能导入、导出或清空数据。';
       bgSettingGroup.style.display = 'none';
 
       [manualBtn, disableBtn, cfEnableBtn, sbEnableBtn, exportBtn, importBtn, clearDataBtn].forEach((button) => {
@@ -1461,8 +1461,8 @@ class SettingsUIManager {
       indicator.classList.toggle('active', isCurrentWorkspace);
     }
     desc.textContent = isCurrentWorkspace
-      ? `当前工作空间：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}${syncStatusLabel ? ` · ${syncStatusLabel}` : ''}。`
-      : `当前查看：${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}${syncStatusLabel ? ` · ${syncStatusLabel}` : ''}。如需同步或管理数据，请先切换到这个工作空间。`;
+      ? `${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}${syncStatusLabel ? ` · ${syncStatusLabel}` : ''}`
+      : `${workspace.themeName || '未命名工作空间'} · ${syncModeMap[workspace.type] || '本地存储'} · ${colorModeMap[workspace.themeType] || '默认风格'}${syncStatusLabel ? ` · ${syncStatusLabel}` : ''} · 需先切换后再管理同步和数据`;
     desc.hidden = false;
 
     applyBadge(badge, isCurrentWorkspace ? 'is-ready' : 'is-pending', isCurrentWorkspace ? '当前使用中' : '需先切换');
@@ -1486,23 +1486,23 @@ class SettingsUIManager {
     if (syncStatus === 'missing_remote') {
       syncTitle.textContent = '云端副本已缺失';
       syncDesc.textContent = isCurrentWorkspace
-        ? '你当前仍在使用这份本机副本，但它已不是正常同步状态。请尽快到“从云端导入”里选择恢复到云端、转成本地空间，或从本机移除。'
-        : '这个工作空间处于待处理状态，当前不能切换使用。请到“从云端导入”里选择恢复到云端、转成本地空间，或从本机移除。';
+        ? '当前仍在使用本机副本，但云端副本已缺失。请到“从云端导入”处理。'
+        : '该工作空间待处理，暂时不能切换。请到“从云端导入”处理。';
     } else if (workspace.type === 'cloudflare') {
       syncTitle.textContent = '已启用 Cloudflare 同步';
-      syncDesc.textContent = 'Cloudflare 与 Supabase 只能二选一，不能同时启用。';
+      syncDesc.textContent = 'Cloudflare 与 Supabase 仅支持二选一。';
     } else if (workspace.type === 'supabase') {
       syncTitle.textContent = '已启用 Supabase 同步';
-      syncDesc.textContent = 'Cloudflare 与 Supabase 只能二选一，不能同时启用。';
+      syncDesc.textContent = 'Cloudflare 与 Supabase 仅支持二选一。';
     } else {
       syncTitle.textContent = '当前使用本地存储';
-      syncDesc.textContent = '可在下方选择已配置好的云端连接。';
+      syncDesc.textContent = '可在下方选择云端连接。';
     }
 
     dataNote.textContent = syncStatus === 'missing_remote'
-      ? '当前处于云端缺失待处理状态；导入、导出和清空仍只作用于本机数据。'
+      ? '当前为云端缺失状态；数据操作仅影响本机。'
       : (isCurrentWorkspace
-        ? '这里只管理当前工作空间的数据导入、导出和清空。'
+        ? '管理当前工作空间的导入、导出和清空。'
         : '要管理这个工作空间的数据，请先切换到它。');
 
     applyBadge(
@@ -1521,7 +1521,7 @@ class SettingsUIManager {
       } else if (cfSetup.status === 'pending' || cfSetup.status === 'error') {
         cfDesc.textContent = cfSetup.text;
       } else {
-        cfDesc.textContent = '先到“云端连接”里准备好 Cloudflare Worker。';
+        cfDesc.textContent = '先准备 Cloudflare Worker。';
       }
     }
     if (sbDesc) {
@@ -1530,7 +1530,7 @@ class SettingsUIManager {
       } else if (sbSetup.status === 'pending' || sbSetup.status === 'error') {
         sbDesc.textContent = sbSetup.text;
       } else {
-        sbDesc.textContent = '先到“云端连接”里准备好 Project URL 和 API Key。';
+        sbDesc.textContent = '先准备 Project URL 和 API Key。';
       }
     }
 
@@ -1595,6 +1595,19 @@ class SettingsUIManager {
     }
   }
 
+  getFaviconSource() {
+    return document.querySelector('input[name="favicon-source"]:checked')?.value || 'browser-first';
+  }
+
+  setFaviconSource(source = 'browser-first') {
+    const normalizedSource = ['browser-first', 'online-first'].includes(source) ? source : 'browser-first';
+    const targetInput = document.querySelector(`input[name="favicon-source"][value="${normalizedSource}"]`);
+
+    if (targetInput) {
+      targetInput.checked = true;
+    }
+  }
+
   getWorkspaceViewMode() {
     return document.querySelector('input[name="workspace-view-mode"]:checked')?.value || 'grid';
   }
@@ -1624,6 +1637,8 @@ class SettingsUIManager {
   async loadWorkspaceBasicSettings(themeId = null) {
     const requestedThemeId = themeId || null;
     this.setShortcutOpenMode('new-tab');
+    this.setFaviconSource('browser-first');
+    this.setWorkspaceViewMode('grid');
     this.setWorkspaceDisplayMode('standard');
 
     if (!requestedThemeId) {
@@ -1649,6 +1664,7 @@ class SettingsUIManager {
 
       const settings = window.unifiedDataManager.normalizeSettings(themeData?.settings);
       this.setShortcutOpenMode(settings.shortcutOpenMode);
+      this.setFaviconSource(settings.faviconSource);
       this.setWorkspaceViewMode(settings.viewMode);
       this.setWorkspaceDisplayMode(settings.displayMode);
     } catch (error) {
@@ -1656,6 +1672,7 @@ class SettingsUIManager {
 
       if (this.editingThemeId === requestedThemeId) {
         this.setShortcutOpenMode('new-tab');
+        this.setFaviconSource('browser-first');
         this.setWorkspaceViewMode('grid');
         this.setWorkspaceDisplayMode('standard');
       }
@@ -1668,6 +1685,7 @@ class SettingsUIManager {
     const themeType = typeOpt ? typeOpt.getAttribute('data-type') : 'default';
     const opacity = parseInt(document.getElementById('bg-opacity-slider').value) || 30;
     const shortcutOpenMode = this.getShortcutOpenMode();
+    const faviconSource = this.getFaviconSource();
     const viewMode = this.getWorkspaceViewMode();
     const displayMode = this.getWorkspaceDisplayMode();
     const previewImage = document.getElementById('bg-preview-img');
@@ -1715,6 +1733,7 @@ class SettingsUIManager {
         await window.unifiedDataManager.updateThemeMetadata(this.editingThemeId, themeUpdates);
         await window.unifiedDataManager.updateThemeSettings(this.editingThemeId, {
           shortcutOpenMode,
+          faviconSource,
           viewMode,
           displayMode
         });
@@ -1723,6 +1742,7 @@ class SettingsUIManager {
         savedThemeId = newTheme.themeId;
         await window.unifiedDataManager.updateThemeSettings(savedThemeId, {
           shortcutOpenMode,
+          faviconSource,
           viewMode,
           displayMode
         });
@@ -2476,21 +2496,21 @@ class SettingsUIManager {
     }
     if (createModeHint) {
       createModeHint.textContent = isCreateReady
-        ? 'Worker 已创建成功，下面会自动显示生成的连接信息。'
-        : '先创建 Worker，成功后会自动生成 Worker API URL。';
+        ? 'Worker 已创建，连接信息如下。'
+        : '先创建 Worker，随后会自动生成 URL。';
     }
     if (connectionModeHint) {
       if (resolvedMode === 'create') {
         connectionModeHint.textContent = 'Worker 已创建，下面是自动生成的连接信息。';
       } else if (hasWorkerUrl) {
-        connectionModeHint.textContent = '连接信息已就绪，可以直接检测状态或测试连接。';
+        connectionModeHint.textContent = '连接信息已就绪，可直接检测或测试。';
       } else {
-        connectionModeHint.textContent = '已经有 Worker 就填这 2 项；下面的检测和测试按钮会一直显示。';
+        connectionModeHint.textContent = '已有 Worker 时只需填写这 2 项。';
       }
     }
     if (initModeHint) {
       if (resolvedMode === 'existing' && !hasWorkerUrl) {
-        initModeHint.textContent = '如果数据库还没准备好，填好 Worker API URL 后可直接初始化数据库。';
+        initModeHint.textContent = '数据库未初始化时，填写 Worker URL 后即可初始化。';
       } else {
         initModeHint.textContent = isInitialized
           ? '数据库已初始化，可直接进入下一步。'
@@ -2499,11 +2519,11 @@ class SettingsUIManager {
     }
     if (syncModeHint) {
       if (resolvedMode === 'existing' && !hasWorkerUrl) {
-        syncModeHint.textContent = '填入连接信息后，可直接检测状态或测试连接。确认成功后，到“工作空间”里启用同步。';
+        syncModeHint.textContent = '填好连接信息后即可检测或测试；通过后到工作空间启用。';
       } else {
         syncModeHint.textContent = isInitialized
-          ? '现在可以测试连接；确认成功后，到“工作空间”里启用同步。'
-          : '如果数据库早就初始化过，也可以直接测试连接。确认成功后，到“工作空间”里启用同步。';
+          ? '现在可以测试连接；通过后到工作空间启用。'
+          : '如果数据库已初始化，可直接测试；通过后到工作空间启用。';
       }
     }
 
@@ -3254,7 +3274,7 @@ class SettingsUIManager {
     const sbPanel = document.getElementById('supabase-sync-panel');
 
     if (providerNote) {
-      providerNote.textContent = '这里保存的是全局连接资料。是否启用 Cloudflare 或 Supabase，需要到具体工作空间中操作。';
+    providerNote.textContent = '这里只保存连接资料；启用同步请到工作空间中操作。';
     }
 
     if (cfHint) {
