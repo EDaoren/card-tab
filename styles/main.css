@@ -432,6 +432,75 @@ header {
   background: #de5833;
 }
 
+.search-engine-badge-kimi {
+  background: linear-gradient(135deg, #2f6cf6, #6f86ff);
+}
+
+.search-engine-badge-doubao {
+  background: linear-gradient(135deg, #0f9d8d, #17bebb);
+}
+
+.search-engine-badge-chatgpt {
+  background: linear-gradient(135deg, #111827, #3f4a5a);
+}
+
+.search-engine-badge-felo {
+  background: linear-gradient(135deg, #f97316, #fb7185);
+}
+
+.search-engine-badge-perplexity {
+  background: linear-gradient(135deg, #111827, #2563eb);
+}
+
+.search-engine-badge-metaso {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+}
+
+.search-engine-badge-semantic {
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+}
+
+.search-engine-badge-deepseek {
+  background: linear-gradient(135deg, #4f46e5, #818cf8);
+}
+
+.search-engine-badge-xiaohongshu {
+  background: linear-gradient(135deg, #ff2442, #ff6b81);
+}
+
+.search-engine-badge-yahoo {
+  background: linear-gradient(135deg, #6d28d9, #9333ea);
+}
+
+.search-engine-badge-yandex {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+}
+
+.search-engine-badge-jike {
+  background: linear-gradient(135deg, #f59e0b, #facc15);
+  color: #111827;
+}
+
+.search-engine-badge-zhihu {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.search-engine-badge-douban {
+  background: linear-gradient(135deg, #16a34a, #4ade80);
+}
+
+.search-engine-badge-bilibili {
+  background: linear-gradient(135deg, #ec4899, #fb7185);
+}
+
+.search-engine-badge-github {
+  background: linear-gradient(135deg, #111827, #475569);
+}
+
+.search-engine-badge-custom {
+  background: linear-gradient(135deg, #64748b, #334155);
+}
+
 /* 搜索输入区域 */
 .search-input-container {
   flex: 1;

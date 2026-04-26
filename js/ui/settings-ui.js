@@ -18,6 +18,15 @@ class SettingsUIManager {
       cloudflare: { items: [], missingItems: [], loading: false, loaded: false, error: '' },
       supabase: { items: [], missingItems: [], loading: false, loaded: false, error: '' }
     };
+    this.workspaceSettingsLoadToken = 0;
+    this.searchSettingsDraft = window.unifiedDataManager?.getDefaultSearchSettings?.() || {
+      defaultEngineId: 'browser-default',
+      enabledEngineIds: ['browser-default'],
+      customEngines: [],
+      openInNewTab: true
+    };
+    this.searchSettingsDraftDirty = false;
+    this.editingCustomSearchEngineId = null;
 
     // 背景图片缓存
     this.tempBgImageFile = null;
@@ -28,6 +37,7 @@ class SettingsUIManager {
     this.bindAppearanceEvents();
     this.bindRemoteWorkspacePickerEvents();
     this.bindWorkspaceDetailEvents();
+    this.bindSearchEngineSettingsEvents();
     this.bindSyncEvents();
     this.bindDataEvents();
     
@@ -1176,6 +1186,550 @@ class SettingsUIManager {
     document.getElementById('workspace-disable-sync-btn')?.addEventListener('click', this.disableSyncHandler.bind(this));
   }
 
+  bindSearchEngineSettingsEvents() {
+    document.querySelectorAll('input[name="search-open-mode"]').forEach((input) => {
+      input.addEventListener('change', (event) => {
+        this.searchSettingsDraft.openInNewTab = event.target.value === 'new-tab';
+        this.searchSettingsDraftDirty = true;
+      });
+    });
+
+    document.getElementById('builtin-search-engine-list')?.addEventListener('change', (event) => {
+      const checkbox = event.target.closest('input[data-engine-id]');
+      if (!checkbox) {
+        return;
+      }
+
+      this.toggleSearchEngineEnabled(checkbox.dataset.engineId, checkbox.checked);
+    });
+
+    document.getElementById('builtin-search-engine-list')?.addEventListener('click', (event) => {
+      if (event.target.closest('button') || event.target.closest('input[data-engine-id]')) {
+        return;
+      }
+
+      const item = event.target.closest('.search-engine-settings-item');
+      if (!item) {
+        return;
+      }
+
+      const checkbox = item.querySelector('input[data-engine-id]');
+      if (!checkbox || checkbox.disabled) {
+        return;
+      }
+
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    document.getElementById('custom-search-engine-list')?.addEventListener('change', (event) => {
+      const checkbox = event.target.closest('input[data-custom-engine-id]');
+      if (!checkbox) {
+        return;
+      }
+
+      this.toggleSearchEngineEnabled(checkbox.dataset.customEngineId, checkbox.checked);
+    });
+
+    document.getElementById('custom-search-engine-list')?.addEventListener('click', (event) => {
+      if (event.target.closest('button') || event.target.closest('input[data-custom-engine-id]')) {
+        return;
+      }
+
+      const item = event.target.closest('.search-engine-settings-item');
+      if (!item) {
+        return;
+      }
+
+      const checkbox = item.querySelector('input[data-custom-engine-id]');
+      if (!checkbox || checkbox.disabled) {
+        return;
+      }
+
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    document.getElementById('custom-search-engine-list')?.addEventListener('click', (event) => {
+      const editButton = event.target.closest('[data-edit-custom-engine-id]');
+      if (editButton) {
+        this.startEditingCustomSearchEngine(editButton.dataset.editCustomEngineId);
+        return;
+      }
+
+      const deleteButton = event.target.closest('[data-delete-custom-engine-id]');
+      if (!deleteButton) {
+        return;
+      }
+
+      void this.deleteCustomSearchEngine(deleteButton.dataset.deleteCustomEngineId);
+    });
+
+    document.getElementById('add-custom-search-engine-btn')?.addEventListener('click', () => {
+      this.saveCustomSearchEngine();
+    });
+
+    document.getElementById('cancel-custom-search-engine-edit-btn')?.addEventListener('click', () => {
+      this.resetCustomSearchEngineForm();
+    });
+  }
+
+  getNormalizedSearchSettingsDraft() {
+    const draft = this.searchSettingsDraft || {};
+    const normalizedSearchSettings = window.unifiedDataManager?.normalizeSearchSettings
+      ? window.unifiedDataManager.normalizeSearchSettings(draft)
+      : draft;
+    const resolvedSearchState = window.SearchEngineRegistry?.resolveSearchState
+      ? window.SearchEngineRegistry.resolveSearchState(normalizedSearchSettings)
+      : {
+        defaultEngineId: normalizedSearchSettings.defaultEngineId || 'browser-default',
+        enabledEngineIds: normalizedSearchSettings.enabledEngineIds || ['browser-default'],
+        customEngines: normalizedSearchSettings.customEngines || [],
+        openInNewTab: normalizedSearchSettings.openInNewTab !== false
+      };
+
+    return {
+      defaultEngineId: resolvedSearchState.defaultEngineId,
+      enabledEngineIds: resolvedSearchState.enabledEngineIds.slice(),
+      customEngines: resolvedSearchState.customEngines.map(engine => ({
+        id: engine.id,
+        name: engine.name,
+        category: engine.category || 'custom',
+        urlTemplate: engine.urlTemplate,
+        iconUrl: engine.iconUrl || ''
+      })),
+      openInNewTab: resolvedSearchState.openInNewTab
+    };
+  }
+
+  setSearchSettingsDraft(searchSettings = null) {
+    this.searchSettingsDraft = window.unifiedDataManager?.normalizeSearchSettings
+      ? window.unifiedDataManager.normalizeSearchSettings(searchSettings)
+      : (searchSettings || {});
+    this.renderSearchEngineSettings();
+  }
+
+  renderSearchEngineSettings() {
+    this.searchSettingsDraft = this.getNormalizedSearchSettingsDraft();
+
+    const resolvedSearchState = window.SearchEngineRegistry?.resolveSearchState
+      ? window.SearchEngineRegistry.resolveSearchState(this.searchSettingsDraft)
+      : null;
+    const builtInEngines = window.SearchEngineRegistry?.getBuiltInEngines?.() || [];
+    const groupedBuiltInEngines = window.SearchEngineRegistry?.groupEnginesByCategory
+      ? window.SearchEngineRegistry.groupEnginesByCategory(builtInEngines)
+      : { general: builtInEngines, ai: [], development: [], academic: [], social: [], custom: [] };
+    const groupedCustomEngines = window.SearchEngineRegistry?.groupEnginesByCategory
+      ? window.SearchEngineRegistry.groupEnginesByCategory(this.searchSettingsDraft.customEngines)
+      : { general: [], ai: [], development: [], academic: [], social: [], custom: this.searchSettingsDraft.customEngines };
+    const enabledEngineIds = new Set(this.searchSettingsDraft.enabledEngineIds);
+    const searchOpenModeCurrent = document.getElementById('search-open-mode-current');
+    const searchOpenModeNewTab = document.getElementById('search-open-mode-new-tab');
+    const builtInList = document.getElementById('builtin-search-engine-list');
+    const customList = document.getElementById('custom-search-engine-list');
+
+    if (searchOpenModeCurrent) {
+      searchOpenModeCurrent.checked = this.searchSettingsDraft.openInNewTab !== true;
+    }
+
+    if (searchOpenModeNewTab) {
+      searchOpenModeNewTab.checked = this.searchSettingsDraft.openInNewTab === true;
+    }
+
+    if (builtInList) {
+      builtInList.textContent = '';
+      const fragment = document.createDocumentFragment();
+      ['general', 'ai', 'development', 'academic', 'social'].forEach((categoryId) => {
+        const engines = groupedBuiltInEngines[categoryId] || [];
+        if (!engines.length) {
+          return;
+        }
+
+        const group = this.createSearchEngineSettingsGroup(
+          categoryId,
+          engines,
+          enabledEngineIds,
+          {
+            inputDataAttribute: 'engineId',
+            getMetaText: () => '',
+            isDisabled: (engine) => engine.id === 'browser-default',
+            defaultEngineId: this.searchSettingsDraft.defaultEngineId
+          }
+        );
+        fragment.appendChild(group);
+      });
+      builtInList.appendChild(fragment);
+    }
+
+    if (customList) {
+      customList.textContent = '';
+      const customEngines = groupedCustomEngines.custom || [];
+
+      if (!customEngines.length) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'search-engine-settings-empty';
+        emptyState.textContent = '还没有自定义搜索引擎';
+        customList.appendChild(emptyState);
+      } else {
+        customList.appendChild(this.createSearchEngineSettingsGroup(
+          'custom',
+          customEngines,
+          enabledEngineIds,
+          {
+            inputDataAttribute: 'customEngineId',
+            getMetaText: () => '',
+            defaultEngineId: this.searchSettingsDraft.defaultEngineId,
+            renderActions: (engine) => {
+              const actions = document.createElement('div');
+              actions.className = 'search-engine-card-actions';
+
+              const editButton = document.createElement('button');
+              editButton.type = 'button';
+              editButton.className = 'secondary-btn search-engine-edit-btn';
+              editButton.dataset.editCustomEngineId = engine.id;
+              editButton.textContent = '编辑';
+
+              const deleteButton = document.createElement('button');
+              deleteButton.type = 'button';
+              deleteButton.className = 'secondary-btn text-danger search-engine-delete-btn';
+              deleteButton.dataset.deleteCustomEngineId = engine.id;
+              deleteButton.textContent = '删除';
+
+              actions.appendChild(editButton);
+              actions.appendChild(deleteButton);
+              return actions;
+            }
+          }
+        ));
+      }
+    }
+  }
+
+  createSearchEngineSettingsGroup(categoryId, engines, enabledEngineIds, options = {}) {
+    const group = document.createElement('section');
+    group.className = 'search-engine-settings-group';
+
+    const header = document.createElement('div');
+    header.className = 'search-engine-settings-group-header';
+
+    const title = document.createElement('h5');
+    title.className = 'search-engine-settings-group-title';
+    title.textContent = window.SearchEngineRegistry?.getCategoryMeta?.(categoryId)?.label || categoryId;
+
+    header.appendChild(title);
+    group.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'search-engine-settings-group-list';
+
+    engines.forEach((engine) => {
+      const item = document.createElement('div');
+      item.className = `search-engine-settings-item${typeof options.renderActions === 'function' ? ' search-engine-settings-item-custom' : ''}`;
+      if (engine.id === options.defaultEngineId) {
+        item.classList.add('is-default-engine');
+        const badge = document.createElement('span');
+        badge.className = 'search-engine-default-badge';
+        const badgeMark = document.createElement('span');
+        badgeMark.className = 'search-engine-default-badge-mark';
+        badge.appendChild(badgeMark);
+        item.appendChild(badge);
+      }
+
+      const toggleLabel = document.createElement('div');
+      toggleLabel.className = 'search-engine-settings-toggle';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.dataset[options.inputDataAttribute || 'engineId'] = engine.id;
+      checkbox.checked = enabledEngineIds.has(engine.id);
+      checkbox.disabled = typeof options.isDisabled === 'function' ? !!options.isDisabled(engine) : false;
+
+      const info = document.createElement('div');
+      info.className = 'search-engine-settings-info';
+      info.appendChild(this.createSearchEnginePreviewNode({
+        ...engine,
+        type: engine.type || 'url',
+        iconType: engine.iconType || (engine.iconUrl ? 'image' : 'badge'),
+        iconValue: engine.iconValue || window.SearchEngineRegistry?.createBadgeText?.(engine.name) || '?',
+        badgeClass: engine.badgeClass || 'search-engine-badge-custom'
+      }));
+
+      const text = document.createElement('div');
+      text.className = 'search-engine-settings-text';
+
+      const name = document.createElement('strong');
+      name.textContent = engine.name;
+
+      const meta = document.createElement('span');
+      meta.textContent = typeof options.getMetaText === 'function' ? options.getMetaText(engine) : '';
+      if (!meta.textContent) {
+        text.classList.add('compact');
+      }
+
+      text.appendChild(name);
+      text.appendChild(meta);
+      info.appendChild(text);
+
+      toggleLabel.appendChild(checkbox);
+      toggleLabel.appendChild(info);
+      item.appendChild(toggleLabel);
+
+      if (typeof options.renderActions === 'function') {
+        const actionsNode = options.renderActions(engine);
+        if (actionsNode) {
+          item.appendChild(actionsNode);
+        }
+      }
+
+      list.appendChild(item);
+    });
+
+    group.appendChild(list);
+    return group;
+  }
+
+  createSearchEnginePreviewNode(engine) {
+    const icon = document.createElement('div');
+    icon.className = 'search-engine-settings-icon';
+
+    if (engine.iconType === 'material') {
+      const materialIcon = document.createElement('span');
+      materialIcon.className = 'material-symbols-rounded';
+      materialIcon.textContent = engine.iconValue || 'language';
+      icon.appendChild(materialIcon);
+      return icon;
+    }
+
+    if (engine.iconType === 'local' || engine.iconType === 'image') {
+      const image = document.createElement('img');
+      image.src = engine.iconPath || engine.iconUrl || '';
+      image.alt = engine.name || '';
+      image.addEventListener('error', () => {
+        image.replaceWith(this.createSearchEngineBadgeNode(engine));
+      }, { once: true });
+      icon.appendChild(image);
+      return icon;
+    }
+
+    icon.appendChild(this.createSearchEngineBadgeNode(engine));
+    return icon;
+  }
+
+  createSearchEngineBadgeNode(engine) {
+    const badge = document.createElement('span');
+    badge.className = `search-engine-badge ${engine.badgeClass || 'search-engine-badge-custom'}`.trim();
+    badge.textContent = engine.iconValue || window.SearchEngineRegistry?.createBadgeText?.(engine.name) || '?';
+    return badge;
+  }
+
+  toggleSearchEngineEnabled(engineId, enabled) {
+    const nextEnabledIds = this.searchSettingsDraft.enabledEngineIds.filter(id => id !== engineId);
+    if (enabled) {
+      nextEnabledIds.push(engineId);
+    }
+
+    this.searchSettingsDraft.enabledEngineIds = nextEnabledIds;
+    this.searchSettingsDraftDirty = true;
+    if (!enabled && this.searchSettingsDraft.defaultEngineId === engineId) {
+      this.searchSettingsDraft.defaultEngineId = 'browser-default';
+    }
+
+    this.renderSearchEngineSettings();
+  }
+
+  async deleteCustomSearchEngine(engineId) {
+    const targetEngine = this.searchSettingsDraft.customEngines.find(engine => engine.id === engineId);
+    if (!targetEngine) {
+      return;
+    }
+
+    const confirmed = window.notification?.confirm
+      ? await window.notification.confirm(`确定要删除自定义搜索引擎“${targetEngine.name}”吗？`, {
+          title: '确认删除',
+          confirmText: '删除',
+          cancelText: '取消',
+          type: 'warning'
+        })
+      : window.confirm(`确定要删除自定义搜索引擎“${targetEngine.name}”吗？`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.searchSettingsDraft.customEngines = this.searchSettingsDraft.customEngines.filter(engine => engine.id !== engineId);
+    this.searchSettingsDraft.enabledEngineIds = this.searchSettingsDraft.enabledEngineIds.filter(id => id !== engineId);
+    this.searchSettingsDraftDirty = true;
+    if (this.editingCustomSearchEngineId === engineId) {
+      this.resetCustomSearchEngineForm();
+    }
+    if (this.searchSettingsDraft.defaultEngineId === engineId) {
+      this.searchSettingsDraft.defaultEngineId = 'browser-default';
+    }
+    this.renderSearchEngineSettings();
+    this.showMessage('已从当前草稿删除，请保存工作空间', 'success');
+  }
+
+  getCustomSearchEngineFormElements() {
+    const nameInput = document.getElementById('custom-search-engine-name');
+    const urlTemplateInput = document.getElementById('custom-search-engine-url-template');
+    const iconUrlInput = document.getElementById('custom-search-engine-icon-url');
+    const submitButton = document.getElementById('add-custom-search-engine-btn');
+    const cancelButton = document.getElementById('cancel-custom-search-engine-edit-btn');
+
+    return {
+      nameInput,
+      urlTemplateInput,
+      iconUrlInput,
+      submitButton,
+      cancelButton
+    };
+  }
+
+  resetCustomSearchEngineForm() {
+    const {
+      nameInput,
+      urlTemplateInput,
+      iconUrlInput,
+      submitButton,
+      cancelButton
+    } = this.getCustomSearchEngineFormElements();
+
+    this.editingCustomSearchEngineId = null;
+
+    if (nameInput) {
+      nameInput.value = '';
+    }
+    if (urlTemplateInput) {
+      urlTemplateInput.value = '';
+    }
+    if (iconUrlInput) {
+      iconUrlInput.value = '';
+    }
+    if (submitButton) {
+      submitButton.textContent = '添加自定义引擎';
+    }
+    if (cancelButton) {
+      cancelButton.setAttribute('hidden', '');
+    }
+  }
+
+  startEditingCustomSearchEngine(engineId) {
+    const targetEngine = this.searchSettingsDraft.customEngines.find(engine => engine.id === engineId);
+    if (!targetEngine) {
+      this.showMessage('未找到要编辑的自定义搜索引擎', 'warning');
+      return;
+    }
+
+    const {
+      nameInput,
+      urlTemplateInput,
+      iconUrlInput,
+      submitButton,
+      cancelButton
+    } = this.getCustomSearchEngineFormElements();
+
+    this.editingCustomSearchEngineId = engineId;
+
+    if (nameInput) {
+      nameInput.value = targetEngine.name || '';
+    }
+    if (urlTemplateInput) {
+      urlTemplateInput.value = targetEngine.urlTemplate || '';
+    }
+    if (iconUrlInput) {
+      iconUrlInput.value = targetEngine.iconUrl || '';
+    }
+    if (submitButton) {
+      submitButton.textContent = '保存修改';
+    }
+    if (cancelButton) {
+      cancelButton.removeAttribute('hidden');
+    }
+
+    nameInput?.focus();
+    nameInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  saveCustomSearchEngine() {
+    const {
+      nameInput,
+      urlTemplateInput,
+      iconUrlInput
+    } = this.getCustomSearchEngineFormElements();
+    const payload = {
+      name: nameInput?.value || '',
+      urlTemplate: urlTemplateInput?.value || '',
+      iconUrl: iconUrlInput?.value || ''
+    };
+
+    const validation = window.SearchEngineRegistry?.validateCustomEngineInput?.(payload) || { valid: true, message: '' };
+    if (!validation.valid) {
+      this.showMessage(validation.message, 'warning');
+      return;
+    }
+
+    const duplicateName = [
+      ...(window.SearchEngineRegistry?.getBuiltInEngines?.() || []),
+      ...this.searchSettingsDraft.customEngines
+    ].some((engine) => {
+      if (this.editingCustomSearchEngineId && engine.id === this.editingCustomSearchEngineId) {
+        return false;
+      }
+
+      return (engine.name || '').trim().toLowerCase() === payload.name.trim().toLowerCase();
+    });
+
+    if (duplicateName) {
+      this.showMessage('已存在同名搜索引擎，请更换名称', 'warning');
+      return;
+    }
+
+    const isEditing = !!this.editingCustomSearchEngineId;
+    const nextEngine = isEditing
+      ? {
+          id: this.editingCustomSearchEngineId,
+          name: payload.name.trim(),
+          category: 'custom',
+          urlTemplate: payload.urlTemplate.trim(),
+          iconUrl: payload.iconUrl.trim()
+        }
+      : (window.SearchEngineRegistry?.createCustomEngineDraft?.(payload) || payload);
+
+    this.searchSettingsDraft.customEngines = isEditing
+      ? this.searchSettingsDraft.customEngines.map((engine) => (
+          engine.id === this.editingCustomSearchEngineId
+            ? nextEngine
+            : engine
+        ))
+      : [
+          ...this.searchSettingsDraft.customEngines,
+          nextEngine
+        ];
+    this.searchSettingsDraftDirty = true;
+
+    if (!this.searchSettingsDraft.enabledEngineIds.includes(nextEngine.id)) {
+      this.searchSettingsDraft.enabledEngineIds = [
+        ...this.searchSettingsDraft.enabledEngineIds,
+        nextEngine.id
+      ];
+    }
+
+    if (!this.searchSettingsDraft.defaultEngineId) {
+      this.searchSettingsDraft.defaultEngineId = nextEngine.id;
+    }
+
+    this.resetCustomSearchEngineForm();
+    this.renderSearchEngineSettings();
+    const addedEngineItem = document
+      .querySelector(`[data-custom-engine-id="${nextEngine.id}"]`)
+      ?.closest('.search-engine-settings-item');
+    addedEngineItem?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    this.showMessage(
+      isEditing ? '已更新当前草稿，请保存工作空间' : '已添加到当前草稿，请保存工作空间',
+      'success'
+    );
+  }
+
   switchWorkspaceDetailTab(tabName = 'basic') {
     this.currentWorkspaceTab = tabName;
 
@@ -1278,6 +1832,8 @@ class SettingsUIManager {
 
   openThemeForm(themeId = null) {
     this.editingThemeId = themeId;
+    this.searchSettingsDraftDirty = false;
+    this.editingCustomSearchEngineId = null;
     const form = document.getElementById('theme-edit-form');
     const remoteWorkspacePage = document.getElementById('remote-workspace-picker');
     if (remoteWorkspacePage) {
@@ -1295,8 +1851,11 @@ class SettingsUIManager {
     this.tempBgImageFile = null;
     this.showPreviewBg(null);
     this.setShortcutOpenMode('new-tab');
+    this.setFaviconSource('browser-first');
     this.setWorkspaceViewMode('grid');
     this.setWorkspaceDisplayMode('standard');
+    this.setSearchSettingsDraft(window.unifiedDataManager?.getDefaultSearchSettings?.() || null);
+    this.resetCustomSearchEngineForm();
     document.getElementById('bg-opacity-slider').value = 30;
     document.getElementById('bg-opacity-value').textContent = '30%';
 
@@ -1636,10 +2195,12 @@ class SettingsUIManager {
 
   async loadWorkspaceBasicSettings(themeId = null) {
     const requestedThemeId = themeId || null;
+    const loadToken = ++this.workspaceSettingsLoadToken;
     this.setShortcutOpenMode('new-tab');
     this.setFaviconSource('browser-first');
     this.setWorkspaceViewMode('grid');
     this.setWorkspaceDisplayMode('standard');
+    this.setSearchSettingsDraft(window.unifiedDataManager?.getDefaultSearchSettings?.() || null);
 
     if (!requestedThemeId) {
       return;
@@ -1658,7 +2219,7 @@ class SettingsUIManager {
           useDefaultFallback: true
         });
 
-      if (this.editingThemeId !== requestedThemeId) {
+      if (this.editingThemeId !== requestedThemeId || loadToken !== this.workspaceSettingsLoadToken) {
         return;
       }
 
@@ -1667,14 +2228,20 @@ class SettingsUIManager {
       this.setFaviconSource(settings.faviconSource);
       this.setWorkspaceViewMode(settings.viewMode);
       this.setWorkspaceDisplayMode(settings.displayMode);
+      if (!this.searchSettingsDraftDirty) {
+        this.setSearchSettingsDraft(settings.search);
+      }
     } catch (error) {
       console.warn('加载工作空间基础设置失败:', error);
 
-      if (this.editingThemeId === requestedThemeId) {
+      if (this.editingThemeId === requestedThemeId && loadToken === this.workspaceSettingsLoadToken) {
         this.setShortcutOpenMode('new-tab');
         this.setFaviconSource('browser-first');
         this.setWorkspaceViewMode('grid');
         this.setWorkspaceDisplayMode('standard');
+        if (!this.searchSettingsDraftDirty) {
+          this.setSearchSettingsDraft(window.unifiedDataManager?.getDefaultSearchSettings?.() || null);
+        }
       }
     }
   }
@@ -1688,6 +2255,7 @@ class SettingsUIManager {
     const faviconSource = this.getFaviconSource();
     const viewMode = this.getWorkspaceViewMode();
     const displayMode = this.getWorkspaceDisplayMode();
+    const searchSettings = this.getNormalizedSearchSettingsDraft();
     const previewImage = document.getElementById('bg-preview-img');
     const hasPreviewImage = !!previewImage.getAttribute('src');
     let savedThemeId = this.editingThemeId;
@@ -1735,7 +2303,8 @@ class SettingsUIManager {
           shortcutOpenMode,
           faviconSource,
           viewMode,
-          displayMode
+          displayMode,
+          search: searchSettings
         });
       } else {
         const newTheme = await window.unifiedDataManager.createLocalTheme(name, themeType, opacity);
@@ -1744,11 +2313,13 @@ class SettingsUIManager {
           shortcutOpenMode,
           faviconSource,
           viewMode,
-          displayMode
+          displayMode,
+          search: searchSettings
         });
       }
 
       window.storageManager?.updateDataFromUnified?.();
+      this.searchSettingsDraftDirty = false;
       
       this.showMessage('工作空间已保存', 'success');
       this.closeThemeForm();

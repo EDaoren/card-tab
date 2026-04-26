@@ -121,8 +121,70 @@ class UnifiedDataManager {
             viewMode: 'grid',
             shortcutOpenMode: 'new-tab',
             displayMode: 'standard',
-            faviconSource: 'browser-first'
+            faviconSource: 'browser-first',
+            search: this.getDefaultSearchSettings()
         };
+    }
+
+    getDefaultSearchSettings() {
+        return {
+            defaultEngineId: 'browser-default',
+            enabledEngineIds: [
+                'browser-default',
+                'google',
+                'bing',
+                'baidu',
+                'ddg',
+                'kimi',
+                'doubao',
+                'chatgpt',
+                'felo',
+                'metaso',
+                'xiaohongshu'
+            ],
+            customEngines: [],
+            openInNewTab: true
+        };
+    }
+
+    getSupportedSearchEngineIds() {
+        return [
+            'browser-default',
+            'google',
+            'bing',
+            'baidu',
+            'ddg',
+            'brave',
+            'stackoverflow',
+            'npm',
+            'mdn',
+            'pypi',
+            'kimi',
+            'doubao',
+            'chatgpt',
+            'gemini',
+            'qwen',
+            'felo',
+            'metaso',
+            'xiaohongshu',
+            'perplexity',
+            'semanticscholar',
+            'googlescholar',
+            'arxiv',
+            'pubmed',
+            'deepseek',
+            'grok',
+            'glm',
+            'yahoo',
+            'yandex',
+            'weibo',
+            'douyin',
+            'jike',
+            'zhihu',
+            'douban',
+            'bilibili',
+            'github'
+        ];
     }
 
     createShortcutRecord(options = {}) {
@@ -179,7 +241,89 @@ class UnifiedDataManager {
             normalizedSettings.faviconSource = 'browser-first';
         }
 
+        normalizedSettings.search = this.normalizeSearchSettings(normalizedSettings.search);
+
         return normalizedSettings;
+    }
+
+    normalizeSearchSettings(searchSettings = null) {
+        const defaultSearchSettings = this.getDefaultSearchSettings();
+        const normalizedSearchSettings = {
+            ...defaultSearchSettings,
+            ...(searchSettings || {})
+        };
+
+        const availableEngineIds = new Set(this.getSupportedSearchEngineIds());
+        const customEngines = Array.isArray(normalizedSearchSettings.customEngines)
+            ? normalizedSearchSettings.customEngines
+                .map((engine, index) => this.normalizeCustomSearchEngine(engine, index))
+                .filter(Boolean)
+            : [];
+
+        customEngines.forEach((engine) => {
+            availableEngineIds.add(engine.id);
+        });
+
+        const enabledEngineIds = Array.isArray(normalizedSearchSettings.enabledEngineIds)
+            ? normalizedSearchSettings.enabledEngineIds
+                .map(engineId => typeof engineId === 'string' ? engineId.trim() : '')
+                .filter(Boolean)
+            : defaultSearchSettings.enabledEngineIds.slice();
+
+        const uniqueEnabledEngineIds = [];
+        enabledEngineIds.forEach((engineId) => {
+            if (!availableEngineIds.has(engineId) || uniqueEnabledEngineIds.includes(engineId)) {
+                return;
+            }
+            uniqueEnabledEngineIds.push(engineId);
+        });
+
+        if (!uniqueEnabledEngineIds.includes('browser-default')) {
+            uniqueEnabledEngineIds.unshift('browser-default');
+        }
+
+        let defaultEngineId = typeof normalizedSearchSettings.defaultEngineId === 'string'
+            ? normalizedSearchSettings.defaultEngineId.trim()
+            : defaultSearchSettings.defaultEngineId;
+
+        if (!defaultEngineId || !availableEngineIds.has(defaultEngineId)) {
+            defaultEngineId = defaultSearchSettings.defaultEngineId;
+        }
+
+        if (!uniqueEnabledEngineIds.includes(defaultEngineId)) {
+            uniqueEnabledEngineIds.unshift(defaultEngineId);
+        }
+
+        normalizedSearchSettings.defaultEngineId = defaultEngineId;
+        normalizedSearchSettings.enabledEngineIds = uniqueEnabledEngineIds;
+        normalizedSearchSettings.customEngines = customEngines;
+        normalizedSearchSettings.openInNewTab = normalizedSearchSettings.openInNewTab !== false;
+
+        return normalizedSearchSettings;
+    }
+
+    normalizeCustomSearchEngine(engine = {}, index = 0) {
+        if (!engine || typeof engine !== 'object') {
+            return null;
+        }
+
+        const name = typeof engine.name === 'string' ? engine.name.trim() : '';
+        const urlTemplate = typeof engine.urlTemplate === 'string' ? engine.urlTemplate.trim() : '';
+        const iconUrl = typeof engine.iconUrl === 'string' ? engine.iconUrl.trim() : '';
+        const fallbackId = `custom-${Date.now()}-${index}`;
+        const id = typeof engine.id === 'string' && engine.id.trim() ? engine.id.trim() : fallbackId;
+
+        if (!name || !urlTemplate || !urlTemplate.includes('%s')) {
+            return null;
+        }
+
+        return {
+            id,
+            name,
+            category: 'custom',
+            urlTemplate,
+            iconUrl
+        };
     }
 
     createConfigDataRecord(options = {}) {
@@ -846,6 +990,38 @@ class UnifiedDataManager {
             settings: {
                 ...(baseData?.settings || {}),
                 ...(newSettings || {})
+            }
+        });
+
+        if (themeId === this.appData.currentThemeId) {
+            await this.saveCurrentConfigData(updatedData);
+            return this.currentConfigData;
+        }
+
+        return this.syncThemeDataWithProvider(theme, updatedData);
+    }
+
+    async updateThemeSearchSettings(themeId, newSearchSettings = {}) {
+        const theme = this.appData?.themes?.[themeId];
+        if (!theme) {
+            throw new Error(`主题 ${themeId} 不存在`);
+        }
+
+        const baseData = themeId === this.appData.currentThemeId
+            ? (this.currentConfigData || await this.loadCurrentConfigData())
+            : await this.resolveThemeData(theme, {
+                preferCache: true,
+                useDefaultFallback: true
+            });
+
+        const updatedData = this.normalizeConfigData({
+            ...(baseData || {}),
+            settings: {
+                ...(baseData?.settings || {}),
+                search: {
+                    ...(baseData?.settings?.search || {}),
+                    ...(newSearchSettings || {})
+                }
             }
         });
 

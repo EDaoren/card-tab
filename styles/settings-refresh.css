@@ -786,6 +786,261 @@ body.theme-dark.settings-page .bg-preview-area {
   background: var(--ui-surface-muted);
 }
 
+.settings-page .search-settings-section {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 18px;
+  background: var(--ui-surface-2);
+}
+
+.settings-page .search-settings-section-header h4 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.settings-page .search-settings-section .panel-desc {
+  margin: 0;
+}
+
+.settings-page .search-settings-block {
+  margin: 0;
+}
+
+.settings-page .search-settings-block-separated {
+  padding-top: 18px;
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.settings-page .search-engine-settings-list {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-page .search-engine-settings-group {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-page .search-engine-settings-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-page .search-engine-settings-group-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.settings-page .search-engine-settings-group-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.settings-page .search-engine-settings-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 14px;
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 14px;
+  background: var(--ui-surface-1);
+  overflow: hidden;
+}
+
+.settings-page .search-engine-settings-item.is-default-engine {
+  border-color: rgba(var(--primary-color-rgb), 0.24);
+  box-shadow: 0 0 0 1px rgba(var(--primary-color-rgb), 0.08);
+}
+
+.settings-page .search-engine-settings-item.is-default-engine .search-engine-settings-toggle {
+  padding-right: 10px;
+}
+
+.settings-page .search-engine-default-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 4px 4px 0 0;
+  background: linear-gradient(135deg, rgba(var(--primary-color-rgb), 0.16), rgba(var(--primary-color-rgb), 0.26));
+  color: var(--primary-color);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+  pointer-events: none;
+}
+
+.settings-page .search-engine-default-badge-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.settings-page .search-engine-settings-item input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.settings-page .search-engine-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.settings-page .search-engine-settings-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-page .search-engine-settings-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-page .search-engine-settings-text strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-page .search-engine-settings-text.compact {
+  gap: 0;
+  justify-content: center;
+}
+
+.settings-page .search-engine-settings-text span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.settings-page .search-engine-settings-text span:empty {
+  display: none;
+}
+
+.settings-page .search-engine-settings-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--ui-surface-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.settings-page .search-engine-settings-icon img {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.settings-page .search-engine-settings-icon .material-symbols-rounded {
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
+.settings-page .search-engine-settings-icon .search-engine-badge {
+  margin-right: 0;
+}
+
+.settings-page [hidden] {
+  display: none !important;
+}
+
+.settings-page .search-engine-settings-item-custom {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 96px;
+}
+
+.settings-page .search-engine-settings-list-custom .search-engine-settings-group-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.settings-page .search-engine-settings-item-custom .search-engine-settings-toggle {
+  width: 100%;
+  align-items: center;
+}
+
+.settings-page .search-engine-settings-item-custom .search-engine-settings-info {
+  align-items: center;
+}
+
+.settings-page .search-engine-settings-item-custom .search-engine-settings-text {
+  gap: 0;
+  justify-content: center;
+}
+
+.settings-page .search-engine-settings-item-custom .search-engine-settings-text strong {
+  padding-right: 12px;
+}
+
+.settings-page .search-engine-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+}
+
+.settings-page .search-engine-edit-btn,
+.settings-page .search-engine-delete-btn {
+  min-width: 68px;
+}
+
+.settings-page .search-engine-delete-btn {
+  flex-shrink: 0;
+}
+
+.settings-page .search-engine-custom-form {
+  display: grid;
+  gap: 16px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--ui-border-subtle);
+}
+
+.settings-page .search-engine-custom-form-actions {
+  margin-top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settings-page .search-engine-settings-empty {
+  padding: 14px 16px;
+  border: 1px dashed var(--ui-border-subtle);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  background: var(--ui-surface-1);
+}
+
 @media (max-width: 960px) {
   .settings-page .settings-layout {
     flex-direction: column;
@@ -832,6 +1087,8 @@ body.theme-dark.settings-page .bg-preview-area {
   }
 
   .settings-page .workspace-provider-actions,
+  .settings-page .search-engine-settings-item,
+  .settings-page .search-engine-settings-item-custom,
   .settings-page .theme-actions,
   .settings-page .remote-workspace-action-buttons {
     display: grid;

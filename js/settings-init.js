@@ -29,6 +29,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (window.settingsUIManager) {
       await window.settingsUIManager.init();
+
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('openSearchConfig') === '1') {
+        const currentThemeId = window.unifiedDataManager?.appData?.currentThemeId || null;
+        window.settingsUIManager.showPanel('panel-appearance');
+        if (currentThemeId) {
+          window.settingsUIManager.openThemeForm(currentThemeId);
+          window.settingsUIManager.switchWorkspaceDetailTab('search');
+        }
+      }
     }
   } catch (error) {
     console.error('Failed to initialize settings page:', error);

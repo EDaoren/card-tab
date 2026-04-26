@@ -109,11 +109,7 @@
           <div class="search-input-row">
             <div class="search-engine-selector">
               <span class="material-symbols-rounded search-engine-icon">language</span>
-              <span class="search-engine-dropdown">
-                <span class="material-symbols-rounded">expand_more</span>
-              </span>
-              <!-- 下拉菜单 -->
-              <div class="search-engine-dropdown-menu"></div>
+              <span class="material-symbols-rounded search-engine-selector-hint">expand_more</span>
             </div>
             <div class="search-input-container">
               <input type="text" id="search-input"  autocomplete="off" spellcheck="false">
@@ -123,6 +119,9 @@
             </button>
           </div>
           <!-- 搜索结果将在这里显示 -->
+        </div>
+        <div class="search-engine-panel">
+          <div class="search-engine-panel-list"></div>
         </div>
       </div>
     </header>
@@ -297,6 +296,7 @@
   <!-- 业务逻辑模块 -->
   <script src="js/features/category.js"></script>
   <script src="js/features/shortcut.js"></script>
+  <script src="js/features/search-engine-registry.js"></script>
   <script src="js/features/search.js"></script>
   <script src="js/ui/view.js"></script>
   <script src="js/ui/theme.js"></script>

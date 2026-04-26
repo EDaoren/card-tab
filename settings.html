@@ -119,6 +119,7 @@
 
           <div class="tabs workspace-detail-tabs" role="tablist" aria-label="工作空间设置分组">
             <button class="tab-btn workspace-tab-btn active" data-workspace-tab="basic" type="button">基础设置</button>
+            <button class="tab-btn workspace-tab-btn" data-workspace-tab="search" type="button">搜索配置</button>
             <button class="tab-btn workspace-tab-btn" data-workspace-tab="sync" type="button">云同步</button>
             <button class="tab-btn workspace-tab-btn" data-workspace-tab="data" type="button">数据管理</button>
           </div>
@@ -271,9 +272,60 @@
                 </div>
               </div>
 
-              <div class="form-actions">
-                <button id="save-theme-btn" class="primary-btn">保存工作空间</button>
-              </div>
+            </div>
+
+            <div id="workspace-tab-search" class="tab-pane workspace-tab-pane">
+              <section class="search-settings-section" aria-labelledby="workspace-search-settings-title">
+                <div class="search-settings-section-header">
+                  <div>
+                    <h4 id="workspace-search-settings-title">搜索引擎</h4>
+                    <p class="panel-desc">统一管理当前工作空间的搜索引擎显示列表和自定义搜索入口。默认引擎请在首页直接切换；这里的改动需要点击“保存工作空间”才会生效。</p>
+                  </div>
+                </div>
+
+                <div class="form-group search-settings-block">
+                  <label>搜索结果打开方式</label>
+                  <div class="sync-mode-options" role="radiogroup" aria-label="搜索结果打开方式">
+                    <label class="sync-inline-toggle" for="search-open-mode-current">
+                      <input type="radio" id="search-open-mode-current" name="search-open-mode" value="current-tab">
+                      <span>当前页打开</span>
+                    </label>
+                    <label class="sync-inline-toggle" for="search-open-mode-new-tab">
+                      <input type="radio" id="search-open-mode-new-tab" name="search-open-mode" value="new-tab" checked>
+                      <span>新标签页打开</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group search-settings-block search-settings-block-separated">
+                  <label>内置搜索引擎</label>
+                  <div id="builtin-search-engine-list" class="search-engine-settings-list"></div>
+                </div>
+
+                <div class="form-group search-settings-block search-settings-block-separated">
+                  <label>自定义搜索引擎</label>
+                  <div id="custom-search-engine-list" class="search-engine-settings-list search-engine-settings-list-custom"></div>
+                </div>
+
+                <div class="search-engine-custom-form search-settings-block search-settings-block-separated">
+                  <div class="form-group">
+                    <label for="custom-search-engine-name">名称</label>
+                    <input type="text" id="custom-search-engine-name" placeholder="例如：Perplexity 镜像">
+                  </div>
+                  <div class="form-group">
+                    <label for="custom-search-engine-url-template">搜索 URL 模板</label>
+                    <input type="text" id="custom-search-engine-url-template" placeholder="https://example.com/search?q=%s">
+                  </div>
+                  <div class="form-group">
+                    <label for="custom-search-engine-icon-url">图标 URL（可选）</label>
+                    <input type="url" id="custom-search-engine-icon-url" placeholder="https://example.com/favicon.ico">
+                  </div>
+                  <div class="form-actions search-engine-custom-form-actions">
+                    <button id="add-custom-search-engine-btn" class="secondary-btn" type="button">添加自定义引擎</button>
+                    <button id="cancel-custom-search-engine-edit-btn" class="secondary-btn" type="button" hidden>取消编辑</button>
+                  </div>
+                </div>
+              </section>
             </div>
 
             <div id="workspace-tab-sync" class="tab-pane workspace-tab-pane">
@@ -349,6 +401,10 @@
                   <button id="clear-data-btn" class="secondary-btn text-danger">清空数据</button>
                 </div>
               </div>
+            </div>
+
+            <div class="form-actions">
+              <button id="save-theme-btn" class="primary-btn">保存工作空间</button>
             </div>
           </div>
         </div>
@@ -670,6 +726,7 @@
   <script src="js/core/unified-data-manager.js"></script>
   <script src="js/core/storage-adapter.js"></script>
   <script src="js/core/sync-adapter.js"></script>
+  <script src="js/features/search-engine-registry.js"></script>
   <script src="js/ui/theme.js"></script>
   <script src="js/ui/notification.js"></script>
   <script src="js/ui/settings-ui.js"></script>

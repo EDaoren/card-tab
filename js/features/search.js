@@ -1,5 +1,5 @@
 /**
- * Search handler for the Card Tab extension
+ * Search handler for the Card Tab extension.
  */
 
 class SearchManager {
@@ -7,157 +7,233 @@ class SearchManager {
     this.searchInput = document.getElementById('search-input');
     this.searchButton = document.querySelector('.search-button');
     this.searchEngineSelector = document.querySelector('.search-engine-selector');
-    this.searchEngineIcon = document.querySelector('.search-engine-icon');
-    this.searchEngineDropdownMenu = document.querySelector('.search-engine-dropdown-menu');
+    this.searchEnginePanelList = document.querySelector('.search-engine-panel-list');
     this.searchContainer = document.querySelector('.search-container');
     this.searchBox = document.querySelector('.search-box');
     this.categoriesContainer = document.getElementById('categories-container');
 
-    // 防抖相关
     this.searchDebounceTimer = null;
-    this.searchDebounceDelay = 200; // 200ms防抖延迟
-
-    // 创建搜索结果下拉框
-    this.createSearchDropdown();
-
-    // 搜索引擎配置 - 符合Chrome Web Store政策
-    this.searchEngines = [
-      {
-        id: 'default',
-        name: '默认搜索',
-        icon: 'language', // Material Icons
-        iconType: 'material',
-        useDefault: true
-      },
-      {
-        id: 'google',
-        name: 'Google',
-        iconType: 'local',
-        iconPath: 'icons/google.png',
-        url: 'https://www.google.com/search?q='
-      },
-      {
-        id: 'bing',
-        name: 'Bing',
-        iconType: 'local',
-        iconPath: 'icons/bing.png',
-        url: 'https://www.bing.com/search?q='
-      },
-      {
-        id: 'baidu',
-        name: '百度',
-        iconType: 'local',
-        iconPath: 'icons/baidu.png',
-        url: 'https://www.baidu.com/s?wd='
-      },
-      {
-        id: 'ddg',
-        name: 'DuckDuckGo',
-        iconType: 'local',
-        iconPath: 'icons/duckduckgo.png',
-        url: 'https://duckduckgo.com/?q='
-      }
-    ];
-
-    this.currentSearchEngine = 0; // 默认使用第一个（Default）
+    this.searchDebounceDelay = 200;
+    this.searchEngines = [];
+    this.engineMap = new Map();
+    this.currentSearchEngineId = 'browser-default';
+    this.searchSettings = window.unifiedDataManager?.getDefaultSearchSettings?.()
+      || {
+        defaultEngineId: 'browser-default',
+        enabledEngineIds: ['browser-default'],
+        customEngines: [],
+        openInNewTab: true
+      };
     this.isSearching = false;
-    this.renderSearchEngineOptions();
-    this.bindEvents();
-    this.updateSearchEngineIcon();
-    this.loadPreferredSearchEngine();
+    this.isEnginePanelOpen = false;
 
-    // 检查Chrome Search API可用性
-    //this.checkSearchAPIAvailability();
+    if (!this.searchInput || !this.searchBox) {
+      return;
+    }
+
+    this.createSearchDropdown();
+    this.bindEvents();
+    this.refreshSearchEngineConfig();
   }
 
-  /**
-   * Create search dropdown element
-   */
   createSearchDropdown() {
     this.searchDropdown = document.createElement('div');
     this.searchDropdown.className = 'search-dropdown';
     this.searchDropdown.style.display = 'none';
-
-    // 插入到搜索框中，作为搜索框的一部分
     this.searchBox.appendChild(this.searchDropdown);
   }
 
-  renderSearchEngineOptions() {
-    if (!this.searchEngineDropdownMenu) {
+  getSearchSettings() {
+    const currentConfigData = window.unifiedDataManager?.getCurrentConfigData?.();
+    const rawSearchSettings = currentConfigData?.settings?.search || null;
+
+    if (window.unifiedDataManager?.normalizeSearchSettings) {
+      return window.unifiedDataManager.normalizeSearchSettings(rawSearchSettings);
+    }
+
+    return {
+      defaultEngineId: 'browser-default',
+      enabledEngineIds: ['browser-default'],
+      customEngines: [],
+      openInNewTab: true
+    };
+  }
+
+  async saveSearchSettings(partialSearchSettings = {}) {
+    const currentThemeId = window.unifiedDataManager?.appData?.currentThemeId;
+    if (!currentThemeId) {
       return;
     }
 
-    this.searchEngineDropdownMenu.textContent = '';
+    if (window.unifiedDataManager?.updateThemeSearchSettings) {
+      await window.unifiedDataManager.updateThemeSearchSettings(currentThemeId, partialSearchSettings);
+      window.storageManager?.updateDataFromUnified?.();
+      return;
+    }
+
+    const currentConfigData = window.unifiedDataManager?.getCurrentConfigData?.() || {};
+    const currentSearchSettings = this.getSearchSettings();
+    await window.unifiedDataManager?.saveCurrentConfigData?.({
+      ...currentConfigData,
+      settings: {
+        ...(currentConfigData.settings || {}),
+        search: {
+          ...currentSearchSettings,
+          ...(partialSearchSettings || {})
+        }
+      }
+    });
+    window.storageManager?.updateDataFromUnified?.();
+  }
+
+  refreshSearchEngineConfig() {
+    const searchSettings = this.getSearchSettings();
+    const resolvedSearchState = window.SearchEngineRegistry?.resolveSearchState
+      ? window.SearchEngineRegistry.resolveSearchState(searchSettings)
+      : {
+        defaultEngineId: searchSettings.defaultEngineId || 'browser-default',
+        enabledEngineIds: searchSettings.enabledEngineIds || ['browser-default'],
+        openInNewTab: searchSettings.openInNewTab !== false,
+        allEngines: [],
+        enabledEngines: [],
+        customEngines: searchSettings.customEngines || [],
+        engineMap: new Map()
+      };
+
+    this.searchSettings = {
+      defaultEngineId: resolvedSearchState.defaultEngineId,
+      enabledEngineIds: resolvedSearchState.enabledEngineIds.slice(),
+      customEngines: resolvedSearchState.customEngines.slice(),
+      openInNewTab: resolvedSearchState.openInNewTab
+    };
+    this.searchEngines = resolvedSearchState.enabledEngines.slice();
+    this.engineMap = resolvedSearchState.engineMap;
+    this.currentSearchEngineId = this.searchSettings.defaultEngineId;
+
+    this.renderSearchEnginePanel();
+    this.updateSearchEngineIcon();
+  }
+
+  renderSearchEnginePanel() {
+    if (!this.searchEnginePanelList) {
+      return;
+    }
+
+    this.searchEnginePanelList.textContent = '';
+    const fragment = document.createDocumentFragment();
 
     this.searchEngines.forEach((engine) => {
-      const option = document.createElement('div');
-      option.className = 'search-engine-option';
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'search-engine-panel-item';
       option.dataset.engine = engine.id;
 
-      option.appendChild(this.createSearchEngineIconNode(engine, true));
+      const iconWrap = document.createElement('span');
+      iconWrap.className = 'search-engine-panel-icon';
+      iconWrap.appendChild(this.createSearchEngineIconNode(engine, true));
 
       const label = document.createElement('span');
+      label.className = 'search-engine-panel-label';
       label.textContent = engine.name;
-      option.appendChild(label);
 
-      this.searchEngineDropdownMenu.appendChild(option);
+      option.appendChild(iconWrap);
+      option.appendChild(label);
+      fragment.appendChild(option);
     });
+
+    fragment.appendChild(this.createSearchEngineManageButton());
+    this.searchEnginePanelList.appendChild(fragment);
+    this.updateActiveOption();
+  }
+
+  createSearchEngineManageButton() {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'search-engine-panel-item search-engine-panel-item-add';
+    button.dataset.action = 'manage';
+
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'search-engine-panel-icon search-engine-panel-icon-add';
+
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-rounded';
+    icon.textContent = 'add';
+    iconWrap.appendChild(icon);
+
+    const label = document.createElement('span');
+    label.className = 'search-engine-panel-label';
+    label.textContent = '添加';
+
+    button.appendChild(iconWrap);
+    button.appendChild(label);
+    return button;
   }
 
   createSearchEngineIconNode(engine, isOption = false) {
+    if (!engine) {
+      return document.createElement('span');
+    }
+
     if (engine.iconType === 'material') {
       const icon = document.createElement('span');
       icon.className = `${isOption ? '' : 'search-engine-icon '}material-symbols-rounded`.trim();
       if (!isOption) {
         icon.classList.add('search-engine-icon');
       }
-      icon.textContent = engine.icon;
+      icon.textContent = engine.iconValue || 'language';
       return icon;
     }
 
-    if (engine.iconType === 'local') {
-      const icon = document.createElement('img');
-      icon.className = `${isOption ? '' : 'search-engine-icon '}search-engine-image`.trim();
-      icon.src = engine.iconPath;
-      icon.alt = '';
-      icon.draggable = false;
-      return icon;
+    if (engine.iconType === 'local' || engine.iconType === 'image') {
+      const image = document.createElement('img');
+      image.className = `${isOption ? '' : 'search-engine-icon '}search-engine-image`.trim();
+      image.src = engine.iconPath || engine.iconUrl || '';
+      image.alt = engine.name || '';
+      image.draggable = false;
+      image.addEventListener('error', () => {
+        if (image.dataset.fallbackApplied === 'true') {
+          return;
+        }
+
+        image.dataset.fallbackApplied = 'true';
+        image.replaceWith(this.createBadgeNode(engine, isOption));
+      });
+      return image;
     }
 
+    return this.createBadgeNode(engine, isOption);
+  }
+
+  createBadgeNode(engine, isOption = false) {
     const badge = document.createElement('span');
     badge.className = `search-engine-badge ${engine.badgeClass || ''}`.trim();
     if (!isOption) {
       badge.classList.add('search-engine-icon');
     }
-    badge.textContent = engine.icon;
+    badge.textContent = engine.iconValue || window.SearchEngineRegistry?.createBadgeText?.(engine.name) || '?';
     return badge;
   }
 
-  /**
-   * Bind event listeners
-   */
   bindEvents() {
-    // Search input keydown
-    this.searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
+    this.searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
         this.handleSearch();
       }
     });
 
-    // Real-time search filtering with debounce
-    this.searchInput.addEventListener('input', (e) => {
-      this.debouncedSearch(e.target.value);
+    this.searchInput.addEventListener('input', (event) => {
+      this.closeEnginePanel();
+      this.debouncedSearch(event.target.value);
     });
 
-    // Search input focus
     this.searchInput.addEventListener('focus', () => {
       this.isSearching = true;
+      this.closeEnginePanel();
       if (this.searchInput.value.trim()) {
         this.showSearchDropdown();
       }
     });
 
-    // Search input blur (with delay to allow clicking on results)
     this.searchInput.addEventListener('blur', () => {
       setTimeout(() => {
         this.hideSearchDropdown();
@@ -165,150 +241,121 @@ class SearchManager {
       }, 150);
     });
 
-    // Search button click
-    if (this.searchButton) {
-      this.searchButton.addEventListener('click', () => {
-        this.handleSearch();
-      });
-    }
-
-    // Search engine selector click
-    if (this.searchEngineSelector) {
-      this.searchEngineSelector.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleDropdown();
-      });
-    }
-
-    if (this.searchEngineDropdownMenu) {
-      this.searchEngineDropdownMenu.addEventListener('click', (e) => {
-        const option = e.target.closest('.search-engine-option');
-        if (!option) {
-          return;
-        }
-
-        e.stopPropagation();
-        const engineId = option.dataset.engine;
-        const engineIndex = this.searchEngines.findIndex(engine => engine.id === engineId);
-        this.selectSearchEngine(engineIndex);
-      });
-    }
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', () => {
-      this.closeDropdown();
+    this.searchButton?.addEventListener('click', () => {
+      this.handleSearch();
     });
 
-    // Global keyboard shortcut for focusing search (/)
-    document.addEventListener('keydown', (e) => {
-      // Check if not already focusing on an input
-      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
-        e.preventDefault();
+    this.searchEngineSelector?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleEnginePanel();
+    });
+
+    this.searchEnginePanelList?.addEventListener('click', (event) => {
+      const manageButton = event.target.closest('[data-action="manage"]');
+      if (manageButton) {
+        window.location.href = 'settings.html?openSearchConfig=1';
+        return;
+      }
+
+      const option = event.target.closest('.search-engine-panel-item[data-engine]');
+      if (!option) {
+        return;
+      }
+
+      void this.selectSearchEngine(option.dataset.engine || '');
+    });
+
+    document.addEventListener('click', (event) => {
+      const clickedInsideSearch = this.searchContainer?.contains(event.target);
+      if (!clickedInsideSearch) {
+        this.closeEnginePanel();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === '/' && document.activeElement?.tagName !== 'INPUT') {
+        event.preventDefault();
         this.searchInput.focus();
+      }
+
+      if (event.key === 'Escape') {
+        this.closeEnginePanel();
       }
     });
   }
 
-  /**
-   * Debounced search to improve performance
-   * @param {string} query - The search query
-   */
   debouncedSearch(query) {
-    // 清除之前的定时器
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer);
     }
 
-    // 设置新的定时器
     this.searchDebounceTimer = setTimeout(() => {
       this.handleRealTimeSearch(query);
     }, this.searchDebounceDelay);
   }
 
-  /**
-   * Handle real-time search filtering
-   * @param {string} query - The search query
-   */
   handleRealTimeSearch(query) {
     const trimmedQuery = query.trim().toLowerCase();
 
     if (!trimmedQuery) {
-      // Hide dropdown when search is empty
       this.hideSearchDropdown();
       return;
     }
 
-    // Show search results in dropdown
     this.showSearchResults(trimmedQuery);
   }
 
-  /**
-   * Show search dropdown
-   */
   showSearchDropdown() {
+    this.closeEnginePanel();
     this.searchDropdown.style.display = 'block';
     this.searchBox.classList.add('has-results');
   }
 
-  /**
-   * Hide search dropdown
-   */
   hideSearchDropdown() {
     this.searchDropdown.style.display = 'none';
     this.searchBox.classList.remove('has-results');
   }
 
-  /**
-   * Show search results in dropdown
-   * @param {string} query - The search query (lowercase)
-   */
   showSearchResults(query) {
-    // Check if storageManager is initialized and has data
-    if (!storageManager || !storageManager.data || !storageManager.data.categories) {
+    if (!window.storageManager || !window.storageManager.data || !window.storageManager.data.categories) {
       this.renderSearchResults([]);
       this.showSearchDropdown();
       return;
     }
 
-    const categories = storageManager.getCategories();
+    const categories = window.storageManager.getCategories();
     let results = [];
 
-    // Collect matching shortcuts
-    categories.forEach(category => {
+    categories.forEach((category) => {
       const categoryMatches = category.name.toLowerCase().includes(query);
-      const matchingShortcuts = category.shortcuts.filter(shortcut =>
-        shortcut.name.toLowerCase().includes(query) ||
-        shortcut.url.toLowerCase().includes(query)
+      const matchingShortcuts = category.shortcuts.filter((shortcut) =>
+        shortcut.name.toLowerCase().includes(query) || shortcut.url.toLowerCase().includes(query)
       );
 
       if (categoryMatches) {
         results.push({
           type: 'category',
           data: category,
-          query: query
+          query
         });
       }
 
-      matchingShortcuts.forEach(shortcut => {
+      matchingShortcuts.forEach((shortcut) => {
         results.push({
           type: 'shortcut',
           data: shortcut,
-          category: category,
-          query: query
+          category,
+          query
         });
       });
     });
 
-    // Limit results to 8 items
     results = results.slice(0, 8);
-
     this.renderSearchResults(results);
     this.showSearchDropdown();
   }
 
-  /**
-   * Render search results in dropdown
-   */
   renderSearchResults(results) {
     this.searchDropdown.textContent = '';
 
@@ -396,8 +443,8 @@ class SearchManager {
       const subtitle = document.createElement('div');
       subtitle.className = 'result-subtitle';
       subtitle.textContent = result.type === 'category'
-        ? `分类 • ${result.data.shortcuts.length} 个快捷方式`
-        : `${result.category.name} • ${result.data.url}`;
+        ? `分类 · ${result.data.shortcuts.length} 个快捷方式`
+        : `${result.category.name} · ${result.data.url}`;
 
       content.appendChild(title);
       content.appendChild(subtitle);
@@ -407,19 +454,13 @@ class SearchManager {
     });
 
     this.searchDropdown.appendChild(fragment);
-
-    // 绑定点击事件
     this.bindSearchResultEvents();
   }
 
-  /**
-   * Bind click events to search results (使用事件委托提高性能)
-   */
   bindSearchResultEvents() {
-    // 使用事件委托，只在dropdown上绑定一次事件
     if (!this.searchDropdown.hasEventListener) {
-      this.searchDropdown.addEventListener('click', async (e) => {
-        const item = e.target.closest('.search-result-item');
+      this.searchDropdown.addEventListener('click', async (event) => {
+        const item = event.target.closest('.search-result-item');
         if (item) {
           await this.handleSearchResultClick({ currentTarget: item });
         }
@@ -428,25 +469,18 @@ class SearchManager {
     }
   }
 
-  /**
-   * Handle search result click
-   */
-  async handleSearchResultClick(e) {
-    const item = e.currentTarget;
+  async handleSearchResultClick(event) {
+    const item = event.currentTarget;
     const type = item.dataset.type;
 
     if (type === 'category') {
       const categoryId = item.dataset.id;
       await this.selectCategory(categoryId);
     } else if (type === 'shortcut') {
-      const url = item.dataset.url;
-      this.selectShortcut(url);
+      this.selectShortcut(item.dataset.url);
     }
   }
 
-  /**
-   * Highlight matching text
-   */
   createHighlightedFragment(text, query) {
     const fragment = document.createDocumentFragment();
     const normalizedQuery = query.trim().toLowerCase();
@@ -480,9 +514,6 @@ class SearchManager {
     return fragment;
   }
 
-  /**
-   * Select category from search results
-   */
   async selectCategory(categoryId) {
     this.hideSearchDropdown();
     this.searchInput.value = '';
@@ -499,194 +530,169 @@ class SearchManager {
     }
   }
 
-  /**
-   * Select shortcut from search results
-   */
   selectShortcut(url) {
-    console.log('SearchManager: 点击快捷方式，URL:', url);
     this.hideSearchDropdown();
     this.searchInput.value = '';
 
     try {
-      // 确保URL格式正确
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
+      let targetUrl = url;
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = 'https://' + targetUrl;
       }
 
-      console.log('SearchManager: 打开URL:', url);
       const shortcutOpenMode = window.storageManager?.getSettings?.().shortcutOpenMode || 'new-tab';
-
       if (shortcutOpenMode === 'current-tab') {
-        window.location.href = url;
+        window.location.href = targetUrl;
       } else {
-        window.open(url, '_blank');
+        window.open(targetUrl, '_blank');
       }
     } catch (error) {
-      console.error('SearchManager: 打开URL失败:', error);
-      // 降级：直接设置window.location
+      console.error('SearchManager: failed to open shortcut URL:', error);
       window.location.href = url;
     }
   }
 
-  /**
-   * Handle search action (Enter key or search button)
-   */
   handleSearch() {
     const query = this.searchInput.value.trim();
-
     if (!query) {
       return;
     }
 
-    // Check if it's a URL (has dots and no spaces)
     if (this.isUrl(query)) {
       this.navigateToUrl(query);
-    } else {
-      // Otherwise, perform Google search
-      this.performSearch(query);
-    }
-  }
-
-  /**
-   * Check if the query is a URL
-   * @param {string} query - The search query
-   * @returns {boolean} True if the query is a URL
-   */
-  isUrl(query) {
-    // Simple URL validation (has dots, no spaces)
-    return query.includes('.') && !query.includes(' ');
-  }
-
-  /**
-   * Navigate to URL
-   * @param {string} url - The URL to navigate to
-   */
-  navigateToUrl(url) {
-    // Add https:// if no protocol specified
-    if (!url.match(/^https?:\/\//)) {
-      url = 'https://' + url;
-    }
-    
-    window.location.href = url;
-  }
-
-  /**
-   * Perform search using current search engine
-   * Compliant with Chrome Web Store policies:
-   * - Default option uses chrome.search API (respects user's browser settings)
-   * - Other options open in new tab (doesn't modify default settings)
-   * @param {string} query - The search query
-   */
-  performSearch(query) {
-    const currentEngine = this.searchEngines[this.currentSearchEngine];
-
-    if (currentEngine.useDefault) {
-      // Use Chrome Search API to respect user's default search engine
-      console.log('Checking Chrome Search API availability...');
-      console.log('chrome:', typeof chrome);
-      console.log('chrome.search:', typeof chrome?.search);
-      console.log('chrome.search.query:', typeof chrome?.search?.query);
-
-      if (chrome && chrome.search && typeof chrome.search.query === 'function') {
-        try {
-          console.log('Calling Chrome Search API with query:', query);
-          // 使用Chrome Search API，让浏览器决定行为
-          chrome.search.query({
-            text: query,
-            disposition: 'CURRENT_TAB'
-          });
-          console.log('Chrome Search API called successfully');
-        } catch (error) {
-          console.error('Chrome Search API call failed:', error);
-          window.showNotification('默认搜索功能暂时不可用，请尝试其他搜索引擎', 'warning');
-          return;
-        }
-      } else {
-        // Chrome Search API不可用时的处理
-        const debugInfo = {
-          chrome: typeof chrome,
-          search: typeof chrome?.search,
-          query: typeof chrome?.search?.query,
-          permissions: chrome?.runtime?.getManifest?.()?.permissions
-        };
-        console.error('Chrome Search API not available:', debugInfo);
-        window.showNotification('默认搜索功能不可用，请使用其他搜索引擎或重新加载扩展', 'warning');
-        return;
-      }
-    } else {
-      // For specific search engines, open in new tab
-      const searchUrl = currentEngine.url + encodeURIComponent(query);
-      window.open(searchUrl, '_blank');
-    }
-  }
-
-
-
-  /**
-   * Toggle dropdown menu
-   */
-  toggleDropdown() {
-    const isOpen = this.searchEngineSelector.classList.contains('open');
-    if (isOpen) {
-      this.closeDropdown();
-    } else {
-      this.openDropdown();
-    }
-  }
-
-  /**
-   * Open dropdown menu
-   */
-  openDropdown() {
-    this.searchEngineSelector.classList.add('open');
-    this.updateActiveOption();
-  }
-
-  /**
-   * Close dropdown menu
-   */
-  closeDropdown() {
-    this.searchEngineSelector.classList.remove('open');
-  }
-
-  /**
-   * Select search engine
-   * @param {number} engineIndex - Index of the search engine
-   */
-  selectSearchEngine(engineIndex) {
-    if (engineIndex < 0 || engineIndex >= this.searchEngines.length) {
       return;
     }
 
-    this.currentSearchEngine = engineIndex;
-    this.updateSearchEngineIcon();
-    this.updateActiveOption();
-    this.closeDropdown();
-
-    this.savePreferredSearchEngine();
+    this.performSearch(query);
   }
 
-  /**
-   * Update active option in dropdown
-   */
+  isUrl(query) {
+    return query.includes('.') && !query.includes(' ');
+  }
+
+  navigateToUrl(url) {
+    let targetUrl = url;
+    if (!targetUrl.match(/^https?:\/\//)) {
+      targetUrl = 'https://' + targetUrl;
+    }
+
+    window.location.href = targetUrl;
+  }
+
+  performSearch(query) {
+    const currentEngine = this.engineMap.get(this.currentSearchEngineId)
+      || this.engineMap.get(this.searchSettings.defaultEngineId)
+      || null;
+
+    if (!currentEngine) {
+      this.notify('搜索引擎配置不可用，请检查当前工作空间设置', 'warning');
+      return;
+    }
+
+    if (currentEngine.type === 'chrome-default') {
+      if (chrome?.search && typeof chrome.search.query === 'function') {
+        try {
+          // Keep browser-default searches fully delegated to Chrome's search API.
+          chrome.search.query({
+            text: query
+          });
+        } catch (error) {
+          console.error('SearchManager: chrome.search.query failed:', error);
+          this.notify('浏览器默认搜索暂时不可用，请尝试其他搜索引擎', 'warning');
+        }
+        return;
+      }
+
+      this.notify('浏览器默认搜索不可用，请重新加载扩展后重试', 'warning');
+      return;
+    }
+
+    const searchUrl = window.SearchEngineRegistry?.buildSearchUrl
+      ? window.SearchEngineRegistry.buildSearchUrl(currentEngine, query)
+      : currentEngine.urlTemplate.replace('%s', encodeURIComponent(query));
+
+    if (!searchUrl) {
+      this.notify('搜索引擎配置不可用，请检查设置', 'warning');
+      return;
+    }
+
+    if (this.searchSettings.openInNewTab) {
+      window.open(searchUrl, '_blank');
+      return;
+    }
+
+    window.location.href = searchUrl;
+  }
+
+  async selectSearchEngine(engineId) {
+    if (!this.engineMap.has(engineId) || !engineId) {
+      return;
+    }
+
+    const previousEngineId = this.currentSearchEngineId;
+    this.currentSearchEngineId = engineId;
+    this.updateSearchEngineIcon();
+    this.updateActiveOption();
+    this.closeEnginePanel();
+
+    try {
+      await this.saveSearchSettings({
+        defaultEngineId: engineId
+      });
+      this.refreshSearchEngineConfig();
+    } catch (error) {
+      console.error('SearchManager: failed to persist search engine selection:', error);
+      this.currentSearchEngineId = previousEngineId;
+      this.refreshSearchEngineConfig();
+      this.notify(`保存默认搜索引擎失败: ${error.message}`, 'error');
+    }
+  }
+
+  toggleEnginePanel() {
+    if (this.isEnginePanelOpen) {
+      this.closeEnginePanel();
+      return;
+    }
+
+    this.openEnginePanel();
+  }
+
+  openEnginePanel() {
+    this.hideSearchDropdown();
+    this.isEnginePanelOpen = true;
+    this.searchContainer?.classList.add('engine-panel-open');
+    this.searchBox?.classList.add('has-engine-panel');
+    this.updateActiveOption();
+  }
+
+  closeEnginePanel() {
+    this.isEnginePanelOpen = false;
+    this.searchContainer?.classList.remove('engine-panel-open');
+    this.searchBox?.classList.remove('has-engine-panel');
+  }
+
   updateActiveOption() {
-    const options = this.searchEngineDropdownMenu?.querySelectorAll('.search-engine-option') || [];
-    const currentEngineId = this.searchEngines[this.currentSearchEngine].id;
+    const options = this.searchEnginePanelList?.querySelectorAll('.search-engine-panel-item[data-engine]') || [];
     options.forEach((option) => {
-      option.classList.toggle('active', option.dataset.engine === currentEngineId);
+      option.classList.toggle('active', option.dataset.engine === this.currentSearchEngineId);
     });
   }
 
-  /**
-   * Update search engine icon
-   */
   updateSearchEngineIcon() {
     const iconElement = document.querySelector('.search-engine-selector .search-engine-icon');
-    if (iconElement) {
-      const currentEngine = this.searchEngines[this.currentSearchEngine];
+    const currentEngine = this.engineMap.get(this.currentSearchEngineId)
+      || this.engineMap.get(this.searchSettings.defaultEngineId)
+      || this.searchEngines[0]
+      || null;
 
+    if (iconElement && currentEngine) {
       iconElement.replaceWith(this.createCurrentEngineIcon(currentEngine));
     }
+
+    if (this.searchEngineSelector && currentEngine) {
+      this.searchEngineSelector.title = `当前搜索引擎: ${currentEngine.name}`;
+    }
+
     this.updateActiveOption();
   }
 
@@ -696,94 +702,19 @@ class SearchManager {
     return iconNode;
   }
 
-  savePreferredSearchEngine() {
-    if (chrome?.storage?.sync) {
-      chrome.storage.sync.set({ preferredSearchEngine: this.currentSearchEngine });
+  notify(message, type = 'info') {
+    if (window.notification?.[type]) {
+      window.notification[type](message);
       return;
     }
 
-    globalThis.__cardTabSearchPreferences = {
-      preferredSearchEngine: this.currentSearchEngine
-    };
-  }
-
-  /**
-   * Load user's preferred search engine
-   */
-  loadPreferredSearchEngine() {
-    if (chrome?.storage?.sync) {
-      chrome.storage.sync.get(['preferredSearchEngine'], (result) => {
-        this.applySavedSearchEngine(result.preferredSearchEngine);
-      });
+    if (window.notification?.show) {
+      window.notification.show(message, type, { duration: 3000 });
       return;
     }
 
-    this.applySavedSearchEngine(globalThis.__cardTabSearchPreferences?.preferredSearchEngine);
-  }
-
-  applySavedSearchEngine(savedIndex) {
-    if (savedIndex === undefined || savedIndex === null) {
-      this.updateSearchEngineIcon();
-      return;
-    }
-
-    const parsedIndex = parseInt(savedIndex, 10);
-    if (parsedIndex >= 0 && parsedIndex < this.searchEngines.length) {
-      this.currentSearchEngine = parsedIndex;
-    } else {
-      this.currentSearchEngine = 0;
-      this.savePreferredSearchEngine();
-    }
-
-    this.updateSearchEngineIcon();
-  }
-
-  /**
-   * 检查Chrome Search API可用性
-   */
-  checkSearchAPIAvailability() {
-    console.log('=== Chrome Search API 可用性检查 ===');
-
-    // 检查基本环境
-    console.log('1. 基本环境检查:');
-    console.log('   - chrome对象:', typeof chrome);
-    console.log('   - chrome.search:', typeof chrome?.search);
-    console.log('   - chrome.search.query:', typeof chrome?.search?.query);
-
-    // 检查权限
-    if (chrome && chrome.runtime && chrome.runtime.getManifest) {
-      const manifest = chrome.runtime.getManifest();
-      console.log('2. 权限检查:');
-      console.log('   - manifest权限:', manifest.permissions);
-      console.log('   - 包含search权限:', manifest.permissions?.includes('search'));
-    }
-
-    // 检查扩展环境
-    console.log('3. 扩展环境:');
-    console.log('   - 扩展ID:', chrome?.runtime?.id);
-    console.log('   - 当前URL:', window.location.href);
-
-    // 尝试权限检查API
-    if (chrome && chrome.permissions && chrome.permissions.contains) {
-      chrome.permissions.contains({permissions: ['search']}, (result) => {
-        console.log('4. 动态权限检查 - search:', result);
-        if (!result) {
-          console.warn('⚠️ Search权限未授予，可能需要重新加载扩展');
-        }
-      });
-    }
-
-    // 如果chrome.search.query不可用，给出具体建议
-    if (chrome?.search && typeof chrome.search.query !== 'function') {
-      console.warn('⚠️ chrome.search.query不可用，建议:');
-      console.warn('   1. 重新加载扩展 (chrome://extensions/)');
-      console.warn('   2. 检查Chrome版本是否支持');
-      console.warn('   3. 确认扩展权限已正确授予');
-    }
-
-    console.log('=== 检查完成 ===');
+    console[type === 'error' ? 'error' : 'warn'](message);
   }
 }
 
-// Create instance - will be initialized in main.js
 let searchManager;

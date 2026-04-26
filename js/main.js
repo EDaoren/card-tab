@@ -133,11 +133,14 @@ function handleDataUpdated(updateInfo) {
   dataUpdateReloadPromise = window.unifiedDataManager.loadCurrentConfigData()
     .then(() => {
       console.log('Unified data manager data reloaded');
+      window.storageManager?.updateDataFromUnified?.();
 
       if (categoryManager) {
         categoryManager.renderCategories();
         console.log('Categories re-rendered');
       }
+
+      searchManager?.refreshSearchEngineConfig?.();
 
       window.loadDisplayModeSettings?.();
       window.refreshFloatingToolbarState?.();
