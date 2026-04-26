@@ -1311,10 +1311,6 @@ class SettingsUIManager {
 
   renderSearchEngineSettings() {
     this.searchSettingsDraft = this.getNormalizedSearchSettingsDraft();
-
-    const resolvedSearchState = window.SearchEngineRegistry?.resolveSearchState
-      ? window.SearchEngineRegistry.resolveSearchState(this.searchSettingsDraft)
-      : null;
     const builtInEngines = window.SearchEngineRegistry?.getBuiltInEngines?.() || [];
     const groupedBuiltInEngines = window.SearchEngineRegistry?.groupEnginesByCategory
       ? window.SearchEngineRegistry.groupEnginesByCategory(builtInEngines)
